@@ -26,7 +26,8 @@
     tak: "तक", tha: "था", theek: "ठीक", thodi: "थोड़ी", thoda: "थोड़ा", time: "टाइम", toh: "तो", tyre: "टायर",
     underpass: "अंडरपास", uske: "उसके",
     wahan: "वहाँ", wapas: "वापस", wear: "वियर", wo: "वो",
-    yahan: "यहाँ", ya: "या", zor: "ज़ोर",
+    yahan: "यहाँ", ya: "या", zor: "ज़ोर", email: "ईमेल", paya: "पाया", poori: "पूरी", gayi: "गई", ye: "ये", safar: "सफ़र", khabar: "ख़बर", sadak: "सड़क", sense: "सेंस",
+    agent: "एजेंट", mode: "मोड", preview: "प्रीव्यू", salah: "सलाह", alert: "अलर्ट", bolkar: "बोलकर", anjaan: "अनजान", poochhti: "पूछती", naya: "नया", damage: "डैमेज", hui: "हुई", hata: "हटा", lagega: "लगेगा", passes: "पास", map: "मैप", apne: "अपने", hat: "हट", mera: "मेरा", plan: "प्लान", karo: "करो", kal: "कल", subah: "सुबह", baje: "बजे", gurgaon: "गुड़गाँव", office: "ऑफ़िस", jaana: "जाना", sab: "सब", set: "सेट", hard: "हार्ड", nikliye: "निकलिए", reminder: "रिमाइंडर", cabin: "केबिन", thanda: "ठंडा", nikalte: "निकलते", hi: "ही", taiyaar: "तैयार", city: "सिटी", complaint: "कंप्लेंट", din: "दिन", saboot: "सबूत", personal: "पर्सनल", data: "डेटा", portal: "पोर्टल", file: "फ़ाइल", aapka: "आपका", naam: "नाम", khat: "खट", visit: "विज़िट", hafte: "हफ़्ते", jhatke: "झटके", shanivaar: "शनिवार", pick: "पिक", up: "अप", hit: "हिट", technician: "टेक्नीशियन", bheja: "भेजा", poora: "पूरा", rahega: "रहेगा", jagah: "जगह",
     ne: "ने", kiya: "किया", di: "दी", meri: "मेरी", liye: "लिए", hazard: "हैज़र्ड", kahin: "कहीं", laga: "लगा", lagta: "लगता", agle: "अगले", check: "चेक", mm: "मिलीमीटर", cm: "सेंटीमीटर", g: "जी",
   };
 

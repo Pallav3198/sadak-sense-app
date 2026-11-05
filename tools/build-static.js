@@ -43,6 +43,7 @@ function page(htmlPath, extraScripts, { contentOnly, title }) {
     .replace(/<script src="\/shared\/hinglish.js"><\/script>/, "")
     .replace(/<script src="\/shared\/mycar.js"><\/script>/, script(rd("web/shared/mycar.js")))
     .replace(/<script src="\/shared\/voice.js"><\/script>/, script(rd("web/shared/voice.js")))
+    .replace(/<script src="\/shared\/mail.js"><\/script>/, script(rd("web/shared/mail.js")))
     .replace(/<script src="\/console\/console.js"><\/script>/, script(rd("web/console/console.js")))
     .replace(/<script src="\/drive\/drive.js"><\/script>/, script(rd("web/drive/drive.js")))
     .replace('href="/drive/" target="_blank" rel="noopener"', 'href="drive.html"')

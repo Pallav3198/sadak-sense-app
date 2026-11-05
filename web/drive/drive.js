@@ -80,7 +80,7 @@ async function flush() {
 
 /* ---------- alerts + clean passes ---------- */
 function tick() {
-  if (!S.pos) return;
+  if (!S.pos || S.simHold) return;
   if (Date.now() - S.lastFetch > 12000) fetchKnown();
   const { lat, lon, speed, heading } = S.pos;
   const warnD = Math.max(60, speed * 6 + 40);
@@ -113,7 +113,7 @@ function tick() {
   renderCar(next ? S.carCheck : null);
   // Flood agent: water ahead that this car should not (or only just) cross.
   const wAhead = S.known.find((h) => h.family === "water" && h.state === "confirmed" && SS.hav(lat, lon, h.lat, h.lon) < 900 && (heading == null || SS.hdiff(SS.bearing(lat, lon, h.lat, h.lon), heading) < 40));
-  if (wAhead) floodAgent(wAhead);
+  if (wAhead && !S.tourDone) floodAgent(wAhead);
   if (next && nextD < warnD + 150) {
     const dist = Math.max(10, Math.round(nextD / 10) * 10);
     const [t, s] = PHRASE[next.type][S.lang](dist);
@@ -255,8 +255,8 @@ function propose(id, text, onYes, onNo) {
   if (S.pendingAgent || S.pendingJolt) return false;
   S.agentDone.add(id); S.pendingAgent = { id, onYes, onNo };
   openConvo(); $("yn").hidden = false; bubble("a", "Sadak Sense · agent", text); chime();
-  setTimeout(() => { say(text); if (SR) setTimeout(listen, 5200); }, 300);
-  clearTimeout(S.agentTimer); S.agentTimer = setTimeout(() => S.pendingAgent?.id === id && resolveAgent(null), 16000);
+  setTimeout(() => { say(text); if (SR && !S.simHold) setTimeout(listen, 5200); }, 300);
+  clearTimeout(S.agentTimer); if (!S.simHold) S.agentTimer = setTimeout(() => S.pendingAgent?.id === id && resolveAgent(null), 16000);
   return true;
 }
 function resolveAgent(ok) {
@@ -269,7 +269,15 @@ function agentSay(text) { bubble("a", "Sadak Sense · agent", text); say(text); 
 // through the paired phone (simulated in the demo). Turned on once in setup, not per message.
 function tellHome(msg) {
   if (!S.homeOn) return false;
-  bubble("a", T3("Message to Home · demo", "Ghar ko message · demo", "घर को संदेश · डेमो"), `“${msg}”`);
+  const live = SadakMail.configured() && S.homeMail;
+  bubble("a", live ? T3("Email to Home", "Ghar ko email", "घर को ईमेल") : T3("Message to Home · demo", "Ghar ko message · demo", "घर को संदेश · डेमो"), `“${msg}”`);
+  if (live) SadakMail.send({ to: S.homeMail, subject: T3("Sadak Sense: trip update", "Sadak Sense: safar ki khabar", "Sadak Sense: यात्रा की ख़बर"), message: msg }).then((r) => {
+    const note = r.ok ? T3(`Email sent to ${S.homeMail}.`, `${S.homeMail} pe email bhej diya.`, `${S.homeMail} पर ईमेल भेज दिया।`)
+      : r.why === "limit" ? T3("Today's email limit is reached, so this one was not sent.", "Aaj ki email limit poori ho gayi, ye email nahi gaya.", "आज की ईमेल सीमा पूरी हो गई, यह ईमेल नहीं गया।")
+      : T3("The email could not be sent. Please call home.", "Email nahi ja paya. Ghar pe call kar lijiye.", "ईमेल नहीं जा पाया। घर पर फ़ोन कर लें।");
+    bubble("a", "Sadak Sense · agent", note);
+    if (!r.ok) say(note);
+  });
   return true;
 }
 // Flood agent: a waterlogged stretch ahead, confirmed by cars crawling or stalling in rain.
@@ -288,15 +296,15 @@ function floodAgent(h) {
 function tyreAgent(e) {
   if (S.agentDone.has("tyre")) return;
   if (S.pendingAgent || S.pendingJolt) return setTimeout(() => tyreAgent(e), 3000);
-  const text = T3(`That was a hard pothole hit, and the front-left tyre pressure is dropping, 33 to 28 psi. Shall I book this evening at the nearest Hyundai service centre and prepare an insurance claim draft?`,
-    `Bade gaddhe ke baad front-left tyre ka pressure gir raha hai, 33 se 28 psi. Nearest Hyundai service pe aaj shaam ka slot book karun, aur insurance claim ka draft bana doon?`,
-    `बड़े गड्ढे के बाद आगे-बाएँ टायर का प्रेशर गिर रहा है, 33 से 28 psi। नज़दीकी Hyundai सर्विस पर आज शाम का स्लॉट बुक करूँ, और इंश्योरेंस क्लेम का ड्राफ़्ट बना दूँ?`);
+  const text = T3(`Hard pothole hit, and the front-left tyre is losing pressure. Shall I book Hyundai service this evening and draft the claim?`,
+    `Bade gaddhe ke baad front-left tyre ka pressure gir raha hai. Aaj shaam Hyundai service book karun, aur claim draft bana doon?`,
+    `बड़े गड्ढे के बाद आगे-बाएँ टायर का प्रेशर गिर रहा है। आज शाम Hyundai सर्विस बुक करूँ, और क्लेम ड्राफ़्ट बना दूँ?`);
   propose("tyre", text,
     () => { S.booked = true; renderCar();
             tellHome(T3("A tyre took a hard hit, so driving slowly and may be a little late. The car is booked at Hyundai service this evening.", "Ek gaddhe se tyre mein dikkat lag rahi hai, isliye dheere aa rahe hain, thodi der ho sakti hai. Shaam ko Hyundai service pe dikha denge.", "एक गड्ढे से टायर में दिक़्क़त लग रही है, इसलिए धीरे आ रहे हैं, थोड़ी देर हो सकती है। शाम को Hyundai सर्विस पर दिखा देंगे।"));
-            agentSay(T3(`Booked for 6:30 pm at the nearest Hyundai service centre (demo). The claim draft has the time, place, your speed, the ${e.peakG} g jolt and the tyre pressure log. Check it before you send it.`,
-              `Shaam 6:30 ka slot book ho gaya, nearest Hyundai service pe (demo). Claim draft mein time, jagah, speed, ${e.peakG} g ka jhatka aur tyre pressure log hai. Bhejne se pehle dekh lijiye.`,
-              `शाम 6:30 का स्लॉट बुक हो गया, नज़दीकी Hyundai सर्विस पर (डेमो)। क्लेम ड्राफ़्ट में समय, जगह, गति, ${e.peakG} g का झटका और टायर प्रेशर लॉग है। भेजने से पहले देख लें।`)); },
+            agentSay(T3(`Booked for 6:30 pm (demo). The claim draft is ready; check it before you send it.`,
+              `Shaam 6:30 ka slot book ho gaya (demo). Claim draft taiyaar hai, bhejne se pehle dekh lijiye.`,
+              `शाम 6:30 का स्लॉट बुक हो गया (डेमो)। क्लेम ड्राफ़्ट तैयार है, भेजने से पहले देख लें।`)); },
     () => agentSay(T3("Okay. Stay under 60 and check the tyre at the next stop.", "Theek hai. 60 se neeche chaliye aur agle stop pe tyre check kar lijiye.", "ठीक है। 60 से नीचे चलें और अगले स्टॉप पर टायर जाँच लें।")));
 }
 
@@ -321,15 +329,118 @@ $("voiceTest").onclick = () => {
     fail: (why) => said(why === "unsupported" ? "This browser can't speak. Open the link in Microsoft Edge or Chrome." : "The voice didn't start. Open the link in Microsoft Edge, and check your internet and volume."),
   });
 };
+$("homeMailRow").hidden = !SadakMail.configured();
+try { $("homeMail").value = localStorage.getItem("ss-home-mail") || ""; } catch {}
 fillVoices();
 if (typeof speechSynthesis !== "undefined") speechSynthesis.addEventListener?.("voiceschanged", fillVoices);
 
+/* ---------- simulate: every feature on demand, without waiting for the car to reach a hazard ---------- */
+const YES = { English: "Yes", Hinglish: "Haan", Hindi: "हाँ" };
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+// Waits for the current line to finish; capped, so a silent browser can never stall the demo.
+async function spoken() {
+  await pause(S.voice && typeof speechSynthesis !== "undefined" && speechSynthesis.getVoices().length ? 1900 : 1400);
+  const t0 = Date.now();
+  while (typeof speechSynthesis !== "undefined" && (speechSynthesis.speaking || speechSynthesis.pending) && Date.now() - t0 < 16000) await pause(200);
+  await pause(350);
+}
+function simAlert(type, dist, devices, severity) {
+  const [t] = PHRASE[type][S.lang](dist), v = SadakCar.check(S.car, S.people, { type, severity, devices, family: type === "water" ? "water" : "surface" }), el = $("alert");
+  S.carCheck = v; el.className = "alert " + type; el.querySelector(".ic").textContent = SS.SYM[type];
+  $("aT").textContent = t; $("aS").textContent = `Felt by ${devices} cars`; $("aD").innerHTML = `${dist}<small>metres</small>`;
+  renderCar(v); chime(); say(`${t}. ${SadakCar.line(v, S.lang)}`);
+}
+const here = () => S.pos || { lat: 28.6315, lon: 77.2167, heading: 0, speed: 8 };
+function clearPending() { clearTimeout(S.pendTimer); clearTimeout(S.agentTimer); S.pendingJolt = null; S.pendingAgent = null; $("yn").hidden = true; }
+async function agentPlan(you, title, steps, line) {
+  openConvo(); bubble("u", S.lang === "English" ? "You" : "Aap", you);
+  bubble("a", T3("Agent mode · demo preview", "Agent mode · demo preview", "एजेंट मोड · डेमो"), `${title}\n${steps.map((x) => "✓ " + x).join("\n")}`);
+  agentSay(line); await spoken();
+}
+const STEPS = {
+  brief: [T3("Morning road brief", "Morning road brief", "सुबह का रोड ब्रीफ़"), async () => {
+    const r = await SS.api("/api/brief", { routeId: S.routeId, lang: S.lang }); $("briefT").textContent = r.text; $("brief").classList.add("show"); say(r.text); await spoken(); $("brief").classList.remove("show"); }],
+  breaker: [T3("Speed breaker, advice for this car", "Speed breaker, is gaadi ke liye salah", "स्पीड ब्रेकर, इस गाड़ी के लिए सलाह"), async () => { simAlert("breaker", 110, 46, 1.4); await spoken(); }],
+  pothole: [T3("Pothole alert", "Gaddhe ka alert", "गड्ढे की चेतावनी"), async () => { simAlert("pothole", 90, 31, 1.5); await spoken(); }],
+  ask: [T3("Ask by voice", "Bolkar poochhiye", "बोलकर पूछिए"), async () => {
+    const q = CHIPS[S.lang][0], r = SadakVoice.reply(q, { ahead: [{ type: "pothole", dist: 190, devices: 46 }], prefer: S.lang });
+    openConvo(); bubble("u", S.lang === "English" ? "You" : "Aap", q); bubble("a", "Sadak Sense", r.reply); say(r.reply); await spoken(); }],
+  car: [T3("Will my car make it?", "Meri gaadi nikal jayegi?", "मेरी गाड़ी निकल जाएगी?"), async () => { S.carCheck = SadakCar.check(S.car, S.people, { type: "breaker", severity: 1.4 }); await ask(CHIPS[S.lang][1]); await spoken(); }],
+  jolt: [T3("Unknown jolt, the car checks", "Anjaan jhatka, gaadi poochhti hai", "अनजान झटका, गाड़ी पूछती है"), async () => {
+    clearPending(); const p = here();
+    S.jolts++; $("mJolts").textContent = S.jolts;
+    askConfirm({ device: S.device, lat: p.lat, lon: p.lon, heading: Math.round(p.heading || 0), speed: 24, peak_g: 0.9, type: "pothole", ts: Date.now() });
+    await spoken(); await ask(YES[S.lang]); await spoken(); }],
+  report: [T3("Report a hazard by voice", "Bolkar report kijiye", "बोलकर रिपोर्ट कीजिए"), async () => { await ask(CHIPS[S.lang][3]); await spoken(); }],
+  tyre: [T3("Hard hit: service, claim, home", "Zor ka jhatka: service, claim, ghar", "ज़ोर का झटका: सर्विस, क्लेम, घर"), async () => {
+    clearPending(); S.agentDone.delete("tyre"); S.hits.push({ ts: Date.now(), type: "pothole", peakG: 1.21, road: $("mRoad").textContent, speed: 26 }); renderCar();
+    tyreAgent({ peakG: 1.21 }); await spoken(); await ask(YES[S.lang]); await spoken(); }],
+  flood: [T3("Flooded underpass: reroute, home", "Paani bhara underpass: naya raasta, ghar", "जलभराव: नया रास्ता, घर"), async () => {
+    clearPending(); simAlert("water", 350, 35); await spoken();
+    floodAgent({ id: "sim" + Date.now(), devices: 35 }); await spoken(); await ask(YES[S.lang]); await spoken(); }],
+  wear: [T3("Road wear and damage log", "Road wear aur damage log", "रोड वियर और डैमेज लॉग"), async () => {
+    $("convo").hidden = true; $("health").hidden = false; renderHealth(); say(T3("Here is this car's road wear and damage log.", "Ye hai is gaadi ka road wear aur damage log.", "यह है इस गाड़ी का रोड वियर और डैमेज लॉग।")); await spoken(); await pause(800); $("health").hidden = true; }],
+  repair: [T3("Road repaired: hazard removed", "Sadak theek hui: hazard hata", "सड़क ठीक हुई: ख़तरा हटा"), async () => {
+    try { await SS.api("/api/sim", { action: "repair" }); } catch {}
+    openConvo(); agentSay(T3("A pothole was repaired. Cars stop feeling it, and after 8 clean passes it leaves the map by itself.", "Ek gaddha theek ho gaya. Gaadiyon ko jhatka nahi lagega, aur 8 saaf passes ke baad wo map se apne aap hat jayega.", "एक गड्ढा ठीक हो गया। गाड़ियों को झटका नहीं लगेगा, और 8 साफ़ पास के बाद वह मैप से अपने आप हट जाएगा।")); await spoken(); }],
+  planDrive: [T3("Agent: plan my drive", "Agent: mera safar plan karo", "एजेंट: मेरी यात्रा"), () => agentPlan(
+    T3("I have to reach Gurgaon office at 8 tomorrow, set everything up.", "Kal subah 8 baje Gurgaon office jaana hai, sab set kar do.", "कल सुबह 8 बजे गुड़गाँव ऑफ़िस जाना है, सब सेट कर दो।"),
+    T3("Tomorrow's plan", "Kal ka plan", "कल की योजना"),
+    [T3("Road checked: 2 potholes, 1 hard breaker", "Road check: 2 gaddhe, 1 hard breaker", "रोड जाँचा: 2 गड्ढे, 1 सख़्त ब्रेकर"), T3("Leave at 7:20, reminder at 7:05", "7:20 pe nikliye, reminder 7:05 pe", "7:20 पर निकलें, याद 7:05 पर"), T3("Cabin cooled at 7:12", "Cabin 7:12 pe thanda", "केबिन 7:12 पर ठंडा"), T3("Home told when you leave", "Nikalte hi ghar ko khabar", "निकलते ही घर को ख़बर")],
+    T3("Your plan is ready. Leave at 7:20, the cabin will be cool, and home will be told when you leave.", "Plan taiyaar hai. 7:20 pe nikliye, cabin thanda rahega, aur nikalte hi ghar ko khabar mil jayegi.", "योजना तैयार है। 7:20 पर निकलें, केबिन ठंडा रहेगा, और निकलते ही घर को ख़बर मिल जाएगी।"))],
+  planCity: [T3("Agent: file a city complaint", "Agent: city complaint", "एजेंट: शिकायत"), () => agentPlan(
+    T3("File a complaint about this pothole.", "Is gaddhe ki complaint kar do.", "इस गड्ढे की शिकायत कर दो।"),
+    T3("City complaint", "City complaint", "शहर की शिकायत"),
+    [T3("Confirmed by 46 cars in 9 days", "46 gaadiyon ne 9 din mein confirm kiya", "46 गाड़ियों ने 9 दिन में पुष्टि की"), T3("Evidence attached, no personal data", "Saboot saath, koi personal data nahi", "सबूत साथ, कोई निजी डेटा नहीं"), T3("Filed with the city portal", "City portal pe file", "शहर के पोर्टल पर दर्ज")],
+    T3("The complaint is filed with evidence from 46 cars, without your name.", "46 gaadiyon ke saboot ke saath complaint file ho gayi, aapka naam nahi jayega.", "46 गाड़ियों के सबूत के साथ शिकायत दर्ज हो गई, आपका नाम नहीं जाएगा।"))],
+  planService: [T3("Agent: book a service", "Agent: service book karo", "एजेंट: सर्विस बुक"), () => agentPlan(
+    T3("The car is rattling, book a service.", "Gaadi mein khat-khat ho rahi hai, service book kar do.", "गाड़ी में खट-खट हो रही है, सर्विस बुक कर दो।"),
+    T3("Service visit", "Service visit", "सर्विस विज़िट"),
+    [T3("41 hard hits this week", "Is hafte 41 zor ke jhatke", "इस हफ़्ते 41 ज़ोर के झटके"), T3("Saturday 10:30, with pick-up", "Shanivaar 10:30, pick-up ke saath", "शनिवार 10:30, पिक-अप के साथ"), T3("Hit log sent to the technician", "Hit log technician ko bheja", "हिट लॉग तकनीशियन को भेजा")],
+    T3("Booked for Saturday at 10:30 with pick-up, and the technician has your hit log.", "Shanivaar 10:30 ka slot pick-up ke saath book ho gaya, aur technician ko hit log bhej diya.", "शनिवार 10:30 का स्लॉट पिक-अप के साथ बुक हो गया, और तकनीशियन को हिट लॉग भेज दिया।"))],
+};
+const TOUR = ["brief", "breaker", "ask", "car", "jolt", "report", "tyre", "flood", "wear", "repair", "planDrive", "planCity", "planService"];
+async function runStep(key) {
+  try { await STEPS[key][1](); } catch (e) { console.warn("simulate step skipped", key, e); }
+}
+function simEnd() { S.simHold = false; S.tour = false; clearPending(); $("tourBar").hidden = true; $("brief").classList.remove("show"); $("health").hidden = true; }
+async function simOne(key) {
+  if (S.tour) return;
+  $("simSheet").hidden = true; S.simHold = true; S.simRun = (S.simRun || 0) + 1; const run = S.simRun;
+  await runStep(key); await pause(2500);
+  if (run === S.simRun && !S.tour) S.simHold = false;
+}
+async function tour() {
+  if (S.tour) return;
+  S.tour = true; S.simHold = true; S.tourStop = false; $("simSheet").hidden = true; $("tourBar").hidden = false;
+  const t0 = Date.now(), clock = setInterval(() => { const left = Math.max(0, 180 - Math.round((Date.now() - t0) / 1000)); $("tourC").textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`; }, 500);
+  for (let i = 0; i < TOUR.length && !S.tourStop; i++) {
+    $("tourT").textContent = `${i + 1}/${TOUR.length} · ${STEPS[TOUR[i]][0]}`;
+    await runStep(TOUR[i]);
+  }
+  clearInterval(clock);
+  try { speechSynthesis.cancel(); } catch {}
+  const done = S.tourStop; S.tourDone = true; simEnd();
+  if (!done) { openConvo(); agentSay(T3("That was everything Sadak Sense does.", "Sadak Sense ka poora demo ho gaya.", "सड़क सेंस का पूरा डेमो हो गया।")); }
+}
+function buildSim() {
+  const list = $("simList"); list.innerHTML = "";
+  for (const key of Object.keys(STEPS)) { const b = document.createElement("button"); b.className = "btn"; b.type = "button"; b.textContent = STEPS[key][0]; b.onclick = () => simOne(key); list.append(b); }
+}
+$("simBtn").onclick = () => { buildSim(); $("simSheet").hidden = !$("simSheet").hidden; };
+$("simClose").onclick = () => { $("simSheet").hidden = true; };
+$("simAll").onclick = () => tour();
+$("tourStop").onclick = () => { S.tourStop = true; try { speechSynthesis.cancel(); } catch {} };
+$("fullBtn").onclick = async () => { $("route").value = "cp-minto"; $("rain").checked = true; await go("demo"); await pause(1200); tour(); };
+
 async function go(mode) {
   S.mode = mode; S.lang = $("lang").value; S.rain = $("rain").checked; S.device = await dailyId();
-  S.car = $("carSel").value; S.people = +$("people").value; S.homeOn = $("homeOn").checked; S.hits = seedHits(); renderCar();
+  S.car = $("carSel").value; S.people = +$("people").value; S.homeOn = $("homeOn").checked; S.homeMail = SadakMail.validEmail($("homeMail").value) ? $("homeMail").value.trim() : "";
+  try { S.homeMail ? localStorage.setItem("ss-home-mail", S.homeMail) : localStorage.removeItem("ss-home-mail"); } catch {} S.hits = seedHits(); renderCar();
   // Browser-only edition: this page runs its own virtual fleet, so rain floods its underpass too.
   if (S.rain && window.SSMods) SS.api("/api/sim", { monsoon: true }).catch(() => {});
   $("start").hidden = true; chime();
+  if (mode === "demo") { $("briefBtn").hidden = true; $("simBtn").hidden = false; }
   if (mode === "real") await startReal(); else await startDemo($("route").value);
   setInterval(tick, 400); setInterval(flush, 3000); drawTrace();
 }
@@ -376,8 +487,8 @@ async function ask(text) {
 function askConfirm(ev) {
   S.pendingJolt = ev; openConvo(); $("yn").hidden = false;
   const q = SadakVoice.askAfterJolt(ev.type, S.lang);
-  bubble("a", "Sadak Sense", q); chime(); setTimeout(() => { say(q); if (SR) setTimeout(listen, 2600); }, 300);
-  clearTimeout(S.pendTimer); S.pendTimer = setTimeout(() => S.pendingJolt === ev && resolveJolt(true, true), 9000);
+  bubble("a", "Sadak Sense", q); chime(); setTimeout(() => { say(q); if (SR && !S.simHold) setTimeout(listen, 2600); }, 300);
+  clearTimeout(S.pendTimer); if (!S.simHold) S.pendTimer = setTimeout(() => S.pendingJolt === ev && resolveJolt(true, true), 9000);
 }
 function resolveJolt(ok, timeout) {
   const ev = S.pendingJolt; if (!ev) return; S.pendingJolt = null; $("yn").hidden = true; clearTimeout(S.pendTimer);

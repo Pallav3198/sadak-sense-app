@@ -64,6 +64,10 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
 .brief{position:absolute;left:14px;right:14px;bottom:84px;z-index:800;background:var(--panel2);border:1px solid var(--line2);border-radius:16px;padding:12px 14px;font-size:14px;display:none}
 .brief.show{display:block}
 .brief .label{margin-bottom:4px}
+.msgs div{white-space:pre-line}
+.simlist{display:grid;grid-template-columns:1fr 1fr;gap:6px}.simlist .btn{padding:9px;border-radius:12px;font-size:12px;text-align:left;line-height:1.25}
+.tourbar{position:absolute;top:calc(env(safe-area-inset-top,0px) + 52px);left:14px;right:14px;z-index:870;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--accent);color:#04201f;border-radius:12px;padding:6px 10px;font-size:12.5px;font-weight:600}
+.tourbar button{background:#04201f;color:#fff;border:0;border-radius:8px;padding:5px 10px;font:inherit}
 /* Fits my car: the carmaker-only layer under the alert */
 .car{margin:8px 14px 0;display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:14px;border:1px solid var(--line);background:var(--panel);font-size:12.5px;cursor:pointer;color:inherit;text-align:left;width:calc(100% - 28px)}
 .car .cn{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
@@ -99,6 +103,7 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
   <div class="trace"><div class="label" style="display:flex;justify-content:space-between"><span>Vertical acceleration</span><span id="tNote">waiting</span></div><canvas id="tr" width="800" height="116"></canvas></div>
   <div class="bottom">
     <button class="btn" id="briefBtn" type="button">Road brief</button>
+    <button class="btn" id="simBtn" type="button" hidden>Simulate</button>
     <button class="btn mic" id="micBtn" type="button" aria-label="Talk to Sadak Sense"><span class="mi">●</span> Bolo</button>
     <button class="btn" id="voiceBtn" type="button">Voice: on</button>
     <button class="btn" id="stopBtn" type="button">End</button>
@@ -111,6 +116,12 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
     <form class="say" id="sayForm"><label for="sayIn" style="position:absolute;left:-9999px">Say something</label><input id="sayIn" placeholder="Bolo ya type karo…" autocomplete="off"><button class="btn" type="submit">Send</button></form>
   </div>
   <div class="brief" id="brief"><div class="label">Morning road brief</div><div id="briefT"></div></div>
+  <div class="tourbar" id="tourBar" hidden><span id="tourT">Full demo</span><span id="tourC" style="margin-left:auto;font-variant-numeric:tabular-nums">3:00</span><button id="tourStop" type="button">Stop</button></div>
+  <div class="health" id="simSheet" hidden>
+    <div style="display:flex;justify-content:space-between;align-items:center"><h3>Simulate</h3><button class="btn" id="simClose" type="button" style="padding:6px 10px">Close</button></div>
+    <button class="btn primary" id="simAll" type="button"><b>Run everything</b></button>
+    <div class="simlist" id="simList"></div>
+  </div>
   <div class="health" id="health" hidden>
     <div style="display:flex;justify-content:space-between;align-items:center"><h3 id="hTitle">My car</h3><button class="btn" id="hClose" type="button" style="padding:6px 10px">Close</button></div>
     <div class="note" id="hSpec"></div>
@@ -132,11 +143,13 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
     <div class="field"><label class="label" for="carSel">My car</label><select id="carSel"><option value="aura">Hyundai Aura</option><option value="exter">Hyundai Exter</option><option value="venue">Hyundai Venue</option><option value="creta" selected>Hyundai Creta</option><option value="bayon">Hyundai Bayon</option></select></div>
     <div class="field"><label class="label" for="people">People in the car</label><select id="people"><option>1</option><option>2</option><option>3</option><option selected>4</option><option>5</option></select></div>
     <div class="field"><label class="label" for="homeOn">Keep home updated</label><input type="checkbox" id="homeOn" checked></div>
+    <div class="field" id="homeMailRow" hidden><label class="label" for="homeMail">Home email</label><input id="homeMail" type="email" placeholder="family@example.com" autocomplete="email" style="min-width:0;max-width:68%;background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:8px;color:inherit;font:inherit"></div>
     <div class="field"><label class="label" for="rain">It is raining</label><input type="checkbox" id="rain"></div>
     <button class="btn primary" id="realBtn" type="button"><b>Start driving</b><span>Uses this phone's real motion sensors and GPS</span></button>
     <div class="field"><label class="label" for="route">Demo route</label><select id="route"></select></div>
-    <button class="btn" id="demoBtn" type="button"><b>Demo drive</b><span>Simulated GPS and sensor signal on a real Delhi road; the same detector and alerts run</span></button>
-    <p style="font-size:11.5px">Privacy: reports contain only location, heading, speed and jolt size, with an ID that changes every day. No trip history is stored.</p>
+    <button class="btn primary" id="fullBtn" type="button"><b>Full demo</b><span>Plays every feature by itself in 3 minutes, with voice</span></button>
+    <button class="btn" id="demoBtn" type="button"><b>Demo drive</b><span>Simulated GPS and sensor signal on a real Delhi road; press Simulate to trigger any feature</span></button>
+    <p style="font-size:11.5px">Privacy: reports contain only location, heading, speed and jolt size, with an ID that changes every day. No trip history is stored. A home email stays in this browser and is used only to send your trip updates.</p>
   </div>
 </div>
 <script src="/vendor/leaflet/leaflet.js"></script>
@@ -144,6 +157,7 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
 <script src="/shared/detector.js"></script>
 <script src="/shared/hinglish.js"></script>
 <script src="/shared/voice.js"></script>
+<script src="/shared/mail.js"></script>
 <script src="/shared/mycar.js"></script>
 <script src="/drive/drive.js"></script>
 </body>

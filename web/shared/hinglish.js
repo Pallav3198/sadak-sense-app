@@ -5,7 +5,7 @@
   if (typeof module === "object" && module.exports) module.exports = factory();
   else root.SadakVoice = factory();
 })(typeof self !== "undefined" ? self : this, function () {
-  const HINGLISH_WORDS = /\b(hai|hain|kya|koi|aage|aagey|gaddha|gadda|gaddhe|khadda|paani|pani|bhara|bhar|haan|han|ha|nahi|nahin|na|yahan|idhar|wahan|bada|badi|batao|bataiye|bolo|do|dijiye|kitne|kitna|raasta|rasta|sadak|mein|me|pe|par|ka|ki|ke|tha|thi|theek|thik|ji|bhai|aaj|abhi|mat|chalo|dekho|jhatka|madad|shukriya|boliye|poochho|batana)\b/i;
+  const HINGLISH_WORDS = /\b(hai|hain|kya|koi|aage|aagey|gaddha|gadda|gaddhe|khadda|paani|pani|bhara|bhar|haan|han|ha|nahi|nahin|na|yahan|idhar|wahan|bada|badi|batao|bataiye|bolo|do|dijiye|kitne|kitna|raasta|rasta|sadak|mein|me|pe|par|ka|ki|ke|tha|thi|theek|thik|ji|bhai|aaj|abhi|mat|chalo|dekho|jhatka|madad|shukriya|boliye|poochho|batana|meri|gaadi|gadi|nikal|jayegi)\b/i;
   const DEV = /[ऀ-ॿ]/;
 
   function detectLang(text) {

@@ -4,6 +4,7 @@ const V = require("../web/shared/hinglish.js");
 
 test("detects the driver's language", () => {
   assert.equal(V.detectLang("Aage koi gaddha hai?"), "Hinglish");
+  assert.equal(V.detectLang("Meri gaadi nikal jayegi?"), "Hinglish");
   assert.equal(V.detectLang("Is there a pothole ahead?"), "English");
   assert.equal(V.detectLang("आगे कोई गड्ढा है?"), "Hindi");
 });

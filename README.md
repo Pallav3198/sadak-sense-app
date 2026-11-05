@@ -20,8 +20,10 @@ Built for the Hyundai CoE Mobility Innovation Ideathon 2026 · Topic 2 (AI-power
 | **Two-way voice** | `web/shared/hinglish.js`, `POST /api/ask` | The driver talks to the car in **English, Hindi (Devanagari) or Hinglish** and hears answers in the same register, built from live fleet data: *"Aage koi gaddha hai?"* → *"Haan. 190 metre mein gaddha hai, 46 gaadiyon ne confirm kiya."* After a jolt at an unknown spot the car asks *"Kya wo gaddha tha? Haan ya na"*; "na" drops the report. *"Yahan bada gaddha hai"* files a hands-free report. Rule-based so it works offline; the same file runs in the browser, the server and the tests. |
 | **My car + agents** | `web/shared/mycar.js`, `web/drive/drive.js` | What only the carmaker can do. Breaker advice adapts gently to the car and its load (*"5 logon ke saath aapki Aura neeche baithi hai: 10 tak dheere kijiye."*); no height or depth claims. Agents act after one "haan": the **flood agent** reroutes around an underpass that cars are crawling or stalling in, the **damage agent** books a Hyundai service slot and drafts a claim after a hard hit with falling tyre pressure, and **Keep home updated** tells the family when the trip changes. A road-wear panel keeps this car's hit log for service or insurance. Tyre pressure, messages and bookings are simulated in the demo and labelled so. |
 | **Natural Indian voice** | `web/shared/voice.js` | Free, no API key. Picks the most natural Indian voice the browser has (Edge: Microsoft's neural Swara, Madhur, Neerja, Prabhat; Chrome: Google Hindi; phones: their own) and respells Roman Hinglish in Devanagari so a Hindi voice pronounces it properly. The driver app has a voice picker with a "Hear this voice" button. Best in Microsoft Edge. |
+| **Email to home** | `web/shared/mail.js` | When a trip changes, **Keep home updated** emails the family through EmailJS's free plan. Set its three public values in `mail.js`; left empty, the app stays in demo mode. Template must use `{{to_email}}`, `{{subject}}` and `{{message}}`. Limited to 20 emails per browser per day. |
+| **Simulate** | `web/drive/drive.js` | In a demo drive, the Simulate button triggers any feature on demand, and **Full demo** plays all of them with voice. Steps run through the same alert, voice and agent code. Agent mode plans are a labelled preview. |
 | **Static edition** | `tools/build-static.js`, `web/shared/local-backend.js` | Builds a browser-only copy (engine, simulator and voice run inside the page; map tiles bundled) that can be hosted on any static host for a no-install demo. |
-| **Tests** | `test/` | 33 automated tests: engine rules, detector classification and false-alarm rejection, language handling, load-aware breaker advice, road-wear thresholds, and an end-to-end API test including Hinglish questions and voice reports. |
+| **Tests** | `test/` | 38 automated tests: engine rules, detector classification and false-alarm rejection, language handling, load-aware breaker advice, road-wear thresholds, and an end-to-end API test including Hinglish questions and voice reports. |
 
 ## Run locally
 
@@ -29,7 +31,7 @@ Requires Node.js 22.13 or newer (uses the built-in `node:sqlite`; no native buil
 
 ```bash
 npm install
-npm test                 # 33 tests
+npm test                 # 38 tests
 AUTOSTART_SIM=true npm start
 # console:     http://localhost:3000/console/
 # driver app:  http://localhost:3000/drive/
