@@ -1,0 +1,2056 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080b10">
+<title>Sadak Sense Drive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>/* required styles */
+
+.leaflet-pane,
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-tile-container,
+.leaflet-pane > svg,
+.leaflet-pane > canvas,
+.leaflet-zoom-box,
+.leaflet-image-layer,
+.leaflet-layer {
+	position: absolute;
+	left: 0;
+	top: 0;
+	}
+.leaflet-container {
+	overflow: hidden;
+	}
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+	-webkit-user-select: none;
+	   -moz-user-select: none;
+	        user-select: none;
+	  -webkit-user-drag: none;
+	}
+/* Prevents IE11 from highlighting tiles in blue */
+.leaflet-tile::selection {
+	background: transparent;
+}
+/* Safari renders non-retina tile on retina better with this, but Chrome is worse */
+.leaflet-safari .leaflet-tile {
+	image-rendering: -webkit-optimize-contrast;
+	}
+/* hack that prevents hw layers "stretching" when loading new tiles */
+.leaflet-safari .leaflet-tile-container {
+	width: 1600px;
+	height: 1600px;
+	-webkit-transform-origin: 0 0;
+	}
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+	display: block;
+	}
+/* .leaflet-container svg: reset svg max-width decleration shipped in Joomla! (joomla.org) 3.x */
+/* .leaflet-container img: map is broken in FF if you have max-width: 100% on tiles */
+.leaflet-container .leaflet-overlay-pane svg {
+	max-width: none !important;
+	max-height: none !important;
+	}
+.leaflet-container .leaflet-marker-pane img,
+.leaflet-container .leaflet-shadow-pane img,
+.leaflet-container .leaflet-tile-pane img,
+.leaflet-container img.leaflet-image-layer,
+.leaflet-container .leaflet-tile {
+	max-width: none !important;
+	max-height: none !important;
+	width: auto;
+	padding: 0;
+	}
+
+.leaflet-container img.leaflet-tile {
+	/* See: https://bugs.chromium.org/p/chromium/issues/detail?id=600120 */
+	mix-blend-mode: plus-lighter;
+}
+
+.leaflet-container.leaflet-touch-zoom {
+	-ms-touch-action: pan-x pan-y;
+	touch-action: pan-x pan-y;
+	}
+.leaflet-container.leaflet-touch-drag {
+	-ms-touch-action: pinch-zoom;
+	/* Fallback for FF which doesn't support pinch-zoom */
+	touch-action: none;
+	touch-action: pinch-zoom;
+}
+.leaflet-container.leaflet-touch-drag.leaflet-touch-zoom {
+	-ms-touch-action: none;
+	touch-action: none;
+}
+.leaflet-container {
+	-webkit-tap-highlight-color: transparent;
+}
+.leaflet-container a {
+	-webkit-tap-highlight-color: rgba(51, 181, 229, 0.4);
+}
+.leaflet-tile {
+	filter: inherit;
+	visibility: hidden;
+	}
+.leaflet-tile-loaded {
+	visibility: inherit;
+	}
+.leaflet-zoom-box {
+	width: 0;
+	height: 0;
+	-moz-box-sizing: border-box;
+	     box-sizing: border-box;
+	z-index: 800;
+	}
+/* workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=888319 */
+.leaflet-overlay-pane svg {
+	-moz-user-select: none;
+	}
+
+.leaflet-pane         { z-index: 400; }
+
+.leaflet-tile-pane    { z-index: 200; }
+.leaflet-overlay-pane { z-index: 400; }
+.leaflet-shadow-pane  { z-index: 500; }
+.leaflet-marker-pane  { z-index: 600; }
+.leaflet-tooltip-pane   { z-index: 650; }
+.leaflet-popup-pane   { z-index: 700; }
+
+.leaflet-map-pane canvas { z-index: 100; }
+.leaflet-map-pane svg    { z-index: 200; }
+
+.leaflet-vml-shape {
+	width: 1px;
+	height: 1px;
+	}
+.lvml {
+	behavior: url(#default#VML);
+	display: inline-block;
+	position: absolute;
+	}
+
+
+/* control positioning */
+
+.leaflet-control {
+	position: relative;
+	z-index: 800;
+	pointer-events: visiblePainted; /* IE 9-10 doesn't have auto */
+	pointer-events: auto;
+	}
+.leaflet-top,
+.leaflet-bottom {
+	position: absolute;
+	z-index: 1000;
+	pointer-events: none;
+	}
+.leaflet-top {
+	top: 0;
+	}
+.leaflet-right {
+	right: 0;
+	}
+.leaflet-bottom {
+	bottom: 0;
+	}
+.leaflet-left {
+	left: 0;
+	}
+.leaflet-control {
+	float: left;
+	clear: both;
+	}
+.leaflet-right .leaflet-control {
+	float: right;
+	}
+.leaflet-top .leaflet-control {
+	margin-top: 10px;
+	}
+.leaflet-bottom .leaflet-control {
+	margin-bottom: 10px;
+	}
+.leaflet-left .leaflet-control {
+	margin-left: 10px;
+	}
+.leaflet-right .leaflet-control {
+	margin-right: 10px;
+	}
+
+
+/* zoom and fade animations */
+
+.leaflet-fade-anim .leaflet-popup {
+	opacity: 0;
+	-webkit-transition: opacity 0.2s linear;
+	   -moz-transition: opacity 0.2s linear;
+	        transition: opacity 0.2s linear;
+	}
+.leaflet-fade-anim .leaflet-map-pane .leaflet-popup {
+	opacity: 1;
+	}
+.leaflet-zoom-animated {
+	-webkit-transform-origin: 0 0;
+	    -ms-transform-origin: 0 0;
+	        transform-origin: 0 0;
+	}
+svg.leaflet-zoom-animated {
+	will-change: transform;
+}
+
+.leaflet-zoom-anim .leaflet-zoom-animated {
+	-webkit-transition: -webkit-transform 0.25s cubic-bezier(0,0,0.25,1);
+	   -moz-transition:    -moz-transform 0.25s cubic-bezier(0,0,0.25,1);
+	        transition:         transform 0.25s cubic-bezier(0,0,0.25,1);
+	}
+.leaflet-zoom-anim .leaflet-tile,
+.leaflet-pan-anim .leaflet-tile {
+	-webkit-transition: none;
+	   -moz-transition: none;
+	        transition: none;
+	}
+
+.leaflet-zoom-anim .leaflet-zoom-hide {
+	visibility: hidden;
+	}
+
+
+/* cursors */
+
+.leaflet-interactive {
+	cursor: pointer;
+	}
+.leaflet-grab {
+	cursor: -webkit-grab;
+	cursor:    -moz-grab;
+	cursor:         grab;
+	}
+.leaflet-crosshair,
+.leaflet-crosshair .leaflet-interactive {
+	cursor: crosshair;
+	}
+.leaflet-popup-pane,
+.leaflet-control {
+	cursor: auto;
+	}
+.leaflet-dragging .leaflet-grab,
+.leaflet-dragging .leaflet-grab .leaflet-interactive,
+.leaflet-dragging .leaflet-marker-draggable {
+	cursor: move;
+	cursor: -webkit-grabbing;
+	cursor:    -moz-grabbing;
+	cursor:         grabbing;
+	}
+
+/* marker & overlays interactivity */
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-image-layer,
+.leaflet-pane > svg path,
+.leaflet-tile-container {
+	pointer-events: none;
+	}
+
+.leaflet-marker-icon.leaflet-interactive,
+.leaflet-image-layer.leaflet-interactive,
+.leaflet-pane > svg path.leaflet-interactive,
+svg.leaflet-image-layer.leaflet-interactive path {
+	pointer-events: visiblePainted; /* IE 9-10 doesn't have auto */
+	pointer-events: auto;
+	}
+
+/* visual tweaks */
+
+.leaflet-container {
+	background: #ddd;
+	outline-offset: 1px;
+	}
+.leaflet-container a {
+	color: #0078A8;
+	}
+.leaflet-zoom-box {
+	border: 2px dotted #38f;
+	background: rgba(255,255,255,0.5);
+	}
+
+
+/* general typography */
+.leaflet-container {
+	font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	font-size: 0.75rem;
+	line-height: 1.5;
+	}
+
+
+/* general toolbar styles */
+
+.leaflet-bar {
+	box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+	border-radius: 4px;
+	}
+.leaflet-bar a {
+	background-color: #fff;
+	border-bottom: 1px solid #ccc;
+	width: 26px;
+	height: 26px;
+	line-height: 26px;
+	display: block;
+	text-align: center;
+	text-decoration: none;
+	color: black;
+	}
+.leaflet-bar a,
+.leaflet-control-layers-toggle {
+	background-position: 50% 50%;
+	background-repeat: no-repeat;
+	display: block;
+	}
+.leaflet-bar a:hover,
+.leaflet-bar a:focus {
+	background-color: #f4f4f4;
+	}
+.leaflet-bar a:first-child {
+	border-top-left-radius: 4px;
+	border-top-right-radius: 4px;
+	}
+.leaflet-bar a:last-child {
+	border-bottom-left-radius: 4px;
+	border-bottom-right-radius: 4px;
+	border-bottom: none;
+	}
+.leaflet-bar a.leaflet-disabled {
+	cursor: default;
+	background-color: #f4f4f4;
+	color: #bbb;
+	}
+
+.leaflet-touch .leaflet-bar a {
+	width: 30px;
+	height: 30px;
+	line-height: 30px;
+	}
+.leaflet-touch .leaflet-bar a:first-child {
+	border-top-left-radius: 2px;
+	border-top-right-radius: 2px;
+	}
+.leaflet-touch .leaflet-bar a:last-child {
+	border-bottom-left-radius: 2px;
+	border-bottom-right-radius: 2px;
+	}
+
+/* zoom control */
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+	font: bold 18px 'Lucida Console', Monaco, monospace;
+	text-indent: 1px;
+	}
+
+.leaflet-touch .leaflet-control-zoom-in, .leaflet-touch .leaflet-control-zoom-out  {
+	font-size: 22px;
+	}
+
+
+/* layers control */
+
+.leaflet-control-layers {
+	box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+	background: #fff;
+	border-radius: 5px;
+	}
+.leaflet-control-layers-toggle {
+	background-image: none;
+	width: 36px;
+	height: 36px;
+	}
+.leaflet-retina .leaflet-control-layers-toggle {
+	background-image: none;
+	background-size: 26px 26px;
+	}
+.leaflet-touch .leaflet-control-layers-toggle {
+	width: 44px;
+	height: 44px;
+	}
+.leaflet-control-layers .leaflet-control-layers-list,
+.leaflet-control-layers-expanded .leaflet-control-layers-toggle {
+	display: none;
+	}
+.leaflet-control-layers-expanded .leaflet-control-layers-list {
+	display: block;
+	position: relative;
+	}
+.leaflet-control-layers-expanded {
+	padding: 6px 10px 6px 6px;
+	color: #333;
+	background: #fff;
+	}
+.leaflet-control-layers-scrollbar {
+	overflow-y: scroll;
+	overflow-x: hidden;
+	padding-right: 5px;
+	}
+.leaflet-control-layers-selector {
+	margin-top: 2px;
+	position: relative;
+	top: 1px;
+	}
+.leaflet-control-layers label {
+	display: block;
+	font-size: 13px;
+	font-size: 1.08333em;
+	}
+.leaflet-control-layers-separator {
+	height: 0;
+	border-top: 1px solid #ddd;
+	margin: 5px -10px 5px -6px;
+	}
+
+/* Default icon URLs */
+.leaflet-default-icon-path { /* used only in path-guessing heuristic, see L.Icon.Default */
+	background-image: none;
+	}
+
+
+/* attribution and scale controls */
+
+.leaflet-container .leaflet-control-attribution {
+	background: #fff;
+	background: rgba(255, 255, 255, 0.8);
+	margin: 0;
+	}
+.leaflet-control-attribution,
+.leaflet-control-scale-line {
+	padding: 0 5px;
+	color: #333;
+	line-height: 1.4;
+	}
+.leaflet-control-attribution a {
+	text-decoration: none;
+	}
+.leaflet-control-attribution a:hover,
+.leaflet-control-attribution a:focus {
+	text-decoration: underline;
+	}
+.leaflet-attribution-flag {
+	display: inline !important;
+	vertical-align: baseline !important;
+	width: 1em;
+	height: 0.6669em;
+	}
+.leaflet-left .leaflet-control-scale {
+	margin-left: 5px;
+	}
+.leaflet-bottom .leaflet-control-scale {
+	margin-bottom: 5px;
+	}
+.leaflet-control-scale-line {
+	border: 2px solid #777;
+	border-top: none;
+	line-height: 1.1;
+	padding: 2px 5px 1px;
+	white-space: nowrap;
+	-moz-box-sizing: border-box;
+	     box-sizing: border-box;
+	background: rgba(255, 255, 255, 0.8);
+	text-shadow: 1px 1px #fff;
+	}
+.leaflet-control-scale-line:not(:first-child) {
+	border-top: 2px solid #777;
+	border-bottom: none;
+	margin-top: -2px;
+	}
+.leaflet-control-scale-line:not(:first-child):not(:last-child) {
+	border-bottom: 2px solid #777;
+	}
+
+.leaflet-touch .leaflet-control-attribution,
+.leaflet-touch .leaflet-control-layers,
+.leaflet-touch .leaflet-bar {
+	box-shadow: none;
+	}
+.leaflet-touch .leaflet-control-layers,
+.leaflet-touch .leaflet-bar {
+	border: 2px solid rgba(0,0,0,0.2);
+	background-clip: padding-box;
+	}
+
+
+/* popup */
+
+.leaflet-popup {
+	position: absolute;
+	text-align: center;
+	margin-bottom: 20px;
+	}
+.leaflet-popup-content-wrapper {
+	padding: 1px;
+	text-align: left;
+	border-radius: 12px;
+	}
+.leaflet-popup-content {
+	margin: 13px 24px 13px 20px;
+	line-height: 1.3;
+	font-size: 13px;
+	font-size: 1.08333em;
+	min-height: 1px;
+	}
+.leaflet-popup-content p {
+	margin: 17px 0;
+	margin: 1.3em 0;
+	}
+.leaflet-popup-tip-container {
+	width: 40px;
+	height: 20px;
+	position: absolute;
+	left: 50%;
+	margin-top: -1px;
+	margin-left: -20px;
+	overflow: hidden;
+	pointer-events: none;
+	}
+.leaflet-popup-tip {
+	width: 17px;
+	height: 17px;
+	padding: 1px;
+
+	margin: -10px auto 0;
+	pointer-events: auto;
+
+	-webkit-transform: rotate(45deg);
+	   -moz-transform: rotate(45deg);
+	    -ms-transform: rotate(45deg);
+	        transform: rotate(45deg);
+	}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+	background: white;
+	color: #333;
+	box-shadow: 0 3px 14px rgba(0,0,0,0.4);
+	}
+.leaflet-container a.leaflet-popup-close-button {
+	position: absolute;
+	top: 0;
+	right: 0;
+	border: none;
+	text-align: center;
+	width: 24px;
+	height: 24px;
+	font: 16px/24px Tahoma, Verdana, sans-serif;
+	color: #757575;
+	text-decoration: none;
+	background: transparent;
+	}
+.leaflet-container a.leaflet-popup-close-button:hover,
+.leaflet-container a.leaflet-popup-close-button:focus {
+	color: #585858;
+	}
+.leaflet-popup-scrolled {
+	overflow: auto;
+	}
+
+.leaflet-oldie .leaflet-popup-content-wrapper {
+	-ms-zoom: 1;
+	}
+.leaflet-oldie .leaflet-popup-tip {
+	width: 24px;
+	margin: 0 auto;
+
+	-ms-filter: "progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678)";
+	filter: progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678);
+	}
+
+.leaflet-oldie .leaflet-control-zoom,
+.leaflet-oldie .leaflet-control-layers,
+.leaflet-oldie .leaflet-popup-content-wrapper,
+.leaflet-oldie .leaflet-popup-tip {
+	border: 1px solid #999;
+	}
+
+
+/* div icon */
+
+.leaflet-div-icon {
+	background: #fff;
+	border: 1px solid #666;
+	}
+
+
+/* Tooltip */
+/* Base styles for the element that has a tooltip */
+.leaflet-tooltip {
+	position: absolute;
+	padding: 6px;
+	background-color: #fff;
+	border: 1px solid #fff;
+	border-radius: 3px;
+	color: #222;
+	white-space: nowrap;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	pointer-events: none;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+	}
+.leaflet-tooltip.leaflet-interactive {
+	cursor: pointer;
+	pointer-events: auto;
+	}
+.leaflet-tooltip-top:before,
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+	position: absolute;
+	pointer-events: none;
+	border: 6px solid transparent;
+	background: transparent;
+	content: "";
+	}
+
+/* Directions */
+
+.leaflet-tooltip-bottom {
+	margin-top: 6px;
+}
+.leaflet-tooltip-top {
+	margin-top: -6px;
+}
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-top:before {
+	left: 50%;
+	margin-left: -6px;
+	}
+.leaflet-tooltip-top:before {
+	bottom: 0;
+	margin-bottom: -12px;
+	border-top-color: #fff;
+	}
+.leaflet-tooltip-bottom:before {
+	top: 0;
+	margin-top: -12px;
+	margin-left: -6px;
+	border-bottom-color: #fff;
+	}
+.leaflet-tooltip-left {
+	margin-left: -6px;
+}
+.leaflet-tooltip-right {
+	margin-left: 6px;
+}
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+	top: 50%;
+	margin-top: -6px;
+	}
+.leaflet-tooltip-left:before {
+	right: 0;
+	margin-right: -12px;
+	border-left-color: #fff;
+	}
+.leaflet-tooltip-right:before {
+	left: 0;
+	margin-left: -12px;
+	border-right-color: #fff;
+	}
+
+/* Printing */
+
+@media print {
+	/* Prevent printers from removing background-images of controls. */
+	.leaflet-control {
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+		}
+	}
+</style>
+<style>/* Sadak Sense design tokens: night road. Single dark theme by design (in-car + ops console). */
+:root{
+  color-scheme:dark;
+  --bg:#080b10; --bg2:#0d1219; --panel:#111823; --panel2:#172131; --line:#223047; --line2:#2d3d57;
+  --fg:#e9eef5; --muted:#8a98ad; --dim:#5d6b80;
+  --accent:#3fd0c9; --breaker:#ffb23f; --pothole:#ff5d5d; --water:#4aa3ff; --ok:#4fd18b; --warn:#ffb23f;
+  --display:"Chakra Petch",system-ui,sans-serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --r:14px;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--display);margin:0;letter-spacing:.02em}
+button,select,input{font:inherit;color:inherit}
+.btn{background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:8px 12px;cursor:pointer;transition:border-color .15s,background .15s}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:#04201f;border-color:var(--accent);font-weight:600}
+.btn.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,var(--panel2))}
+.btn:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+select{background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:7px 10px}
+input[type=range]{accent-color:var(--accent)}
+.label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.brand{font-family:var(--display);font-weight:700;letter-spacing:.04em}
+.brand b{color:var(--accent);font-weight:700}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%}
+.live{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--ok)}
+.live .dot{background:var(--ok);box-shadow:0 0 0 0 rgba(79,209,139,.6);animation:pulse 1.6s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(79,209,139,.6)}70%{box-shadow:0 0 0 8px rgba(79,209,139,0)}100%{box-shadow:0 0 0 0 rgba(79,209,139,0)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* map markers */
+.hz{display:grid;place-items:center;border-radius:50%;font-family:var(--display);font-weight:700;color:#0b0f14;box-shadow:0 0 0 3px rgba(8,11,16,.85)}
+.hz.breaker{background:var(--breaker)}.hz.pothole{background:var(--pothole)}.hz.water{background:var(--water)}
+.hz.confirmed::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid currentColor;opacity:.0;animation:ring 2.4s infinite}
+.hz.breaker.confirmed{color:var(--breaker)}.hz.pothole.confirmed{color:var(--pothole)}.hz.water.confirmed{color:var(--water)}
+@keyframes ring{0%{transform:scale(.8);opacity:.7}100%{transform:scale(1.8);opacity:0}}
+.hz.candidate{background:transparent!important;border:2.5px solid currentColor;box-shadow:none}
+.hz.candidate.breaker{color:var(--breaker)}.hz.candidate.pothole{color:var(--pothole)}.hz.candidate.water{color:var(--water)}
+.hzlabel{position:absolute;left:100%;top:-6px;margin-left:4px;font-family:var(--mono);font-size:10px;color:var(--fg);background:rgba(8,11,16,.8);padding:1px 5px;border-radius:6px;white-space:nowrap}
+.flash{width:14px;height:14px;border-radius:50%;border:2px solid var(--breaker);animation:flash 1.4s ease-out forwards}
+@keyframes flash{0%{transform:scale(.5);opacity:1}100%{transform:scale(3);opacity:0}}
+.leaflet-container{background:#0a0e14;font-family:var(--body)}
+.leaflet-control-attribution{background:rgba(8,11,16,.7)!important;color:var(--dim)!important}
+.leaflet-control-attribution a{color:var(--muted)!important}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--panel);color:var(--fg);border:1px solid var(--line2)}
+
+.dark-tiles{filter:invert(1) hue-rotate(180deg) brightness(.82) contrast(1.05) saturate(.35)}
+[hidden]{display:none!important}
+</style>
+<style>
+/* Layout: one phone-sized HUD. On a laptop it sits centred like a mounted phone. */
+body{display:grid;place-items:center;min-height:100%;background:radial-gradient(1200px 600px at 50% -10%,#14223a 0%,var(--bg) 60%)}
+.device{width:min(100vw,430px);height:min(100dvh,900px);background:var(--bg);display:flex;flex-direction:column;overflow:hidden;position:relative;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (min-width:600px){.device{border:1px solid var(--line2);border-radius:34px;box-shadow:0 40px 120px rgba(0,0,0,.6);margin:20px}}
+.top{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 6px}
+.top .brand{font-size:17px}
+.chips{display:flex;gap:6px}
+.chip{font-family:var(--mono);font-size:10px;padding:3px 7px;border-radius:999px;border:1px solid var(--line2);color:var(--muted)}
+.chip.ok{color:var(--ok);border-color:var(--ok)}.chip.bad{color:var(--pothole);border-color:var(--pothole)}
+.alert{margin:6px 14px 0;border-radius:20px;padding:16px 18px;min-height:120px;display:flex;gap:14px;align-items:center;border:1px solid var(--line);background:var(--panel);transition:background .3s,border-color .3s}
+.alert .ic{width:58px;height:58px;border-radius:16px;display:grid;place-items:center;font-family:var(--display);font-size:30px;font-weight:700;color:#0b0f14;background:var(--line2);flex:none}
+.alert .t{font-family:var(--display);font-size:22px;font-weight:600;line-height:1.15}
+.alert .s{color:var(--muted);font-size:13px;margin-top:3px}
+.alert.breaker{border-color:var(--breaker);background:color-mix(in srgb,var(--breaker) 14%,var(--bg))}.alert.breaker .ic{background:var(--breaker)}
+.alert.pothole{border-color:var(--pothole);background:color-mix(in srgb,var(--pothole) 14%,var(--bg))}.alert.pothole .ic{background:var(--pothole)}
+.alert.water{border-color:var(--water);background:color-mix(in srgb,var(--water) 16%,var(--bg))}.alert.water .ic{background:var(--water)}
+.alert.clear .ic{background:color-mix(in srgb,var(--ok) 25%,var(--panel2));color:var(--ok)}
+.dist{font-family:var(--display);font-size:40px;font-weight:700;font-variant-numeric:tabular-nums;margin-left:auto;text-align:right;line-height:1}
+.dist small{display:block;font-size:12px;color:var(--muted);font-family:var(--body);font-weight:400}
+.mid{display:grid;grid-template-columns:auto 1fr;gap:12px;padding:12px 14px 0;align-items:end}
+.speed{font-family:var(--display);font-size:64px;font-weight:700;line-height:.9;font-variant-numeric:tabular-nums}
+.speed small{font-size:14px;color:var(--muted);font-weight:500}
+.meta{font-size:12px;color:var(--muted);text-align:right}
+.meta b{color:var(--fg);font-weight:600}
+#map{position:relative;z-index:0;flex:1;margin:12px 14px 0;border-radius:18px;overflow:hidden;border:1px solid var(--line);min-height:160px}
+.trace{margin:10px 14px 0;border-radius:14px;background:#05080b;border:1px solid var(--line);padding:8px 10px}
+.trace canvas{width:100%;height:58px;display:block}
+.bottom{display:flex;gap:8px;padding:10px 14px 16px}
+.bottom .btn{flex:1;padding:12px;border-radius:14px}
+.sheet{position:absolute;inset:0;background:var(--bg);z-index:900;display:flex;flex-direction:column;padding:28px 22px;gap:14px;overflow:auto}
+.sheet h1{font-size:30px}
+.sheet p{color:var(--muted);margin:0}
+.sheet .btn{padding:14px;border-radius:14px;font-size:15px;text-align:left}
+.sheet .btn b{display:block;font-family:var(--display);font-size:17px}
+.sheet .btn span{font-size:12.5px;color:var(--muted)}
+.sheet .btn.primary span{color:#0b3533}
+.field{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.field select{min-width:0;max-width:68%}
+.mic{flex:1.4!important;background:var(--accent)!important;color:#04201f!important;border-color:var(--accent)!important;font-weight:700;font-family:var(--display);font-size:16px}
+.mic .mi{display:inline-block;margin-right:4px;color:#04201f}
+.mic.listening{background:var(--pothole)!important;border-color:var(--pothole)!important;animation:micp 1.2s infinite}
+@keyframes micp{0%,100%{box-shadow:0 0 0 0 rgba(255,93,93,.5)}50%{box-shadow:0 0 0 10px rgba(255,93,93,0)}}
+.convo{position:absolute;left:14px;right:14px;bottom:84px;z-index:850;background:rgba(17,24,35,.97);border:1px solid var(--line2);border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:8px;max-height:58%;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.msgs{display:flex;flex-direction:column;gap:6px;overflow:auto;min-height:40px}
+.msgs div{max-width:88%;padding:8px 11px;border-radius:14px;font-size:14px;line-height:1.35}
+.msgs .u{align-self:flex-end;background:var(--panel2);border:1px solid var(--line2)}
+.msgs .a{align-self:flex-start;background:color-mix(in srgb,var(--accent) 16%,var(--bg));border:1px solid color-mix(in srgb,var(--accent) 45%,var(--line))}
+.msgs .who{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.chips2{display:flex;flex-wrap:wrap;gap:6px}
+.chips2 button{font-size:12px;padding:6px 10px;border-radius:999px}
+.say{display:flex;gap:6px}.say input{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:9px}
+.yn{display:flex;gap:8px}.yn .btn{flex:1;padding:12px;font-weight:600}
+.brief{position:absolute;left:14px;right:14px;bottom:84px;z-index:800;background:var(--panel2);border:1px solid var(--line2);border-radius:16px;padding:12px 14px;font-size:14px;display:none}
+.brief.show{display:block}
+.brief .label{margin-bottom:4px}
+/* Fits my car: the carmaker-only layer under the alert */
+.car{margin:8px 14px 0;display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:14px;border:1px solid var(--line);background:var(--panel);font-size:12.5px;cursor:pointer;color:inherit;text-align:left;width:calc(100% - 28px)}
+.car .cn{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.car .cl{flex:1;min-width:0;line-height:1.3}
+.car .cw{font-family:var(--mono);font-size:10.5px;color:var(--muted);white-space:nowrap}
+.car.low{border-color:color-mix(in srgb,var(--ok) 55%,var(--line))}
+.car.medium{border-color:var(--breaker)}.car.high{border-color:var(--pothole);background:color-mix(in srgb,var(--pothole) 10%,var(--panel))}
+.car.stop{border-color:var(--pothole);background:color-mix(in srgb,var(--pothole) 22%,var(--panel));font-weight:600}
+.health{position:absolute;left:14px;right:14px;bottom:84px;z-index:860;background:rgba(17,24,35,.98);border:1px solid var(--line2);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px;max-height:72%;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.health h3{font-family:var(--display);font-size:18px;margin:0}
+.bar{height:10px;border-radius:999px;background:var(--panel2);overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--ok),var(--breaker),var(--pothole))}
+.hlog{font-family:var(--mono);font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+.health .btn{padding:10px;border-radius:12px;text-align:left}
+.health .note{font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="device">
+  <div class="top">
+    <div class="brand">SADAK <b>SENSE</b></div>
+    <div class="chips"><span class="chip" id="cGps">GPS</span><span class="chip" id="cImu">SENSORS</span><span class="chip" id="cNet">0 SENT</span></div>
+  </div>
+  <div class="alert clear" id="alert" role="status" aria-live="assertive">
+    <div class="ic">✓</div><div><div class="t" id="aT">Road ahead is clear</div><div class="s" id="aS">No confirmed hazards in the next stretch</div></div>
+    <div class="dist" id="aD"></div>
+  </div>
+  <button class="car" id="carBar" type="button" aria-label="My car and road wear"><span class="cn" id="carName">My car</span><span class="cl" id="carLine">Checks every hazard against this car's clearance and load</span><span class="cw" id="carWear">wear 0%</span></button>
+  <div class="mid">
+    <div class="speed"><span id="spd">0</span> <small>km/h</small></div>
+    <div class="meta"><div><b id="mRoad">—</b></div><div>Hazards known nearby: <b id="mKnown">0</b></div><div>Jolts detected: <b id="mJolts">0</b></div></div>
+  </div>
+  <div id="map"></div>
+  <div class="trace"><div class="label" style="display:flex;justify-content:space-between"><span>Vertical acceleration</span><span id="tNote">waiting</span></div><canvas id="tr" width="800" height="116"></canvas></div>
+  <div class="bottom">
+    <button class="btn" id="briefBtn" type="button">Road brief</button>
+    <button class="btn mic" id="micBtn" type="button" aria-label="Talk to Sadak Sense"><span class="mi">●</span> Bolo</button>
+    <button class="btn" id="voiceBtn" type="button">Voice: on</button>
+    <button class="btn" id="stopBtn" type="button">End</button>
+  </div>
+  <div class="convo" id="convo" hidden>
+    <div class="label" style="display:flex;justify-content:space-between"><span>Baat kijiye · English, Hindi, Hinglish</span><span id="micState"></span></div>
+    <div class="msgs" id="msgs"></div>
+    <div class="yn" id="yn" hidden><button class="btn" id="ynYes" type="button">Haan</button><button class="btn" id="ynNo" type="button">Na</button></div>
+    <div class="chips2" id="chips"></div>
+    <form class="say" id="sayForm"><label for="sayIn" style="position:absolute;left:-9999px">Say something</label><input id="sayIn" placeholder="Bolo ya type karo…" autocomplete="off"><button class="btn" type="submit">Send</button></form>
+  </div>
+  <div class="brief" id="brief"><div class="label">Morning road brief</div><div id="briefT"></div></div>
+  <div class="health" id="health" hidden>
+    <div style="display:flex;justify-content:space-between;align-items:center"><h3 id="hTitle">My car</h3><button class="btn" id="hClose" type="button" style="padding:6px 10px">Close</button></div>
+    <div class="note" id="hSpec"></div>
+    <div><div class="label" style="display:flex;justify-content:space-between"><span>Road wear this week</span><span id="hPct">0%</span></div><div class="bar"><i id="hBar" style="width:0%"></i></div></div>
+    <div id="hMsg" style="font-size:13.5px"></div>
+    <button class="btn" id="hBook" type="button"><b>Book a free suspension and alignment check</b><br><span class="note">Nearest Hyundai service centre, with this week's hit log attached</span></button>
+    <div class="label">Damage log · for a service or insurance claim</div>
+    <div class="hlog" id="hLog"></div>
+    <div class="note">Only this car's owner sees this log. It stays in the car unless the owner shares it. Hit history before this drive is a demo sample.</div>
+  </div>
+
+  <div class="sheet" id="start">
+    <div class="brand" style="font-size:15px">SADAK <b>SENSE</b></div>
+    <h1>Your car feels the road. Now it warns the next driver.</h1>
+    <p>Mount the phone in a holder. It reads the accelerometer and GPS, detects speed breakers and potholes, shares anonymous jolt reports, and warns you before hazards other cars have confirmed.</p>
+    <div class="field"><label class="label" for="lang">Voice language</label><select id="lang"><option>English</option><option selected>Hinglish</option><option>Hindi</option></select></div>
+    <div class="field"><label class="label" for="voiceSel">Voice</label><select id="voiceSel"></select></div>
+    <button class="btn" id="voiceTest" type="button" style="padding:9px 14px"><b style="font-size:14px">Hear this voice</b><span id="voiceHint"></span></button>
+    <div class="field"><label class="label" for="carSel">My car</label><select id="carSel"><option value="aura">Hyundai Aura</option><option value="exter">Hyundai Exter</option><option value="venue">Hyundai Venue</option><option value="creta" selected>Hyundai Creta</option><option value="bayon">Hyundai Bayon</option></select></div>
+    <div class="field"><label class="label" for="people">People in the car</label><select id="people"><option>1</option><option>2</option><option>3</option><option selected>4</option><option>5</option></select></div>
+    <div class="field"><label class="label" for="homeOn">Keep home updated</label><input type="checkbox" id="homeOn" checked></div>
+    <div class="field"><label class="label" for="rain">It is raining</label><input type="checkbox" id="rain"></div>
+    <button class="btn primary" id="realBtn" type="button"><b>Start driving</b><span>Uses this phone's real motion sensors and GPS</span></button>
+    <div class="field"><label class="label" for="route">Demo route</label><select id="route"></select></div>
+    <button class="btn" id="demoBtn" type="button"><b>Demo drive</b><span>Simulated GPS and sensor signal on a real Delhi road; the same detector and alerts run</span></button>
+    <p style="font-size:11.5px">Privacy: reports contain only location, heading, speed and jolt size, with an ID that changes every day. No trip history is stored.</p>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+// Sadak Sense voice dialogue: understands English, Hindi (Devanagari) and Hinglish (Roman Hindi
+// mixed with English), and replies in the language the driver used. Rule-based so it works
+// offline in the car; an LLM can rephrase replies when connected.
+(function (root, factory) {
+  if (typeof module === "object" && module.exports) module.exports = factory();
+  else root.SadakVoice = factory();
+})(typeof self !== "undefined" ? self : this, function () {
+  const HINGLISH_WORDS = /\b(hai|hain|kya|koi|aage|aagey|gaddha|gadda|gaddhe|khadda|paani|pani|bhara|bhar|haan|han|ha|nahi|nahin|na|yahan|idhar|wahan|bada|badi|batao|bataiye|bolo|do|dijiye|kitne|kitna|raasta|rasta|sadak|mein|me|pe|par|ka|ki|ke|tha|thi|theek|thik|ji|bhai|aaj|abhi|mat|chalo|dekho|jhatka|madad|shukriya|boliye|poochho|batana)\b/i;
+  const DEV = /[ऀ-ॿ]/;
+
+  function detectLang(text) {
+    if (DEV.test(text)) return "Hindi";
+    const words = text.toLowerCase().match(/[a-z]+/g) || [];
+    const hits = words.filter((w) => HINGLISH_WORDS.test(w)).length;
+    return hits >= 1 && hits / Math.max(1, words.length) >= 0.15 ? "Hinglish" : "English";
+  }
+
+  const has = (t, re) => re.test(t);
+  function intent(raw) {
+    const t = raw.toLowerCase().normalize("NFC");
+    const yes = /^\s*(haan|han|ha|ji|ji haan|yes|yeah|yep|sahi|bilkul|हाँ|हां|जी)(?=$|[\s?.!,।])/;
+    const no = /^\s*(nahi|nahin|na|no|nope|galat|नहीं|ना)(?=$|[\s?.!,।])/;
+    if (has(t, yes) && t.split(/\s+/).length <= 3) return { name: "yes" };
+    if (has(t, no) && t.split(/\s+/).length <= 3) return { name: "no" };
+    // "Will my car make it?": answered from the car's own clearance, load and wading limit.
+    if (has(t, /(meri (gaadi|gadi|car)|my car|nikal (jayegi|jaayegi|jaegi|payegi|paayegi)|neeche lag|scrape|clearance|मेरी गाड़ी|मेरी कार|निकल (जाएगी|पाएगी))/)) return { name: "ask_car" };
+    const pothole = /(gaddh|gadd?a|khadd|pothole|crater|गड्ढ|गढ्ढ)/, breaker = /(speed ?breaker|breaker|bump|hump|ब्रेकर)/, water = /(paani|pani|water|flood|bhar(a|aa)|jal ?bhar|underpass|पानी|जलभराव|अंडरपास|बाढ़)/;
+    const here = /(yahan|yaha|idhar|here|abhi|यहाँ|यहां|इधर)/;
+    const question = /(\?|kya|koi|kahan|kitne|kitna|is there|any|what|where|how many|क्या|कोई|कितने)/;
+    const report = /(hai|hain|mila|laga|there is|there's|found|report|है)/;
+    if (has(t, /(brief|route|aaj ka|today|raasta|rasta|सारांश|आज|ब्रीफ|रूट)/) && !has(t, here)) return { name: "brief" };
+    if (has(t, water) && has(t, here) && !has(t, question)) return { name: "report", type: "crawl" };
+    if (has(t, water)) return { name: "ask_water" };
+    if ((has(t, pothole) || has(t, breaker)) && has(t, here) && has(t, report) && !has(t, /(\?|kya|koi|क्या|कोई)/)) return { name: "report", type: has(t, breaker) ? "breaker" : "pothole" };
+    if (has(t, /(aage|aagey|ahead|next|आगे|clear|saaf|साफ)/) || has(t, pothole) || has(t, breaker)) return { name: "ask_ahead", type: has(t, breaker) ? "breaker" : has(t, pothole) ? "pothole" : null };
+    if (has(t, /(help|madad|kya kar sakte|what can you|मदद)/)) return { name: "help" };
+    return { name: "unknown" };
+  }
+
+  const N = {
+    English: { breaker: ["speed breaker", "speed breakers"], pothole: ["pothole", "potholes"], water: ["waterlogging", "waterlogging"] },
+    Hinglish: { breaker: ["speed breaker", "speed breakers"], pothole: ["gaddha", "gaddhe"], water: ["paani bhara", "paani bhara"] },
+    Hindi: { breaker: ["स्पीड ब्रेकर", "स्पीड ब्रेकर"], pothole: ["गड्ढा", "गड्ढे"], water: ["जलभराव", "जलभराव"] },
+  };
+  const word = (lang, type, n) => N[lang][type][n === 1 ? 0 : 1];
+  const m = (d) => Math.max(10, Math.round(d / 10) * 10);
+
+  // ctx: { ahead: [{type, dist, devices}], water: {dist}|null, brief: {breakers, potholes, water}, pending: {type}|null }
+  function reply(text, ctx = {}) {
+    let lang = detectLang(text);
+    // Speech engines often write spoken Hinglish in Devanagari; keep the driver's chosen register.
+    if (ctx.prefer === "Hinglish" && lang === "Hindi") lang = "Hinglish";
+    if (ctx.prefer === "English" && lang !== "English" && !/[\u0900-\u097F]/.test(text)) lang = lang;
+    const it = intent(text), L = lang;
+    const say = (en, hl, hi) => ({ English: en, Hinglish: hl, Hindi: hi }[L]);
+    let out, action = null;
+    switch (it.name) {
+      case "ask_ahead": {
+        const list = (ctx.ahead || []).filter((h) => !it.type || h.type === it.type);
+        if (!list.length) out = say("The road ahead is clear for the next kilometre. No confirmed hazards.", "Aage ek kilometre tak raasta saaf hai. Koi confirmed hazard nahi.", "आगे एक किलोमीटर तक रास्ता साफ़ है। कोई पुष्ट ख़तरा नहीं।");
+        else {
+          const h = list[0], rest = list.length - 1;
+          out = say(`Yes. A ${word(L, h.type, 1)} in ${m(h.dist)} metres, felt by ${h.devices} cars.${rest ? ` ${rest} more after that.` : ""} I'll warn you before each one.`,
+            `Haan. ${m(h.dist)} metre mein ${word(L, h.type, 1)} hai, ${h.devices} gaadiyon ne confirm kiya.${rest ? ` Uske baad ${rest} aur.` : ""} Main pehle bata dunga.`,
+            `हाँ। ${m(h.dist)} मीटर पर ${word(L, h.type, 1)} है, ${h.devices} गाड़ियों ने पुष्टि की।${rest ? ` उसके बाद ${rest} और।` : ""} मैं पहले बता दूँगा।`);
+        }
+        break;
+      }
+      case "ask_water":
+        out = ctx.water ? say(`Yes, waterlogging ${m(ctx.water.dist)} metres ahead; ${ctx.water.devices} cars crawled through it in the last 30 minutes. Take another road if you can.`,
+          `Haan, ${m(ctx.water.dist)} metre aage paani bhara hai. Pichhle 30 minute mein ${ctx.water.devices} gaadiyan wahan atkin. Ho sake toh doosra raasta lijiye.`,
+          `हाँ, ${m(ctx.water.dist)} मीटर आगे जलभराव है। पिछले 30 मिनट में ${ctx.water.devices} गाड़ियाँ वहाँ अटकीं। हो सके तो दूसरा रास्ता लें।`)
+          : say("No waterlogging reported on your road right now.", "Abhi aapke raaste pe kahin paani bhara nahi hai.", "अभी आपके रास्ते पर कहीं जलभराव नहीं है।");
+        break;
+      case "brief": {
+        const b = ctx.brief || { breakers: 0, potholes: 0, water: false };
+        out = say(`Your route has ${b.breakers} ${word(L, "breaker", b.breakers)} and ${b.potholes} ${word(L, "pothole", b.potholes)} confirmed.${b.water ? " The underpass is waterlogged, take the alternative." : ""}`,
+          `Aapke route pe ${b.breakers} ${word(L, "breaker", b.breakers)} aur ${b.potholes} ${word(L, "pothole", b.potholes)} confirmed hain.${b.water ? " Underpass mein paani bhara hai, doosra raasta lijiye." : ""}`,
+          `आपके रूट पर ${b.breakers} ${word(L, "breaker", b.breakers)} और ${b.potholes} ${word(L, "pothole", b.potholes)} की पुष्टि हुई है।${b.water ? " अंडरपास में पानी भरा है, दूसरा रास्ता लें।" : ""}`);
+        break;
+      }
+      case "ask_car":
+        // ctx.carCheck: the "Fits my car" line for the next hazard, already in the driver's language
+        out = ctx.carCheck || say("Nothing ahead that your car needs to worry about.", "Aage aapki gaadi ke liye kuch khatarnaak nahi hai.", "आगे आपकी गाड़ी के लिए कुछ ख़तरनाक नहीं है।");
+        break;
+      case "report":
+        action = { report: it.type };
+        out = it.type === "crawl" ? say("Thanks, I've reported waterlogging here. Other drivers will be warned once more cars confirm it.", "Shukriya, yahan paani bhara hone ki report bhej di. Aur gaadiyan confirm karengi toh sabko bataya jayega.", "धन्यवाद, यहाँ जलभराव की रिपोर्ट भेज दी। और गाड़ियाँ पुष्टि करेंगी तो सबको बताया जाएगा।")
+          : say(`Thanks, I've marked a ${word(L, it.type, 1)} here. It will be shown to others once 3 cars agree.`, `Shukriya, yahan ${word(L, it.type, 1)} mark kar diya. 3 gaadiyan confirm karengi toh sabko dikhega.`, `धन्यवाद, यहाँ ${word(L, it.type, 1)} दर्ज कर दिया। 3 गाड़ियाँ पुष्टि करेंगी तो सबको दिखेगा।`);
+        break;
+      case "yes":
+        action = ctx.pending ? { confirm: true } : null;
+        out = ctx.pending ? say(`Thanks, ${word(L, ctx.pending.type, 1)} confirmed.`, `Shukriya, ${word(L, ctx.pending.type, 1)} confirm ho gaya.`, `धन्यवाद, ${word(L, ctx.pending.type, 1)} की पुष्टि हो गई।`) : say("Okay.", "Theek hai.", "ठीक है।");
+        break;
+      case "no":
+        action = ctx.pending ? { confirm: false } : null;
+        out = ctx.pending ? say("Got it, I won't report that jolt.", "Theek hai, wo jhatka report nahi karunga.", "ठीक है, वह झटका रिपोर्ट नहीं करूँगा।") : say("Okay.", "Theek hai.", "ठीक है।");
+        break;
+      case "help":
+        out = say("Ask me what's ahead, whether the underpass is flooded, whether your car will make it, or for today's road brief. Say 'pothole here' to report one.", "Mujhse poochhiye aage kya hai, underpass mein paani hai kya, meri gaadi nikal jayegi kya, ya aaj ka road brief. Report ke liye boliye 'yahan gaddha hai'.", "मुझसे पूछिए आगे क्या है, अंडरपास में पानी है क्या, मेरी गाड़ी निकल जाएगी क्या, या आज का रोड ब्रीफ़। रिपोर्ट के लिए बोलिए 'यहाँ गड्ढा है'।");
+        break;
+      default:
+        out = say("Sorry, I didn't get that. You can ask what's ahead or report a pothole.", "Maaf kijiye, samajh nahi aaya. Aap pooch sakte hain aage kya hai, ya gaddha report kar sakte hain.", "माफ़ कीजिए, समझ नहीं आया। आप पूछ सकते हैं आगे क्या है, या गड्ढा रिपोर्ट कर सकते हैं।");
+    }
+    return { lang, intent: it.name, reply: out, action };
+  }
+
+  function askAfterJolt(type, lang) {
+    return { English: `Was that a ${word("English", type, 1)}? Say yes or no.`, Hinglish: `Abhi jo jhatka laga, kya wo ${word("Hinglish", type, 1)} tha? Haan ya na boliye.`, Hindi: `अभी जो झटका लगा, क्या वह ${word("Hindi", type, 1)} था? हाँ या ना बोलिए।` }[lang];
+  }
+
+  return { detectLang, intent, reply, askAfterJolt };
+});
+
+</script>
+<script>
+window.SSMods = (function () {
+  const mods = {}; const ROUTES = {"iit-hauzkhas": {"name": "IIT Delhi Main Gate \u2192 Hauz Khas Metro", "distance_m": 2130, "duration_s": 314, "coords": [[28.546718, 77.193022], [28.546267, 77.194432], [28.54621, 77.194572], [28.546186, 77.194614], [28.546165, 77.194639], [28.546151, 77.194653], [28.546106, 77.194694], [28.545776, 77.194888], [28.545249, 77.195162], [28.545161, 77.195201], [28.544985, 77.194738], [28.544923, 77.194582], [28.544886, 77.194597], [28.544848, 77.1946], [28.54481, 77.19459], [28.544595, 77.194767], [28.544556, 77.194845], [28.544371, 77.195347], [28.544338, 77.195432], [28.544313, 77.195493], [28.544119, 77.195984], [28.544021, 77.196256], [28.543958, 77.196426], [28.543792, 77.196923], [28.543739, 77.197055], [28.543415, 77.197851], [28.542981, 77.199035], [28.542793, 77.199537], [28.543011, 77.199637], [28.542792, 77.200239], [28.542723, 77.200424], [28.543832, 77.200938], [28.544106, 77.201065], [28.544581, 77.201299], [28.54486, 77.201429], [28.544815, 77.201562], [28.544713, 77.201799], [28.544676, 77.201883], [28.54451, 77.202305], [28.544332, 77.202762], [28.54425, 77.20297], [28.544145, 77.203253], [28.544068, 77.203522], [28.544024, 77.203763], [28.543993, 77.203992], [28.54394, 77.204498], [28.54389, 77.204913], [28.543881, 77.205001], [28.543862, 77.205199], [28.5438, 77.205838], [28.543758, 77.206267], [28.543789, 77.206354], [28.543791, 77.206411], [28.543783, 77.206539], [28.543752, 77.207041], [28.543691, 77.208027], [28.543675, 77.208088], [28.54364, 77.208137], [28.543592, 77.208167], [28.543536, 77.208174], [28.543483, 77.208156], [28.54344, 77.208117], [28.543413, 77.208061], [28.543407, 77.207999], [28.543444, 77.207451], [28.543468, 77.20716], [28.543474, 77.207068], [28.543502, 77.206608]]}, "iit-aiims": {"name": "IIT Delhi \u2192 AIIMS (Aurobindo Marg)", "distance_m": 3509, "duration_s": 303, "coords": [[28.543842, 77.19946], [28.543422, 77.199273], [28.543217, 77.199167], [28.543011, 77.199637], [28.542792, 77.200239], [28.542723, 77.200424], [28.543832, 77.200938], [28.544106, 77.201065], [28.544581, 77.201299], [28.54486, 77.201429], [28.545018, 77.201531], [28.545875, 77.202037], [28.546602, 77.202431], [28.547308, 77.202805], [28.547901, 77.203049], [28.54896, 77.203398], [28.549544, 77.203582], [28.55062, 77.203921], [28.550858, 77.203998], [28.550956, 77.20403], [28.551233, 77.204151], [28.551713, 77.204362], [28.552357, 77.204647], [28.552867, 77.204889], [28.553378, 77.205176], [28.553418, 77.205195], [28.553526, 77.205245], [28.553637, 77.205261], [28.553743, 77.205299], [28.554156, 77.205491], [28.555517, 77.206105], [28.555685, 77.206094], [28.556072, 77.206188], [28.556267, 77.206287], [28.556335, 77.206304], [28.55655, 77.206359], [28.557081, 77.206483], [28.557117, 77.206491], [28.557172, 77.206504], [28.557493, 77.206557], [28.557524, 77.206562], [28.557892, 77.206657], [28.55821, 77.206724], [28.558662, 77.206813], [28.558966, 77.206868], [28.559274, 77.206923], [28.559478, 77.206959], [28.559538, 77.206967], [28.559567, 77.206972], [28.559883, 77.207041], [28.560024, 77.20707], [28.560308, 77.207131], [28.561319, 77.207257], [28.561717, 77.207307], [28.562434, 77.20742], [28.563216, 77.207524], [28.563727, 77.207531], [28.564037, 77.207534], [28.564285, 77.207482], [28.564517, 77.207479], [28.564658, 77.20745], [28.564691, 77.207449], [28.564722, 77.207462], [28.564747, 77.207486], [28.564764, 77.207518], [28.56477, 77.207554], [28.564766, 77.207591], [28.56475, 77.207624], [28.564725, 77.207649], [28.564695, 77.207663], [28.564662, 77.207664], [28.56452, 77.207651], [28.564235, 77.207629], [28.564016, 77.207649], [28.56362, 77.207663], [28.563535, 77.207729], [28.563317, 77.207751], [28.563316, 77.207799], [28.563311, 77.207929], [28.563431, 77.207982], [28.563433, 77.207983], [28.563555, 77.208052], [28.563586, 77.208076], [28.563612, 77.208104], [28.563622, 77.208135], [28.563592, 77.20858], [28.563547, 77.209269], [28.563532, 77.209708], [28.563489, 77.210356], [28.563506, 77.210407], [28.56354, 77.210435], [28.563581, 77.210462], [28.563711, 77.210478], [28.563906, 77.210475], [28.564024, 77.210482], [28.564275, 77.210512], [28.564334, 77.21052], [28.564395, 77.210529], [28.564609, 77.210571], [28.56481, 77.210614], [28.565176, 77.21076], [28.565223, 77.210135], [28.565442, 77.210152]]}, "saket-munirka": {"name": "Saket \u2192 Munirka (Outer Ring Road)", "distance_m": 7547, "duration_s": 565, "coords": [[28.524562, 77.217257], [28.524383, 77.217313], [28.524337, 77.217356], [28.524333, 77.217422], [28.524338, 77.217445], [28.524271, 77.21745], [28.524, 77.217468], [28.523703, 77.217488], [28.52335, 77.217514], [28.523334, 77.217515], [28.523317, 77.217515], [28.523233, 77.21752], [28.523186, 77.216575], [28.523185, 77.216507], [28.523742, 77.216452], [28.524221, 77.216353], [28.52466, 77.216217], [28.52515, 77.216065], [28.525705, 77.215893], [28.52583, 77.215854], [28.525992, 77.215804], [28.526245, 77.215725], [28.526754, 77.215567], [28.526984, 77.215462], [28.52753, 77.215288], [28.528088, 77.215125], [28.528795, 77.21492], [28.528969, 77.214864], [28.529134, 77.214811], [28.529185, 77.2148], [28.529234, 77.214786], [28.52911, 77.214327], [28.528915, 77.213692], [28.528897, 77.213619], [28.528719, 77.213153], [28.528633, 77.212883], [28.528492, 77.212562], [28.528343, 77.212064], [28.52834, 77.212052], [28.528299, 77.211819], [28.528247, 77.21149], [28.52817, 77.210637], [28.528164, 77.210562], [28.528083, 77.209621], [28.527987, 77.208717], [28.527932, 77.208132], [28.527926, 77.208077], [28.527906, 77.207887], [28.52784, 77.207095], [28.527819, 77.206299], [28.52782, 77.20623], [28.52782, 77.206218], [28.527821, 77.206119], [28.527821, 77.206108], [28.527827, 77.20604], [28.527831, 77.205887], [28.527832, 77.205846], [28.527843, 77.205423], [28.527876, 77.2051], [28.527995, 77.204455], [28.528177, 77.203709], [28.52875, 77.202524], [28.52877, 77.202484], [28.530184, 77.199571], [28.53021, 77.199518], [28.530223, 77.199495], [28.530252, 77.199442], [28.530335, 77.199264], [28.530552, 77.198805], [28.53106, 77.197625], [28.531199, 77.197081], [28.531214, 77.196995], [28.531401, 77.195944], [28.531544, 77.195243], [28.531595, 77.195105], [28.531735, 77.194838], [28.531773, 77.19478], [28.531808, 77.194726], [28.531884, 77.194792], [28.532007, 77.194888], [28.532575, 77.195325], [28.53327, 77.195898], [28.533558, 77.196121], [28.533649, 77.196171], [28.533989, 77.196339], [28.534295, 77.196465], [28.534596, 77.196598], [28.534742, 77.196662], [28.535566, 77.197032], [28.535816, 77.197144], [28.536135, 77.197303], [28.53627, 77.197371], [28.536335, 77.197413], [28.536441, 77.197471], [28.537822, 77.19813], [28.53788, 77.198158], [28.538171, 77.198325], [28.538356, 77.198423], [28.538444, 77.19847], [28.538516, 77.198506], [28.538834, 77.198673], [28.539366, 77.198971], [28.5395, 77.199023], [28.540607, 77.19944], [28.540926, 77.199556], [28.542723, 77.200424], [28.543832, 77.200938], [28.544106, 77.201065], [28.544218, 77.201072], [28.544275, 77.201066], [28.54433, 77.201059], [28.544438, 77.201026], [28.544541, 77.200973], [28.544634, 77.200902], [28.544716, 77.200815], [28.544785, 77.200713], [28.544818, 77.200608], [28.544957, 77.200066], [28.545068, 77.199574], [28.545368, 77.198254], [28.545604, 77.197702], [28.545888, 77.196541], [28.545985, 77.19611], [28.546187, 77.195428], [28.546391, 77.194739], [28.5464, 77.194709], [28.547199, 77.192075], [28.547228, 77.191982], [28.547798, 77.190558], [28.547859, 77.190407], [28.548, 77.190055], [28.548615, 77.188519], [28.548665, 77.188382], [28.548793, 77.188037], [28.54878, 77.187894], [28.5489, 77.187525], [28.549726, 77.185454], [28.549903, 77.184993], [28.550159, 77.184434], [28.550281, 77.184232], [28.550448, 77.183929], [28.550478, 77.18387], [28.550518, 77.183799], [28.550539, 77.183766], [28.550555, 77.183742], [28.550945, 77.183178], [28.551105, 77.182921], [28.55122, 77.182736], [28.551332, 77.182557], [28.551521, 77.182253], [28.551573, 77.182175], [28.551729, 77.181937], [28.551959, 77.181588], [28.552024, 77.181491], [28.552882, 77.180202], [28.552966, 77.180076], [28.552977, 77.18006], [28.55315, 77.179794], [28.553158, 77.179782], [28.553345, 77.179505], [28.553378, 77.179467], [28.553443, 77.179415], [28.553567, 77.179237], [28.553721, 77.179005], [28.554269, 77.178177], [28.55433, 77.178085], [28.55438, 77.178004], [28.554574, 77.177696], [28.555157, 77.176791], [28.555343, 77.176497], [28.555492, 77.176283], [28.55581, 77.175819], [28.555889, 77.175703], [28.555924, 77.175652], [28.555923, 77.175509], [28.556136, 77.175216], [28.555839, 77.175036], [28.555977, 77.174648], [28.556004, 77.174574], [28.556023, 77.174512]]}, "iit-vasantvihar": {"name": "IIT Delhi \u2192 Vasant Vihar", "distance_m": 3631, "duration_s": 375, "coords": [[28.547139, 77.188013], [28.547142, 77.187978], [28.547149, 77.187961], [28.547161, 77.187947], [28.54719, 77.187937], [28.547565, 77.187921], [28.547961, 77.187928], [28.547991, 77.187927], [28.548017, 77.187914], [28.548027, 77.187899], [28.548031, 77.187878], [28.548037, 77.187684], [28.548043, 77.187622], [28.548039, 77.187403], [28.548037, 77.187146], [28.548032, 77.186852], [28.548024, 77.18554], [28.548232, 77.18559], [28.548433, 77.185658], [28.548489, 77.185679], [28.548525, 77.185687], [28.548581, 77.185682], [28.548612, 77.185673], [28.548636, 77.185611], [28.548665, 77.18554], [28.548943, 77.18483], [28.549014, 77.184596], [28.548999, 77.184578], [28.54899, 77.184555], [28.548987, 77.184531], [28.548992, 77.184501], [28.549001, 77.184484], [28.549016, 77.184466], [28.549036, 77.184454], [28.549059, 77.18445], [28.549081, 77.184453], [28.5491, 77.184464], [28.549115, 77.18448], [28.549126, 77.1845], [28.549131, 77.184523], [28.54913, 77.184547], [28.549123, 77.18457], [28.549403, 77.184717], [28.549696, 77.184871], [28.549727, 77.184887], [28.549864, 77.184966], [28.549903, 77.184993], [28.550159, 77.184434], [28.550281, 77.184232], [28.550448, 77.183929], [28.550478, 77.18387], [28.550518, 77.183799], [28.550539, 77.183766], [28.550555, 77.183742], [28.550945, 77.183178], [28.551105, 77.182921], [28.55122, 77.182736], [28.551332, 77.182557], [28.551521, 77.182253], [28.551573, 77.182175], [28.551729, 77.181937], [28.551959, 77.181588], [28.552024, 77.181491], [28.552882, 77.180202], [28.552966, 77.180076], [28.552977, 77.18006], [28.55315, 77.179794], [28.553158, 77.179782], [28.553345, 77.179505], [28.553378, 77.179467], [28.553443, 77.179415], [28.553567, 77.179237], [28.553721, 77.179005], [28.554269, 77.178177], [28.55433, 77.178085], [28.55438, 77.178004], [28.554574, 77.177696], [28.555157, 77.176791], [28.555343, 77.176497], [28.555492, 77.176283], [28.55581, 77.175819], [28.555889, 77.175703], [28.555924, 77.175652], [28.555923, 77.175509], [28.556136, 77.175216], [28.55674, 77.17434], [28.557114, 77.173818], [28.557388, 77.173435], [28.557417, 77.173397], [28.557433, 77.173379], [28.557665, 77.173076], [28.557695, 77.173036], [28.557784, 77.172915], [28.557864, 77.172807], [28.55818, 77.172376], [28.558304, 77.172206], [28.558359, 77.172138], [28.558432, 77.172045], [28.558616, 77.171813], [28.559306, 77.171091], [28.55939, 77.171], [28.560111, 77.170185], [28.560161, 77.170129], [28.56029, 77.169995], [28.560357, 77.169926], [28.56052, 77.169756], [28.560623, 77.16965], [28.560928, 77.169334], [28.561372, 77.168962], [28.561405, 77.168934], [28.561573, 77.168787], [28.561503, 77.168672], [28.561443, 77.168553], [28.561292, 77.168193], [28.561244, 77.168078], [28.561233, 77.167998], [28.561167, 77.1678], [28.561146, 77.167736], [28.561119, 77.167623], [28.561062, 77.167453], [28.561006, 77.167294], [28.560869, 77.166888], [28.560783, 77.16656], [28.560734, 77.16637], [28.560706, 77.16625], [28.560607, 77.165673], [28.560581, 77.165528], [28.560488, 77.165023], [28.560409, 77.164632], [28.560333, 77.164249], [28.560275, 77.163944], [28.560249, 77.16382], [28.560217, 77.163629], [28.560116, 77.162872], [28.560081, 77.162818], [28.560073, 77.16278], [28.560081, 77.162653], [28.560122, 77.162299], [28.560204, 77.16173], [28.560229, 77.161579], [28.560388, 77.160827], [28.560423, 77.160659], [28.560438, 77.160591], [28.560405, 77.160582], [28.560054, 77.160509], [28.560073, 77.160402], [28.560138, 77.160032]]}, "cp-minto": {"name": "Connaught Place \u2192 Minto Bridge underpass \u2192 Ajmeri Gate", "distance_m": 2720, "duration_s": 239, "coords": [[28.631497, 77.219577], [28.631589, 77.219581], [28.631635, 77.219581], [28.631677, 77.219391], [28.631746, 77.219197], [28.63187, 77.218972], [28.631959, 77.218846], [28.632107, 77.218685], [28.632257, 77.218574], [28.632312, 77.21854], [28.632371, 77.21851], [28.632495, 77.218461], [28.632624, 77.218429], [28.632787, 77.218414], [28.632937, 77.218424], [28.63295, 77.218425], [28.633109, 77.218463], [28.633197, 77.2185], [28.633262, 77.218528], [28.633405, 77.218616], [28.633603, 77.218272], [28.63394, 77.217678], [28.634179, 77.217257], [28.634199, 77.217221], [28.634251, 77.21713], [28.634303, 77.217041], [28.634429, 77.217131], [28.634845, 77.217556], [28.635257, 77.218006], [28.635309, 77.218109], [28.635357, 77.218203], [28.635435, 77.218363], [28.63553, 77.21862], [28.635586, 77.218866], [28.635642, 77.219166], [28.635674, 77.21947], [28.6357, 77.219666], [28.635714, 77.219762], [28.635719, 77.21982], [28.635719, 77.219883], [28.635717, 77.21993], [28.635708, 77.219998], [28.635697, 77.220035], [28.635575, 77.220444], [28.635395, 77.221049], [28.635316, 77.221308], [28.635301, 77.221354], [28.635276, 77.221439], [28.635341, 77.221488], [28.63546, 77.221574], [28.636365, 77.222234], [28.637046, 77.222729], [28.637385, 77.222978], [28.637544, 77.223094], [28.637609, 77.223144], [28.637676, 77.223194], [28.637622, 77.223279], [28.637608, 77.22327], [28.63755, 77.223231], [28.637496, 77.223195], [28.637367, 77.223106], [28.637272, 77.223036], [28.637062, 77.222884], [28.636408, 77.222408], [28.636305, 77.222333], [28.636365, 77.222234], [28.637046, 77.222729], [28.637385, 77.222978], [28.637544, 77.223094], [28.637609, 77.223144], [28.637676, 77.223194], [28.637832, 77.223311], [28.638002, 77.223433], [28.639178, 77.224313], [28.639435, 77.224509], [28.639804, 77.224791], [28.640151, 77.225055], [28.64043, 77.225264], [28.640727, 77.225488], [28.641009, 77.225699], [28.641414, 77.225997], [28.641526, 77.22608], [28.641892, 77.22635], [28.64244, 77.226754], [28.64251, 77.226805], [28.642543, 77.226773], [28.642581, 77.226748], [28.642623, 77.226732], [28.642666, 77.226724], [28.64271, 77.226726], [28.642762, 77.226624], [28.64348, 77.225222], [28.643935, 77.224335], [28.643946, 77.224242], [28.643941, 77.224148], [28.64392, 77.224057], [28.643885, 77.223972], [28.643837, 77.223896], [28.643776, 77.223832], [28.643735, 77.2238], [28.643508, 77.223754], [28.643399, 77.223743], [28.643071, 77.223708], [28.642989, 77.223612]]}};
+  mods["./routes.json"] = ROUTES;
+  function def(name, fn) { const module = { exports: {} }; fn(module, module.exports, (n) => mods[n]); mods[name] = module.exports; }
+  def("geo", function (module, exports, require) { 
+// Small geodesy helpers (WGS84, metres, degrees).
+const R = 6371000;
+const toRad = (d) => (d * Math.PI) / 180;
+const toDeg = (r) => (r * 180) / Math.PI;
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function bearing(lat1, lon1, lat2, lon2) {
+  const y = Math.sin(toRad(lon2 - lon1)) * Math.cos(toRad(lat2));
+  const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) - Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(toRad(lon2 - lon1));
+  return (toDeg(Math.atan2(y, x)) + 360) % 360;
+}
+
+function headingDiff(a, b) {
+  if (a == null || b == null || Number.isNaN(a) || Number.isNaN(b)) return 0;
+  const d = Math.abs(((a - b) % 360 + 540) % 360 - 180);
+  return d;
+}
+
+// Offset a point by distance (m) along bearing (deg).
+function offset(lat, lon, dist, brg) {
+  const d = dist / R, b = toRad(brg), p1 = toRad(lat), l1 = toRad(lon);
+  const p2 = Math.asin(Math.sin(p1) * Math.cos(d) + Math.cos(p1) * Math.sin(d) * Math.cos(b));
+  const l2 = l1 + Math.atan2(Math.sin(b) * Math.sin(d) * Math.cos(p1), Math.cos(d) - Math.sin(p1) * Math.sin(p2));
+  return [toDeg(p2), toDeg(l2)];
+}
+
+// Distance from point to a polyline [[lat,lon],...] (m), approximate (local equirectangular).
+function distToPolyline(lat, lon, line) {
+  let best = Infinity;
+  const kx = Math.cos(toRad(lat)) * 111320, ky = 110540;
+  for (let i = 0; i < line.length - 1; i++) {
+    const [ay, ax] = line[i], [by, bx] = line[i + 1];
+    const Ax = (ax - lon) * kx, Ay = (ay - lat) * ky, Bx = (bx - lon) * kx, By = (by - lat) * ky;
+    const dx = Bx - Ax, dy = By - Ay, L = dx * dx + dy * dy;
+    let t = L ? -(Ax * dx + Ay * dy) / L : 0;
+    t = Math.max(0, Math.min(1, t));
+    const px = Ax + t * dx, py = Ay + t * dy;
+    best = Math.min(best, Math.hypot(px, py));
+  }
+  return best;
+}
+
+module.exports = { haversine, bearing, headingDiff, offset, distToPolyline, toRad, toDeg };
+
+});
+  mods["../server/geo"] = mods.geo; mods["./geo"] = mods.geo;
+  def("fleet", function (module, exports, require) { 
+// Fleet simulator: virtual connected cars drive real Delhi roads (OSRM geometry) and
+// report what their sensors would feel. It uses the same event format and the same
+// API as the phone app, so the backend cannot tell simulated cars from real ones.
+//
+// In-process:  new FleetSim({ routes, ingest, pass, hazards }).start()
+// Against a deployed server:  node sim/fleet.js --url https://your-app.onrender.com --cars 12 --speedup 8
+const { haversine, bearing, offset, headingDiff } = require("../server/geo");
+const ROUTES = require("./routes.json");
+
+// Ground truth for the simulation: hazards placed on real roads (positions are simulated).
+const SCENARIO = [
+  ["iit-hauzkhas", 0.28, "breaker", "Unmarked speed breaker"], ["iit-hauzkhas", 0.62, "pothole", "Pothole, kerb lane"],
+  ["iit-aiims", 0.16, "breaker", "Speed breaker, faded paint"], ["iit-aiims", 0.47, "pothole", "Deep pothole"], ["iit-aiims", 0.81, "breaker", "Speed breaker near gate"],
+  ["saket-munirka", 0.30, "pothole", "Pothole cluster"], ["saket-munirka", 0.56, "pothole", "Broken patch after rain"], ["saket-munirka", 0.76, "breaker", "Rumble strip / breaker"],
+  ["iit-vasantvihar", 0.35, "breaker", "Speed breaker, no sign"], ["iit-vasantvihar", 0.70, "pothole", "Pothole near bus stop"],
+  ["cp-minto", 0.12, "pothole", "Pothole near Outer Circle"], ["cp-minto", null, "water", "Minto Bridge underpass"], ["cp-minto", 0.86, "breaker", "Speed breaker near station"],
+];
+const MINTO = [28.6363, 77.2226]; // Minto Bridge underpass (Minto Road under the railway)
+
+function prepRoute(r) {
+  const cum = [0];
+  for (let i = 1; i < r.coords.length; i++) cum.push(cum[i - 1] + haversine(...r.coords[i - 1], ...r.coords[i]));
+  return { ...r, cum, length: cum[cum.length - 1] };
+}
+function pointAt(r, s) {
+  s = Math.max(0, Math.min(r.length, s));
+  let i = 1; while (i < r.cum.length - 1 && r.cum[i] < s) i++;
+  const [a, b] = [r.coords[i - 1], r.coords[i]], seg = r.cum[i] - r.cum[i - 1] || 1, f = (s - r.cum[i - 1]) / seg;
+  return { lat: a[0] + (b[0] - a[0]) * f, lon: a[1] + (b[1] - a[1]) * f, heading: bearing(...a, ...b) };
+}
+function project(r, lat, lon) {
+  let best = { d: Infinity, s: 0 };
+  for (let i = 0; i < r.coords.length - 1; i++) {
+    for (let k = 0; k <= 10; k++) {
+      const s = r.cum[i] + ((r.cum[i + 1] - r.cum[i]) * k) / 10, p = pointAt(r, s), d = haversine(lat, lon, p.lat, p.lon);
+      if (d < best.d) best = { d, s };
+    }
+  }
+  return best;
+}
+
+class FleetSim {
+  constructor({ ingest, pass, hazards, now = () => Date.now(), log = () => {} }) {
+    this.routes = Object.fromEntries(Object.entries(ROUTES).map(([k, r]) => [k, prepRoute(r)]));
+    this.ingest = ingest; this.pass = pass; this.hazardsFn = hazards; this.now = now; this.log = log;
+    this.cars = []; this.running = false; this.carsPerMin = 20; this.speedup = 6; this.monsoon = false;
+    this.spawnAcc = 0; this.known = []; this.stats = { spawned: 0, events: 0, passes: 0 };
+    this.truth = SCENARIO.map(([rid, f, type, label], i) => {
+      const r = this.routes[rid];
+      const s = f == null ? project(r, ...MINTO).s : f * r.length;
+      const p = pointAt(r, s);
+      return { id: `T${i + 1}`, route: rid, s, type, label, lat: p.lat, lon: p.lon, heading: p.heading, active: type !== "water" };
+    });
+  }
+
+  configure({ carsPerMin, speedup, monsoon }) {
+    if (carsPerMin != null) this.carsPerMin = Math.max(1, Math.min(120, +carsPerMin));
+    if (speedup != null) this.speedup = Math.max(1, Math.min(30, +speedup));
+    if (monsoon != null) { this.monsoon = !!monsoon; this.truth.find((t) => t.type === "water").active = this.monsoon; }
+  }
+
+  repairOne() {
+    const t = this.truth.find((h) => h.type === "pothole" && h.active && this.known.some((k) => k.state === "confirmed" && haversine(k.lat, k.lon, h.lat, h.lon) < 25))
+      || this.truth.find((h) => h.type === "pothole" && h.active);
+    if (t) t.active = false;
+    return t || null;
+  }
+
+  start() {
+    if (this.running) return; this.running = true; this.last = Date.now();
+    this.timer = setInterval(() => this.tick(), 200);
+    this.refresh = setInterval(() => this.refreshKnown(), 1500); this.refreshKnown();
+  }
+  stop() { this.running = false; clearInterval(this.timer); clearInterval(this.refresh); this.cars = []; }
+
+  async refreshKnown() {
+    try {
+      const list = await this.hazardsFn();
+      this.known = list.filter((h) => h.family !== "water" && ["candidate", "confirmed"].includes(h.state)).map((h) => {
+        const proj = {};
+        for (const [rid, r] of Object.entries(this.routes)) { const p = project(r, h.lat, h.lon); if (p.d < 15) proj[rid] = p.s; }
+        return { ...h, proj };
+      });
+    } catch (e) { this.log("refresh failed: " + e.message); }
+  }
+
+  spawn() {
+    const ids = Object.keys(this.routes), rid = ids[Math.floor(Math.random() * ids.length)], r = this.routes[rid];
+    const dir = Math.random() < 0.5 ? 1 : -1;
+    const kmh = Math.max(14, Math.min(52, (r.length / r.duration_s) * 3.6 * (0.7 + Math.random() * 0.6)));
+    this.cars.push({ device: "sim-" + Math.random().toString(36).slice(2, 10), rid, dir, s: dir > 0 ? 0 : r.length, v: kmh / 3.6, crawled: false });
+    this.stats.spawned++;
+  }
+
+  tick() {
+    const now = Date.now(), dt = Math.min(1, (now - this.last) / 1000) * this.speedup; this.last = now;
+    this.spawnAcc += (this.carsPerMin / 60) * dt;
+    while (this.spawnAcc >= 1) { this.spawn(); this.spawnAcc--; }
+    const ts = this.now();
+    for (const c of this.cars) {
+      const r = this.routes[c.rid];
+      const water = this.truth.find((t) => t.type === "water" && t.route === c.rid);
+      const inWater = water && water.active && Math.abs(c.s - water.s) < 70;
+      const v = inWater ? 1.4 : c.v;
+      const s0 = c.s, s1 = c.s + c.dir * v * dt;
+      const crossed = (s) => (s - s0) * (s - s1) <= 0;
+      const hdg = (pointAt(r, Math.min(s0, s1)).heading + (c.dir < 0 ? 180 : 0)) % 360;
+      const reported = [];
+      for (const t of this.truth) {
+        if (t.route !== c.rid || !t.active || t.type === "water" || !crossed(t.s)) continue;
+        const sameDir = headingDiff(hdg, t.heading) < 90;
+        const p = t.type === "breaker" ? 0.9 : sameDir ? 0.6 : 0; // potholes are in one carriageway
+        if (Math.random() < p) {
+          const [la, lo] = offset(t.lat, t.lon, Math.random() * 5, Math.random() * 360); // GPS error ~5 m
+          const peak = (t.type === "breaker" ? 0.75 : 1.0) * (v * 3.6 / 30) * (0.75 + Math.random() * 0.5);
+          this.ingest({ device: c.device, lat: la, lon: lo, heading: hdg, speed: v * 3.6, peak_g: +peak.toFixed(2), type: t.type, ts });
+          this.stats.events++; reported.push(t);
+        }
+      }
+      if (inWater && !c.crawled && Math.random() < 0.85) {
+        const [la, lo] = offset(water.lat, water.lon, Math.random() * 20, Math.random() * 360);
+        this.ingest({ device: c.device, lat: la, lon: lo, heading: hdg, speed: 5, peak_g: null, type: "crawl", rain: true, ts });
+        c.crawled = true; this.stats.events++;
+      }
+      // Clean passes over hazards the server knows about, where this car felt nothing.
+      for (const k of this.known) {
+        const ks = k.proj[c.rid];
+        if (ks == null || !crossed(ks)) continue;
+        if (k.type === "pothole" && headingDiff(hdg, k.heading) > 90) continue;
+        if (reported.some((t) => haversine(t.lat, t.lon, k.lat, k.lon) < 25)) continue;
+        this.pass(k.id, c.device, ts); this.stats.passes++;
+      }
+      c.s = s1;
+    }
+    this.cars = this.cars.filter((c) => c.s >= 0 && c.s <= this.routes[c.rid].length);
+  }
+
+  snapshot() {
+    return {
+      running: this.running, carsPerMin: this.carsPerMin, speedup: this.speedup, monsoon: this.monsoon, stats: this.stats,
+      cars: this.cars.map((c) => { const p = pointAt(this.routes[c.rid], c.s); return [+p.lat.toFixed(6), +p.lon.toFixed(6)]; }),
+    };
+  }
+}
+
+module.exports = { FleetSim, ROUTES, SCENARIO };
+
+// CLI: drive a remote deployment through its public API.
+if (require.main === module) {
+  const arg = (k, d) => { const i = process.argv.indexOf("--" + k); return i > 0 ? process.argv[i + 1] : d; };
+  const url = arg("url", "http://localhost:3000").replace(/\/$/, "");
+  const post = (p, body) => fetch(url + p, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).catch(() => {});
+  const sim = new FleetSim({
+    ingest: (e) => post("/api/events", e),
+    pass: (id, device, ts) => post("/api/passes", { hazardId: id, device, ts }),
+    hazards: async () => (await (await fetch(url + "/api/hazards?states=candidate,confirmed")).json()).hazards,
+    log: console.log,
+  });
+  sim.configure({ carsPerMin: +arg("cars", 20), speedup: +arg("speedup", 6), monsoon: process.argv.includes("--monsoon") });
+  sim.start();
+  setInterval(() => console.log(new Date().toISOString(), JSON.stringify(sim.snapshot().stats)), 5000);
+}
+
+});
+  def("brief", function (module, exports, require) { const process = { env: {} };
+// Morning road brief: confirmed hazards on the driver's usual route, in their language.
+// Uses the Claude API for natural phrasing when ANTHROPIC_API_KEY is set; otherwise templates.
+const NAMES = {
+  English: { breaker: ["speed breaker", "speed breakers"], pothole: ["pothole", "potholes"] },
+  Hinglish: { breaker: ["speed breaker", "speed breakers"], pothole: ["gaddha", "gaddhe"] },
+  Hindi: { breaker: ["स्पीड ब्रेकर", "स्पीड ब्रेकर"], pothole: ["गड्ढा", "गड्ढे"] },
+};
+
+function template(hz, lang, routeName) {
+  const br = hz.filter((h) => h.type === "breaker").length, ph = hz.filter((h) => h.type === "pothole").length;
+  const water = hz.find((h) => h.type === "water");
+  const n = NAMES[lang] || NAMES.English, w = (k, c) => n[k][c === 1 ? 0 : 1];
+  if (lang === "Hindi") return `सुप्रभात। ${routeName || "आपके रूट"} पर ${br} ${w("breaker", br)} और ${ph} ${w("pothole", ph)} की पुष्टि हुई है। मैं हर एक से पहले बताऊँगा।` + (water ? " अंडरपास में पानी भरा है, दूसरा रास्ता लें।" : "");
+  if (lang === "Hinglish") return `Good morning! ${routeName || "Aapke route"} pe ${br} ${w("breaker", br)} aur ${ph} ${w("pothole", ph)} confirmed hain. Main har ek se pehle bataunga.` + (water ? " Underpass mein paani bhara hai, doosra raasta lijiye." : "");
+  if (!hz.length) return `Good morning. No confirmed hazards on ${routeName || "your route"} right now.`;
+  return `Good morning. ${routeName || "Your route"} has ${br} ${w("breaker", br)} and ${ph} ${w("pothole", ph)} confirmed by other cars; I'll call each one out before you reach it.` + (water ? " The underpass is waterlogged, so take the alternative road." : "");
+}
+
+async function brief(hz, lang = "English", routeName = "") {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (key) {
+    try {
+      const data = hz.map((h) => ({ type: h.type, confirmedByCars: h.devices, severity: h.severity }));
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+        body: JSON.stringify({
+          model: process.env.BRIEF_MODEL || "claude-haiku-5-5", max_tokens: 160,
+          messages: [{ role: "user", content: `You are an in-car assistant in India. Write a spoken morning road brief (max 40 words) in ${lang}${lang === "Hinglish" ? " (Roman script)" : ""} for the route "${routeName}". Use ONLY these confirmed hazards, listed in driving order: ${JSON.stringify(data)}. If there is water, advise an alternative road. No lists, no emojis.` }],
+        }),
+        signal: AbortSignal.timeout(6000),
+      });
+      if (res.ok) { const j = await res.json(); const text = j.content?.[0]?.text?.trim(); if (text) return { text, source: "llm" }; }
+    } catch (e) { /* fall through to template */ }
+  }
+  return { text: template(hz, lang, routeName), source: "template" };
+}
+
+module.exports = { brief, template };
+
+});
+  return { geo: mods.geo, fleet: mods.fleet, brief: mods.brief, routes: ROUTES };
+})();
+</script>
+<script>
+// Browser-only backend for the shareable edition. It runs the same rules as the server
+// (in memory) and answers the apps' /api/* calls and /api/stream, so the console and the
+// driver app work from a static link with no server. Requires: SSMods (geo, fleet, brief), SadakVoice.
+(function () {
+  const { haversine, bearing, headingDiff, distToPolyline } = SSMods.geo;
+  const CFG = { surfaceRadiusM: 20, waterRadiusM: 60, headingTolDeg: 60, confirmDevices: 3, confirmWindowMs: 7 * 864e5, clearAfterCleanPasses: 8, rejectCandidateAfter: 8, waterDevices: 3, waterWindowMs: 30 * 60e3, waterDecayMs: 120 * 60e3, candidateTtlMs: 7 * 864e5 };
+  const FAMILY = { breaker: "surface", pothole: "surface", bump: "surface", crawl: "water" };
+  const median = (a) => { if (!a.length) return NaN; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+  const mode = (a) => { const c = {}; let b = a[0], n = 0; for (const x of a) { c[x] = (c[x] || 0) + 1; if (c[x] > n) { n = c[x]; b = x; } } return b; };
+  const cmean = (a) => { if (!a.length) return null; let s = 0, c = 0; for (const d of a) { s += Math.sin((d * Math.PI) / 180); c += Math.cos((d * Math.PI) / 180); } return ((Math.atan2(s, c) * 180) / Math.PI + 360) % 360; };
+  const r6 = (x) => Math.round(x * 1e6) / 1e6;
+
+  class MemEngine {
+    constructor(onChange) { this.hz = new Map(); this.nextId = 1; this.recentEvents = []; this.recentPasses = []; this.onChange = onChange || (() => {}); }
+    _nearby(family, lat, lon, heading, type) {
+      const r = family === "water" ? CFG.waterRadiusM : CFG.surfaceRadiusM; let best = null, bd = Infinity;
+      for (const h of this.hz.values()) {
+        if (h.family !== family || !["candidate", "confirmed"].includes(h.state)) continue;
+        const d = haversine(lat, lon, h.lat, h.lon);
+        const dirOk = family === "water" || type === "breaker" || h.type === "breaker" || headingDiff(heading, h.heading) <= CFG.headingTolDeg;
+        if (d <= r && dirOk && d < bd) { best = h; bd = d; }
+      }
+      return best;
+    }
+    ingest(e) {
+      if (!(e && typeof e.device === "string" && Number.isFinite(e.lat) && Number.isFinite(e.lon) && FAMILY[e.type])) return { ok: false };
+      const ts = e.ts || Date.now(), family = FAMILY[e.type], type = e.type === "crawl" ? "water" : e.type === "bump" ? "breaker" : e.type;
+      let h = this._nearby(family, e.lat, e.lon, e.heading, type), created = false;
+      if (!h) { h = { id: this.nextId++, family, type, lat: e.lat, lon: e.lon, heading: e.heading ?? null, state: "candidate", created_ts: ts, last_hit_ts: ts, severity: e.peak_g ?? null, clean_streak: 0, n_events: 0, events: [], passes: [] }; this.hz.set(h.id, h); created = true; }
+      h.events.push({ lat: e.lat, lon: e.lon, heading: e.heading, peak_g: e.peak_g, speed: e.speed, type: e.type, device: e.device, ts }); if (h.events.length > 200) h.events.shift();
+      h.passes.push({ ts, hit: 1 }); if (h.passes.length > 60) h.passes.shift();
+      this.recentEvents.push(ts); this.recentPasses.push({ ts, device: e.device });
+      const ev = h.events;
+      h.lat = median(ev.map((v) => v.lat)); h.lon = median(ev.map((v) => v.lon)); h.heading = cmean(ev.map((v) => v.heading).filter((x) => x != null));
+      h.type = family === "water" ? "water" : mode(ev.map((v) => (v.type === "bump" ? "breaker" : v.type)));
+      const sev = median(ev.filter((v) => v.peak_g != null).map((v) => v.peak_g * (30 / Math.max(10, v.speed || 30)))); h.severity = Number.isFinite(sev) ? sev : null;
+      const n = this._devices(h, ts), need = family === "water" ? CFG.waterDevices : CFG.confirmDevices;
+      const just = h.state !== "confirmed" && n >= need; if (just) { h.state = "confirmed"; h.confirmed_ts = ts; }
+      h.last_hit_ts = ts; h.clean_streak = 0; h.n_events++;
+      const out = this.hazard(h.id);
+      this.onChange({ kind: created ? "created" : just ? "confirmed" : "updated", hazard: out, event: { lat: e.lat, lon: e.lon, type: e.type } });
+      return { ok: true, hazardId: h.id, state: h.state, created, justConfirmed: just, devices: n };
+    }
+    _devices(h, ref) { const w = h.family === "water" ? CFG.waterWindowMs : CFG.confirmWindowMs; return new Set(h.events.filter((v) => v.ts >= ref - w).map((v) => v.device)).size; }
+    pass(id, device, ts = Date.now()) {
+      const h = this.hz.get(id); if (!h || !["candidate", "confirmed"].includes(h.state) || h.family === "water") return { ok: false };
+      h.passes.push({ ts, hit: 0 }); if (h.passes.length > 60) h.passes.shift(); this.recentPasses.push({ ts, device });
+      h.clean_streak++;
+      let st = h.state;
+      if (h.state === "confirmed" && h.clean_streak >= CFG.clearAfterCleanPasses) st = "cleared";
+      if (h.state === "candidate" && h.clean_streak >= CFG.rejectCandidateAfter) st = "rejected";
+      if (st !== h.state) { h.state = st; h.cleared_ts = ts; this.onChange({ kind: st, hazard: this.hazard(id) }); }
+      return { ok: true, state: h.state };
+    }
+    sweep(now) { for (const h of this.hz.values()) { if (!["candidate", "confirmed"].includes(h.state)) continue; if (h.family === "water" && now - h.last_hit_ts > CFG.waterDecayMs) { h.state = "cleared"; h.cleared_ts = now; this.onChange({ kind: "swept", hazard: this.hazard(h.id) }); } } }
+    hazard(id) {
+      const h = this.hz.get(id); if (!h) return null;
+      return { id: h.id, type: h.type, family: h.family, lat: r6(h.lat), lon: r6(h.lon), heading: h.heading == null ? null : Math.round(h.heading), state: h.state, severity: h.severity == null ? null : Math.round(h.severity * 100) / 100, cleanStreak: h.clean_streak, events: h.n_events, devices: this._devices(h, h.last_hit_ts || Date.now()), createdTs: h.created_ts, confirmedTs: h.confirmed_ts, clearedTs: h.cleared_ts, lastHitTs: h.last_hit_ts };
+    }
+    list({ lat, lon, radius = 5000, states = ["candidate", "confirmed"] } = {}) { return [...this.hz.values()].filter((h) => states.includes(h.state)).map((h) => this.hazard(h.id)).filter((h) => lat == null || haversine(lat, lon, h.lat, h.lon) <= radius); }
+    alongRoute(line, tol = 25) {
+      const hits = this.list({ states: ["confirmed"] }).filter((h) => distToPolyline(h.lat, h.lon, line) <= (h.family === "water" ? 80 : tol));
+      const idx = (h) => { let bi = 0, bd = Infinity; line.forEach(([a, b], i) => { const d = haversine(h.lat, h.lon, a, b); if (d < bd) { bd = d; bi = i; } }); return bi; };
+      return hits.sort((a, b) => idx(a) - idx(b));
+    }
+    stats(now) {
+      this.recentEvents = this.recentEvents.filter((t) => t >= now - 3600e3); this.recentPasses = this.recentPasses.filter((p) => p.ts >= now - 3600e3);
+      const c = (s) => [...this.hz.values()].filter((h) => h.state === s).length;
+      return { confirmed: c("confirmed"), candidates: c("candidate"), cleared: c("cleared"), rejected: c("rejected"), eventsLastHour: this.recentEvents.length, eventsTotal: this.recentEvents.length, devicesLastHour: new Set(this.recentPasses.map((p) => p.device)).size };
+    }
+  }
+
+  const listeners = new Set();
+  const emit = (type, data) => { for (const l of listeners) l(type, data); };
+  const engine = new MemEngine((c) => emit("hazard", c));
+  const ROUTES = SSMods.routes;
+  const sim = new SSMods.fleet.FleetSim({ ingest: (e) => engine.ingest(e), pass: (id, d, ts) => engine.pass(id, d, ts), hazards: async () => engine.list() });
+  setInterval(() => engine.sweep(Date.now()), 30e3);
+  setInterval(() => { emit("stats", engine.stats(Date.now())); if (sim.running) emit("sim", sim.snapshot()); }, 1000);
+
+  // Warm start: the virtual fleet has already been driving for a while when the page opens.
+  sim.configure({ carsPerMin: 24, speedup: 8 });
+  (function warm() {
+    const realNow = Date.now; let fake = realNow() - 40 * 60e3; Date.now = () => fake;
+    sim.last = fake; sim.refreshKnown();
+    for (let i = 0; i < 1400; i++) { fake += 200; sim.tick(); if (i % 8 === 0) sim.refreshKnown(); }
+    Date.now = realNow; sim.cars = []; sim.spawnAcc = 0;
+  })();
+  if (window.SS_AUTOSTART !== false) sim.start();
+
+  const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json" } });
+  async function handle(path, method, body) {
+    const u = new URL(path, "http://local"), q = Object.fromEntries(u.searchParams), p = u.pathname;
+    if (p === "/api/routes") return json(Object.fromEntries(Object.entries(ROUTES).map(([k, r]) => [k, { name: r.name, distance_m: r.distance_m, coords: r.coords }])));
+    if (p === "/api/events" && method === "POST") { const arr = Array.isArray(body) ? body : [body]; return json({ results: arr.map((e) => engine.ingest({ ...e, ts: e.ts || Date.now() })) }, 201); }
+    if (p === "/api/passes" && method === "POST") return json(engine.pass(body.hazardId, body.device, body.ts || Date.now()));
+    if (p === "/api/hazards") return json({ hazards: engine.list({ lat: q.lat != null ? +q.lat : undefined, lon: q.lon != null ? +q.lon : undefined, radius: +(q.radius || 5000), states: (q.states || "candidate,confirmed").split(",") }) });
+    const m = p.match(/^\/api\/hazards\/(\d+)$/);
+    if (m) { const h = engine.hz.get(+m[1]); if (!h) return json({ error: "not found" }, 404); return json({ hazard: engine.hazard(h.id), timeline: [...h.passes].reverse().slice(0, 40) }); }
+    if (p === "/api/stats") return json(engine.stats(Date.now()));
+    if (p === "/api/brief" && method === "POST") { const line = body.coords || ROUTES[body.routeId]?.coords; const hz = engine.alongRoute(line); const name = ROUTES[body.routeId]?.name.split("→").map((s) => s.trim()).join(" to ") || ""; return json({ text: SSMods.brief.template(hz, body.lang || "English", name), source: "template", hazards: hz }); }
+    if (p === "/api/ask" && method === "POST") {
+      const { text, lat, lon, heading, device, routeId, pending, prefer } = body; const ctx = { pending: pending || null, prefer };
+      if (Number.isFinite(lat)) {
+        const near = engine.list({ lat, lon, radius: 1500, states: ["confirmed"] });
+        ctx.ahead = near.filter((h) => h.family !== "water").map((h) => ({ ...h, dist: haversine(lat, lon, h.lat, h.lon) })).filter((h) => heading == null || h.dist < 15 || headingDiff(bearing(lat, lon, h.lat, h.lon), heading) < 40).filter((h) => h.dist <= 1000).sort((a, b) => a.dist - b.dist);
+        ctx.water = near.filter((h) => h.family === "water").map((h) => ({ ...h, dist: haversine(lat, lon, h.lat, h.lon) })).sort((a, b) => a.dist - b.dist)[0] || null;
+      }
+      const along = ROUTES[routeId] ? engine.alongRoute(ROUTES[routeId].coords) : ctx.ahead || [];
+      ctx.brief = { breakers: along.filter((h) => h.type === "breaker").length, potholes: along.filter((h) => h.type === "pothole").length, water: along.some((h) => h.type === "water") || !!ctx.water };
+      const out = SadakVoice.reply(text, ctx);
+      if (out.action?.report && Number.isFinite(lat)) out.result = engine.ingest({ device, lat, lon, heading, type: out.action.report, rain: out.action.report === "crawl", ts: Date.now() });
+      return json(out);
+    }
+    if (p === "/api/sim") {
+      if (method === "POST") { sim.configure(body); if (body.action === "start") sim.start(); if (body.action === "stop") sim.stop(); let repaired = null; if (body.action === "repair") repaired = sim.repairOne(); return json({ ...sim.snapshot(), repaired }); }
+      return json({ ...sim.snapshot(), truth: sim.truth });
+    }
+    return json({ error: "not found" }, 404);
+  }
+
+  const realFetch = window.fetch.bind(window);
+  window.fetch = (input, init = {}) => {
+    const url = typeof input === "string" ? input : input.url;
+    if (url.startsWith("/api/")) return handle(url, (init.method || "GET").toUpperCase(), init.body ? JSON.parse(init.body) : null);
+    return realFetch(input, init);
+  };
+  window.EventSource = class LocalEventSource {
+    constructor() { this.handlers = {}; this.l = (type, data) => (this.handlers[type] || []).forEach((f) => f({ data: JSON.stringify(data) })); listeners.add(this.l); setTimeout(() => this.onopen && this.onopen(), 0); }
+    addEventListener(type, f) { (this.handlers[type] = this.handlers[type] || []).push(f); }
+    close() { listeners.delete(this.l); }
+  };
+})();
+
+</script>
+<script>
+// Shared helpers for the console and the driver app.
+window.SS = {
+  api: (p, body) => fetch(p, body ? { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) } : {}).then((r) => r.json()),
+  hav(a1, o1, a2, o2) { const R = 6371000, t = Math.PI / 180, dA = (a2 - a1) * t, dO = (o2 - o1) * t; const x = Math.sin(dA / 2) ** 2 + Math.cos(a1 * t) * Math.cos(a2 * t) * Math.sin(dO / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); },
+  bearing(a1, o1, a2, o2) { const t = Math.PI / 180; const y = Math.sin((o2 - o1) * t) * Math.cos(a2 * t); const x = Math.cos(a1 * t) * Math.sin(a2 * t) - Math.sin(a1 * t) * Math.cos(a2 * t) * Math.cos((o2 - o1) * t); return (Math.atan2(y, x) / t + 360) % 360; },
+  hdiff(a, b) { return Math.abs(((a - b) % 360 + 540) % 360 - 180); },
+  LABEL: { breaker: "Speed breaker", pothole: "Pothole", water: "Waterlogging" },
+  SYM: { breaker: "⌒", pothole: "●", water: "≈" },
+  ago(ts) { const s = Math.max(0, (Date.now() - ts) / 1000); return s < 60 ? `${Math.round(s)}s ago` : s < 3600 ? `${Math.round(s / 60)} min ago` : `${Math.round(s / 3600)} h ago`; },
+  tiles(map) {
+    // OpenStreetMap standard tiles, rendered dark with a CSS filter. For production, swap in the
+    // navigation partner's tile service (see README); OSM's public tiles are for light use only.
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19, className: "dark-tiles",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map);
+  },
+  hazardIcon(h, extra = "") {
+    const size = h.state === "confirmed" ? 22 : 18;
+    const label = h.state === "candidate" ? `<span class="hzlabel">${h.devices}/3 cars</span>` : extra;
+    return L.divIcon({ className: "", iconSize: [size, size], iconAnchor: [size / 2, size / 2],
+      html: `<div class="hz ${h.type} ${h.state}" style="position:relative;width:${size}px;height:${size}px;font-size:${size * 0.6}px">${h.state === "confirmed" ? SS.SYM[h.type] : ""}${label}</div>` });
+  },
+};
+
+</script>
+<script>
+// Sadak Sense on-board jolt detector. Runs on a phone (DeviceMotion) or a car ECU.
+// Input: raw acceleration including gravity (m/s^2) + vehicle speed (m/s) + rotation rate.
+// Output: events { type: 'breaker' | 'pothole', peakG, t } via onEvent.
+//
+// Method:
+// 1. Track gravity with a slow low-pass filter; vertical acceleration = projection on gravity.
+// 2. High-pass (subtract a 1 s moving mean) so slopes and braking don't trigger.
+// 3. A peak is |a_v| above max(minG, k * rolling noise).
+// 4. Axle-pair test: a second peak arriving wheelbase / speed later (±35%) means both axles
+//    crossed the same feature across the road -> speed breaker. A single sharp peak -> pothole.
+// 5. Suppress while the phone is being handled (high rotation rate) or below 8 km/h.
+(function (root, factory) {
+  if (typeof module === "object" && module.exports) module.exports = factory();
+  else root.SadakDetector = factory();
+})(typeof self !== "undefined" ? self : this, function () {
+  const G = 9.80665;
+
+  function createDetector(opts = {}) {
+    const cfg = Object.assign({ wheelbase: 2.6, minG: 0.28, k: 5, minSpeed: 8 / 3.6, handlingDps: 120, sampleHz: 60 }, opts);
+    let gx = 0, gy = 0, gz = G, init = false;
+    const hpWin = [], noise = []; let hpSum = 0;
+    let pending = null, refractoryUntil = 0, handlingUntil = 0;
+    const onEvent = opts.onEvent || (() => {});
+    const trace = [];
+
+    function push(t, ax, ay, az, speed, rotDps) {
+      if (!init) { gx = ax; gy = ay; gz = az; init = true; }
+      const a = 0.02; gx += a * (ax - gx); gy += a * (ay - gy); gz += a * (az - gz);
+      const gn = Math.hypot(gx, gy, gz) || G;
+      const vert = (ax * gx + ay * gy + az * gz) / gn - gn;
+      hpWin.push(vert); hpSum += vert;
+      if (hpWin.length > cfg.sampleHz) hpSum -= hpWin.shift();
+      const v = (vert - hpSum / hpWin.length) / G; // in g
+      noise.push(Math.abs(v)); if (noise.length > cfg.sampleHz * 3) noise.shift();
+      const sorted = [...noise].sort((p, q) => p - q);
+      const sigma = sorted[Math.floor(sorted.length * 0.5)] || 0.02;
+      const thr = Math.max(cfg.minG, cfg.k * sigma);
+      trace.push({ t, v, thr }); if (trace.length > 600) trace.shift();
+
+      if (rotDps > cfg.handlingDps) handlingUntil = t + 2000;
+      const active = speed >= cfg.minSpeed && t >= handlingUntil;
+
+      // close pending single peak if its pair window expired
+      if (pending && t > pending.windowEnd) { emit("pothole", pending.peak, pending.t, speed); pending = null; }
+
+      if (!active || t < refractoryUntil) return v;
+      if (Math.abs(v) >= thr) {
+        refractoryUntil = t + 120; // ms, ignore ringing of the same impact
+        const expected = (cfg.wheelbase / Math.max(speed, 1)) * 1000;
+        if (pending && t >= pending.t + expected * 0.65 && t <= pending.t + expected * 1.35) {
+          const ratio = Math.abs(v) / pending.peak;
+          if (ratio > 0.35 && ratio < 2.8) { emit("breaker", Math.max(pending.peak, Math.abs(v)), pending.t, speed); pending = null; return v; }
+        }
+        if (!pending) pending = { t, peak: Math.abs(v), windowEnd: t + expected * 1.35 + 60 };
+        else pending.peak = Math.max(pending.peak, Math.abs(v));
+      }
+      return v;
+    }
+
+    function emit(type, peak, t, speed) { onEvent({ type, peakG: Math.round(peak * 100) / 100, t, speed }); }
+    return { push, trace, cfg };
+  }
+
+  // Synthetic sensor stream for demos and tests: road noise + optional features.
+  function synth(features, { speed = 30 / 3.6, durationMs = 3000, hz = 60, wheelbase = 2.6, noiseG = 0.03, seed = 1 } = {}) {
+    let s = seed; const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+    const out = [];
+    const gap = (wheelbase / speed) * 1000;
+    for (let i = 0; i < (durationMs * hz) / 1000; i++) {
+      const t = (i * 1000) / hz;
+      let v = (rnd() - 0.5) * 2 * noiseG + 0.02 * Math.sin(t / 180);
+      for (const f of features) {
+        const pulse = (t0, amp) => { const d = (t - t0) / 35; return amp * Math.exp(-d * d) * Math.cos(d * 1.6); };
+        if (f.type === "breaker") v += pulse(f.t, f.amp || 0.8) + pulse(f.t + gap, (f.amp || 0.8) * 0.85);
+        if (f.type === "pothole") v += pulse(f.t, -(f.amp || 1.0)) + pulse(f.t + gap, -(f.amp || 1.0) * 0.18);
+        if (f.type === "handling") v += t > f.t && t < f.t + 800 ? (rnd() - 0.5) * 2.5 : 0;
+      }
+      out.push({ t, ax: 0.3, ay: 0.2, az: G * (1 + v), rot: features.some((f) => f.type === "handling" && t > f.t && t < f.t + 800) ? 300 : 3 });
+    }
+    return out;
+  }
+
+  return { createDetector, synth, G };
+});
+
+</script>
+
+<script>
+// Sadak Sense speech: picks the most natural free Indian voice the browser offers and prepares the
+// text for it. Roman Hinglish goes through a word list into Devanagari, because a Hindi voice reads
+// "gaddha" badly but "गड्ढा" well. No network service or API key: Edge brings Microsoft's neural
+// voices, Chrome brings Google's Hindi voice, phones bring their own. Shared by the apps and tests.
+(function (root, factory) {
+  if (typeof module === "object" && module.exports) module.exports = factory();
+  else root.SadakSpeech = factory();
+})(typeof self !== "undefined" ? self : this, function () {
+  const WORDS = {
+    aage: "आगे", aagey: "आगे", aap: "आप", aapke: "आपके", aapki: "आपकी", aaj: "आज", aur: "और", abhi: "अभी", andar: "अंदर", atak: "अटक", atkin: "अटकीं", aa: "आ", aaram: "आराम",
+    bada: "बड़ा", bade: "बड़े", baad: "बाद", baithi: "बैठी", bana: "बना", bagal: "बग़ल", bata: "बता", bataunga: "बताऊँगा", bataya: "बताया", behtar: "बेहतर", bhara: "भरा", bhej: "भेज", bhejne: "भेजने", bolo: "बोलो", boliye: "बोलिए", book: "बुक", brief: "ब्रीफ़", breaker: "ब्रेकर", breakers: "ब्रेकर",
+    call: "कॉल", car: "कार", chaliye: "चलिए", chalun: "चलूँ", claim: "क्लेम", clearance: "क्लीयरेंस", confirm: "कन्फ़र्म", confirmed: "कन्फ़र्म्ड",
+    dekh: "देख", dekhein: "देखें", demo: "डेमो", der: "देर", dheere: "धीरे", dikha: "दिखा", dikhega: "दिखेगा", dikkat: "दिक़्क़त", diya: "दिया", do: "दो", doon: "दूँ", doosra: "दूसरा", doosre: "दूसरे", draft: "ड्राफ़्ट", dunga: "दूँगा", denge: "देंगे",
+    ek: "एक", front: "फ़्रंट",
+    gaadi: "गाड़ी", gaadiyan: "गाड़ियाँ", gaadiyon: "गाड़ियों", gaddha: "गड्ढा", gaddhe: "गड्ढे", gaddhon: "गड्ढों", gaya: "गया", gehra: "गहरा", ghar: "घर", gir: "गिर", good: "गुड",
+    ha: "हाँ", haan: "हाँ", hai: "है", hain: "हैं", har: "हर", hisaab: "हिसाब", ho: "हो", honge: "होंगे", hone: "होने", hoon: "हूँ", hospital: "हॉस्पिटल",
+    insurance: "इंश्योरेंस", is: "इस", isliye: "इसलिए",
+    ja: "जा", jagah: "जगह", jaiye: "जाइए", jawab: "जवाब", jayega: "जाएगा", jayegi: "जाएगी", jhatka: "झटका", jo: "जो",
+    ka: "का", kar: "कर", karenge: "करेंगे", karengi: "करेंगी", kareeb: "क़रीब", karun: "करूँ", karunga: "करूँगा", ke: "के", ki: "की", kijiye: "कीजिए", kilometre: "किलोमीटर", ko: "को", koi: "कोई", kuch: "कुछ", kya: "क्या", khatarnaak: "ख़तरनाक",
+    lag: "लग", lagbhag: "लगभग", late: "लेट", le: "ले", left: "लेफ़्ट", lijiye: "लीजिए", limit: "लिमिट", log: "लॉग", logon: "लोगों",
+    maaf: "माफ़", main: "मैं", maine: "मैंने", mark: "मार्क", mat: "मत", me: "में", mein: "में", message: "मैसेज", metre: "मीटर", metres: "मीटर", mil: "मिल", mila: "मिला", minute: "मिनट", morning: "मॉर्निंग", mude: "मुड़े", mujhse: "मुझसे",
+    na: "ना", nahi: "नहीं", nahin: "नहीं", nearest: "नियरेस्ट", neeche: "नीचे", network: "नेटवर्क", nikal: "निकल", nikaliye: "निकालिए",
+    paani: "पानी", pahunchte: "पहुँचते", par: "पर", pe: "पे", pehle: "पहले", phone: "फ़ोन", pichhle: "पिछले", poochhiye: "पूछिए", pooch: "पूछ", pressure: "प्रेशर", psi: "पी एस आई",
+    raaste: "रास्ते", raasta: "रास्ता", rahe: "रहे", raha: "रहा", rahi: "रही", rahiye: "रहिए", rakhiye: "रखिए", report: "रिपोर्ट", right: "राइट", rim: "रिम", risky: "रिस्की", road: "रोड", route: "रूट", ruk: "रुक", rukiye: "रुकिए",
+    saaf: "साफ़", saath: "साथ", sabko: "सबको", safe: "सेफ़", sakte: "सकते", sakti: "सकती", sake: "सके", samajh: "समझ", save: "सेव", se: "से", sensor: "सेंसर", service: "सर्विस", shaam: "शाम", shukriya: "शुक्रिया", slot: "स्लॉट", speed: "स्पीड", stop: "स्टॉप", suspension: "सस्पेंशन",
+    tak: "तक", tha: "था", theek: "ठीक", thodi: "थोड़ी", thoda: "थोड़ा", time: "टाइम", toh: "तो", tyre: "टायर",
+    underpass: "अंडरपास", uske: "उसके",
+    wahan: "वहाँ", wapas: "वापस", wear: "वियर", wo: "वो",
+    yahan: "यहाँ", ya: "या", zor: "ज़ोर",
+    ne: "ने", kiya: "किया", di: "दी", meri: "मेरी", liye: "लिए", hazard: "हैज़र्ड", kahin: "कहीं", laga: "लगा", lagta: "लगता", agle: "अगले", check: "चेक", mm: "मिलीमीटर", cm: "सेंटीमीटर", g: "जी",
+  };
+
+  // Pure Roman text to the spelling a Hindi voice pronounces well. Unknown words (road names,
+  // places) stay in Roman; neural Hindi voices read those as English.
+  function hinglishForSpeech(text) {
+    return String(text).replace(/[A-Za-z]+/g, (w) => WORDS[w.toLowerCase()] || w).replace(/\.(\s|$)/g, "।$1");
+  }
+
+  const CODE = (lang) => (lang === "English" ? "en-IN" : "hi-IN");
+  const norm = (l) => String(l || "").replace("_", "-").toLowerCase();
+
+  // Higher is better. Neural and "Online" voices sound human; the old desktop ones sound robotic.
+  function score(v, want) {
+    const name = String(v.name || ""), lang = norm(v.lang);
+    if (lang !== want.toLowerCase()) return 0;
+    let s = 10;
+    if (/natural|neural|online/i.test(name)) s += 100;
+    if (/swara|madhur|neerja|prabhat|aarav|ananya|kavya|aarti/i.test(name)) s += 40;
+    if (/google|-x-.*-(local|network)/i.test(name)) s += 70; // Chrome and Android
+    if (/lekha|rishi|veena|isha|premium|enhanced/i.test(name)) s += 50;
+    if (/kalpana|hemant|heera|ravi/i.test(name)) s += 5;
+    return s;
+  }
+  function rank(voices, lang) {
+    const want = CODE(lang);
+    const list = (voices || []).map((v) => ({ v, s: score(v, want) })).filter((x) => x.s > 0).sort((a, b) => b.s - a.s).map((x) => x.v);
+    // Desktop Chrome has no Indian English voice: its Hindi voice keeps the Indian accent, a US one would not.
+    return list.length || lang !== "English" ? list : rank(voices, "Hindi").filter(isNatural);
+  }
+  const isNatural = (v) => !!v && (score(v, norm(v.lang)) >= 80);
+
+  // Which voice, spelling and pace to use. chosen is a voice name the driver picked, if any.
+  function plan(text, lang, voices, chosen) {
+    const list = rank(voices, lang);
+    const voice = list.find((v) => v.name === chosen) || list[0] || null;
+    if (lang === "Hinglish" && !voice) {
+      // No Hindi voice at all: an Indian English voice reading the Roman text beats silence.
+      const en = rank(voices, "English")[0] || null;
+      return { voice: en, code: "en-IN", text: String(text), rate: 0.95, pitch: 1 };
+    }
+    return { voice, code: voice ? voice.lang.replace("_", "-") : CODE(lang), text: lang === "Hinglish" ? hinglishForSpeech(text) : String(text), rate: isNatural(voice) ? 1 : 0.92, pitch: 1 };
+  }
+
+  // Chrome's online voices stop after about 15 s, so long replies go sentence by sentence.
+  function chunks(text) {
+    return (String(text).match(/[^.।?!]+[.।?!]*\s*/g) || [String(text)]).map((s) => s.trim()).filter(Boolean);
+  }
+
+  const synth = () => (typeof speechSynthesis !== "undefined" ? speechSynthesis : null);
+  function voices() {
+    const s = synth(); if (!s) return Promise.resolve([]);
+    const now = s.getVoices(); if (now.length) return Promise.resolve(now);
+    // Browsers load voices late; wait briefly rather than speak with the default.
+    return new Promise((res) => {
+      const done = () => { s.removeEventListener?.("voiceschanged", done); res(s.getVoices()); };
+      s.addEventListener?.("voiceschanged", done); setTimeout(done, 1200);
+    });
+  }
+  const KEY = "ss-voice";
+  const chosen = () => { try { return localStorage.getItem(KEY) || ""; } catch { return ""; } };
+  const choose = (name) => { try { name ? localStorage.setItem(KEY, name) : localStorage.removeItem(KEY); } catch {} };
+
+  let turn = 0;
+  async function speak(text, lang = "English") {
+    const s = synth(); if (!s || !text) return;
+    const mine = ++turn;
+    const list = await voices();
+    if (mine !== turn) return; // a newer line arrived while voices were loading
+    const p = plan(text, lang, list, chosen());
+    s.cancel();
+    for (const part of chunks(p.text)) {
+      const u = new SpeechSynthesisUtterance(part);
+      u.lang = p.code; u.rate = p.rate; u.pitch = p.pitch; if (p.voice) u.voice = p.voice;
+      s.speak(u);
+    }
+  }
+
+  return { WORDS, hinglishForSpeech, rank, isNatural, plan, chunks, voices, chosen, choose, speak };
+});
+
+</script>
+<script>
+// Sadak Sense "My car": the part only the carmaker can do. Map apps know the road; the car knows
+// its own model, how many people are on board and every hit it has taken. Breaker advice is a
+// gentle, load-aware speed suggestion (no height or depth claims); road wear feeds service and
+// claims. Pure functions, shared by the driver app and the tests.
+(function (root, factory) {
+  if (typeof module === "object" && module.exports) module.exports = factory();
+  else root.SadakCar = factory();
+})(typeof self !== "undefined" ? self : this, function () {
+  // Approximate published ground clearance (unladen); in a production car it comes from the VIN.
+  const CARS = {
+    aura:  { name: "Aura",  clearanceMm: 165 },
+    exter: { name: "Exter", clearanceMm: 185 },
+    venue: { name: "Venue", clearanceMm: 195 },
+    creta: { name: "Creta", clearanceMm: 190 },
+    bayon: { name: "Bayon", clearanceMm: 190, assumed: true },
+  };
+  const SAG_PER_PASSENGER_MM = 6;  // suspension squat for each person beyond the driver (model)
+  const LOW_SITTING_MM = 160;      // below this laden clearance, suggest a gentler crossing
+  const HARD_SEVERITY = 1.2;       // fleet median jolt (normalised to 30 km/h) that counts as a hard breaker
+
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  function effectiveClearanceMm(car, people = 1) { return car.clearanceMm - SAG_PER_PASSENGER_MM * clamp(people - 1, 0, 6); }
+
+  // Advice for one hazard and one car. Breakers: base 20 km/h, slower if the fleet felt it hard,
+  // slower again if this car sits low with its current load. Water gets no car verdict.
+  function check(carId, people, h) {
+    const car = CARS[carId] || CARS.creta;
+    const eff = effectiveClearanceMm(car, people);
+    if (h.type === "water" || h.family === "water") return { kind: "water", level: "info", car, people, devices: h.devices };
+    if (h.type === "breaker") {
+      const hard = (h.severity ?? 1) >= HARD_SEVERITY, low = eff < LOW_SITTING_MM;
+      const speed = 20 - (hard ? 5 : 0) - (low ? 5 : 0);
+      return { kind: "breaker", level: speed <= 10 ? "high" : speed <= 15 ? "medium" : "low", hard, low, effMm: eff, speed, car, people };
+    }
+    return { kind: "pothole", level: (h.severity ?? 1) > 1.3 ? "high" : "medium", effMm: eff, speed: 20, car, people };
+  }
+
+  // One short line for the car strip / voice, in the driver's language.
+  function line(v, lang = "English") {
+    const n = v.car.name, p = v.people;
+    if (v.kind === "water") return { English: `Cars are crawling and stalling here. Better to take another road.`, Hinglish: `Yahan gaadiyan atak rahi hain. Doosra raasta behtar hai.`, Hindi: `यहाँ गाड़ियाँ अटक रही हैं। दूसरा रास्ता बेहतर है।` }[lang];
+    if (v.kind === "breaker") {
+      const hard = v.hard ? { English: "Cars feel this breaker hard. ", Hinglish: "Is breaker pe gaadiyon ko zor ka jhatka lagta hai. ", Hindi: "इस ब्रेकर पर गाड़ियों को ज़ोर का झटका लगता है। " }[lang] : "";
+      if (v.low) return { English: `${hard}With ${p} on board your ${n} sits lower: slow to ${v.speed}.`, Hinglish: `${hard}${p} logon ke saath aapki ${n} neeche baithi hai: ${v.speed} tak dheere kijiye.`, Hindi: `${hard}${p} लोगों के साथ आपकी ${n} नीचे बैठी है: ${v.speed} तक धीमे करें।` }[lang];
+      return { English: `${hard}Your ${n}: cross at ${v.speed}.`, Hinglish: `${hard}Aapki ${n}: ${v.speed} pe nikaliye.`, Hindi: `${hard}आपकी ${n}: ${v.speed} पर निकालें।` }[lang];
+    }
+    return v.level === "high"
+      ? { English: `Deep pothole. Risky for your ${n}'s tyres and rims.`, Hinglish: `Gehra gaddha. Aapki ${n} ke tyre aur rim ke liye risky.`, Hindi: `गहरा गड्ढा। आपकी ${n} के टायर और रिम के लिए जोखिम।` }[lang]
+      : { English: `Pothole. Slow down to protect your ${n}'s suspension.`, Hinglish: `Gaddha hai. ${n} ke suspension ke liye dheere chaliye.`, Hindi: `गड्ढा है। ${n} के सस्पेंशन के लिए धीरे चलें।` }[lang];
+  }
+
+  // Road-wear dose: how hard this car has been hit. Feeds the service and claim features.
+  function wear(hits, thresholdDose = 300) {
+    const dose = hits.reduce((s, h) => s + Math.max(0, (h.peakG ?? 0.6) - 0.3) * 10, 0);
+    const pct = Math.round(Math.min(100, (100 * dose) / thresholdDose));
+    return { hits: hits.length, dose: Math.round(dose), pct, due: pct >= 80 };
+  }
+
+  return { CARS, effectiveClearanceMm, check, line, wear };
+});
+
+</script>
+<script>
+// Sadak Sense driver app: real sensors (or a demo drive), on-device detection, anonymous
+// reporting, clean-pass reporting, and voice alerts for hazards confirmed by other cars.
+const $ = (id) => document.getElementById(id);
+const G = 9.80665;
+const S = { mode: null, lang: "Hinglish", voice: true, rain: false, pos: null, known: [], alerted: new Map(), queue: [], sent: 0, jolts: 0, recent: [], track: new Map(), device: null, lastFetch: 0, car: "creta", people: 4, hits: [], carCheck: null, agentDone: new Set(), pendingAgent: null, reroute: null };
+
+/* ---------- identity: anonymous ID that rotates daily ---------- */
+async function dailyId() {
+  let secret; try { secret = localStorage.getItem("ss-secret"); if (!secret) { secret = crypto.randomUUID(); localStorage.setItem("ss-secret", secret); } } catch { secret = crypto.randomUUID(); }
+  const day = new Date().toISOString().slice(0, 10);
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(secret + day));
+  return "ph-" + [...new Uint8Array(buf)].slice(0, 6).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/* ---------- map ---------- */
+const map = L.map("map", { zoomControl: false, attributionControl: true }).setView([28.5457, 77.1926], 16);
+SS.tiles(map);
+const me = L.circleMarker([0, 0], { radius: 8, color: "#fff", weight: 3, fillColor: "#3fd0c9", fillOpacity: 1 }).addTo(map);
+const hzLayer = L.layerGroup().addTo(map);
+let routeLine = null;
+
+/* ---------- detector ---------- */
+const det = SadakDetector.createDetector({ onEvent: (e) => onJolt(e) });
+function onJolt(e) {
+  if (!S.pos) return;
+  S.jolts++; $("mJolts").textContent = S.jolts;
+  S.recent.push({ lat: S.pos.lat, lon: S.pos.lon, ts: Date.now() });
+  S.hits.push({ ts: Date.now(), type: e.type, peakG: e.peakG, road: $("mRoad").textContent, speed: Math.round(S.pos.speed * 3.6) }); renderCar();
+  // In the car this is triggered by the tyre-pressure sensor; the demo uses the first hard pothole hit.
+  if (e.type === "pothole" && e.peakG >= (S.mode === "demo" ? 0.5 : 0.9) && !S.agentDone.has("tyre")) setTimeout(() => tyreAgent(e), 3500);
+  const ev = { device: S.device, lat: +S.pos.lat.toFixed(6), lon: +S.pos.lon.toFixed(6), heading: Math.round(S.pos.heading ?? 0), speed: +(S.pos.speed * 3.6).toFixed(1), peak_g: e.peakG, type: e.type, ts: Date.now() };
+  // A jolt where no hazard is known yet: ask the driver once (human-in-the-loop false-alarm filter).
+  const known = S.known.some((h) => SS.hav(h.lat, h.lon, ev.lat, ev.lon) < 25);
+  if (known || S.pendingJolt) S.queue.push(ev); else askConfirm(ev);
+  $("tNote").textContent = `${e.type === "breaker" ? "speed breaker" : "pothole"} detected · ${e.peakG} g`;
+  try { localStorage.setItem("ss-queue", JSON.stringify(S.queue.slice(-200))); } catch {}
+}
+
+/* ---------- voice + chime ---------- */
+let actx = null;
+function chime() { try { actx = actx || new AudioContext(); [880, 660].forEach((f, i) => { const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = f; o.connect(g); g.connect(actx.destination); const t = actx.currentTime + i * 0.18; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16); o.start(t); o.stop(t + 0.18); }); } catch {} }
+function say(text) { if (S.voice) SadakSpeech.speak(text, S.lang); }
+const PHRASE = {
+  breaker: { English: (d) => [`Speed breaker in ${d} metres`, "Slow to 20"], Hinglish: (d) => [`${d} metre mein speed breaker`, "20 ki speed rakhiye"], Hindi: (d) => [`${d} मीटर पर स्पीड ब्रेकर`, "गति 20 रखें"] },
+  pothole: { English: (d) => [`Pothole in ${d} metres`, "Keep right if safe"], Hinglish: (d) => [`${d} metre mein gaddha`, "Ho sake toh right rahiye"], Hindi: (d) => [`${d} मीटर पर गड्ढा`, "संभव हो तो दाईं ओर रहें"] },
+  water: { English: (d) => [`Waterlogging in ${d} metres`, "Take another road if you can"], Hinglish: (d) => [`${d} metre aage paani bhara hai`, "Doosra raasta lijiye"], Hindi: (d) => [`${d} मीटर आगे जलभराव`, "दूसरा रास्ता लें"] },
+};
+
+/* ---------- position updates ---------- */
+function updatePos(lat, lon, speed, heading, acc) {
+  const p = S.pos;
+  if (p && (speed == null || heading == null)) {
+    const d = SS.hav(p.lat, p.lon, lat, lon), dt = (Date.now() - p.t) / 1000;
+    if (speed == null && dt > 0) speed = d / dt;
+    if (heading == null && d > 3) heading = SS.bearing(p.lat, p.lon, lat, lon);
+  }
+  S.pos = { lat, lon, speed: speed ?? 0, heading: heading ?? p?.heading ?? null, acc, t: Date.now() };
+  me.setLatLng([lat, lon]);
+  if (!S.zoomed) { S.zoomed = true; map.setView([lat, lon], 16); } else map.panTo([lat, lon], { animate: true, duration: 0.4 });
+  $("spd").textContent = Math.round(S.pos.speed * 3.6);
+  $("cGps").className = "chip " + (acc != null && acc > 30 ? "bad" : "ok"); $("cGps").textContent = acc != null ? `GPS ±${Math.round(acc)}m` : "GPS";
+}
+
+/* ---------- server sync ---------- */
+async function fetchKnown() {
+  if (!S.pos) return; S.lastFetch = Date.now();
+  try {
+    const { hazards } = await SS.api(`/api/hazards?lat=${S.pos.lat}&lon=${S.pos.lon}&radius=3000&states=candidate,confirmed`);
+    S.known = hazards; $("mKnown").textContent = hazards.filter((h) => h.state === "confirmed").length;
+    hzLayer.clearLayers(); hazards.forEach((h) => L.marker([h.lat, h.lon], { icon: SS.hazardIcon(h, ""), interactive: false }).addTo(hzLayer));
+    $("cNet").className = "chip ok";
+  } catch { $("cNet").className = "chip bad"; }
+}
+async function flush() {
+  if (!S.queue.length) return;
+  const batch = S.queue.splice(0, 50);
+  try { await fetch("/api/events", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(batch) }); S.sent += batch.length; $("cNet").textContent = `${S.sent} SENT`; $("cNet").className = "chip ok"; }
+  catch { S.queue.unshift(...batch); $("cNet").className = "chip bad"; }
+}
+
+/* ---------- alerts + clean passes ---------- */
+function tick() {
+  if (!S.pos) return;
+  if (Date.now() - S.lastFetch > 12000) fetchKnown();
+  const { lat, lon, speed, heading } = S.pos;
+  const warnD = Math.max(60, speed * 6 + 40);
+  let next = null, nextD = Infinity;
+  for (const h of S.known) {
+    const d = SS.hav(lat, lon, h.lat, h.lon);
+    // clean pass bookkeeping: we came within 15 m and are now moving away without a jolt there
+    if (h.family !== "water") {
+      const tr = S.track.get(h.id) || { min: Infinity };
+      if (d < tr.min) tr.min = d;
+      if (tr.min < 15 && d > tr.min + 10 && !tr.done) {
+        tr.done = true;
+        const felt = S.recent.some((r) => Date.now() - r.ts < 8000 && SS.hav(r.lat, r.lon, h.lat, h.lon) < 25);
+        const dirOk = h.type !== "pothole" || h.heading == null || heading == null || SS.hdiff(h.heading, heading) < 90;
+        if (!felt && dirOk) SS.api("/api/passes", { hazardId: h.id, device: S.device, ts: Date.now() }).catch(() => {});
+      }
+      if (d > 200) tr.done = false, (tr.min = Infinity);
+      S.track.set(h.id, tr);
+    }
+    if (h.state !== "confirmed" || heading == null) continue;
+    const ahead = SS.hdiff(SS.bearing(lat, lon, h.lat, h.lon), heading) < 35 || d < 12;
+    const dirOk = h.type !== "pothole" || h.heading == null || SS.hdiff(h.heading, heading) < 90;
+    if (ahead && dirOk && d < Math.max(warnD, 250) && d < nextD) { next = h; nextD = d; }
+  }
+  const el = $("alert");
+  // "Fits my car" looks a little further ahead, so the driver can ask about it before the alert
+  const nextCar = next || S.known.filter((h) => h.state === "confirmed").map((h) => ({ h, d: SS.hav(lat, lon, h.lat, h.lon) }))
+    .filter(({ h, d }) => d < 1000 && (heading == null || SS.hdiff(SS.bearing(lat, lon, h.lat, h.lon), heading) < 35)).sort((a, b) => a.d - b.d)[0]?.h;
+  S.carCheck = nextCar ? SadakCar.check(S.car, S.people, nextCar) : null;
+  renderCar(next ? S.carCheck : null);
+  // Flood agent: water ahead that this car should not (or only just) cross.
+  const wAhead = S.known.find((h) => h.family === "water" && h.state === "confirmed" && SS.hav(lat, lon, h.lat, h.lon) < 900 && (heading == null || SS.hdiff(SS.bearing(lat, lon, h.lat, h.lon), heading) < 40));
+  if (wAhead) floodAgent(wAhead);
+  if (next && nextD < warnD + 150) {
+    const dist = Math.max(10, Math.round(nextD / 10) * 10);
+    const [t, s] = PHRASE[next.type][S.lang](dist);
+    const v = SadakCar.check(S.car, S.people, next), cl = SadakCar.line(v, S.lang);
+    el.className = "alert " + next.type; el.querySelector(".ic").textContent = SS.SYM[next.type];
+    $("aT").textContent = t; $("aS").textContent = v.kind === "pothole" ? `${s} · felt by ${next.devices} cars` : `Felt by ${next.devices} cars`;
+    $("aD").innerHTML = `${dist}<small>metres</small>`;
+    const last = S.alerted.get(next.id) || 0;
+    if (nextD <= warnD && Date.now() - last > 10 * 60e3) { S.alerted.set(next.id, Date.now()); chime(); setTimeout(() => say(`${t}. ${cl}`), 400); }
+  } else {
+    el.className = "alert clear"; el.querySelector(".ic").textContent = "✓";
+    $("aT").textContent = { English: "Road ahead is clear", Hinglish: "Aage raasta saaf hai", Hindi: "आगे रास्ता साफ़ है" }[S.lang];
+    $("aS").textContent = `No confirmed hazards in the next ${Math.round(warnD + 150)} m`; $("aD").textContent = "";
+  }
+  S.recent = S.recent.filter((r) => Date.now() - r.ts < 15000);
+}
+
+/* ---------- trace ---------- */
+function drawTrace() {
+  const c = $("tr"), g = c.getContext("2d"), W = c.width, H = c.height, tr = det.trace.slice(-300);
+  g.clearRect(0, 0, W, H);
+  const y = (v) => H / 2 - v * (H / 3.2);
+  if (tr.length) { const thr = tr[tr.length - 1].thr; g.strokeStyle = "#2d3d57"; g.setLineDash([6, 6]); g.lineWidth = 2; [thr, -thr].forEach((t) => { g.beginPath(); g.moveTo(0, y(t)); g.lineTo(W, y(t)); g.stroke(); }); g.setLineDash([]); }
+  g.strokeStyle = "#3fd0c9"; g.lineWidth = 3; g.beginPath();
+  tr.forEach((p, i) => { const x = (i / 300) * W; i ? g.lineTo(x, y(p.v)) : g.moveTo(x, y(p.v)); }); g.stroke();
+  requestAnimationFrame(drawTrace);
+}
+
+/* ---------- real sensors ---------- */
+async function startReal() {
+  if (typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function") {
+    try { if ((await DeviceMotionEvent.requestPermission()) !== "granted") throw 0; } catch { alert("Motion sensor access is needed to detect jolts."); }
+  }
+  window.addEventListener("devicemotion", (e) => {
+    const a = e.accelerationIncludingGravity; if (!a || a.x == null) return;
+    const r = e.rotationRate; const rot = r ? Math.hypot(r.alpha || 0, r.beta || 0, r.gamma || 0) : 0;
+    det.push(performance.now(), a.x, a.y, a.z, S.pos?.speed || 0, rot);
+    $("cImu").className = "chip ok";
+  });
+  if (!navigator.geolocation) return alert("This browser has no GPS access.");
+  navigator.geolocation.watchPosition((p) => updatePos(p.coords.latitude, p.coords.longitude, p.coords.speed, Number.isFinite(p.coords.heading) ? p.coords.heading : null, p.coords.accuracy),
+    () => { $("cGps").className = "chip bad"; }, { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 });
+  try { await navigator.wakeLock?.request("screen"); } catch {}
+}
+
+/* ---------- demo drive: simulated GPS + synthetic accelerometer on a real road ---------- */
+async function startDemo(routeId) {
+  S.routeId = routeId;
+  const routes = await SS.api("/api/routes"); const r = routes[routeId];
+  let truth = []; try { truth = (await SS.api("/api/sim")).truth.filter((t) => t.route === routeId); } catch {}
+  const cum = [0]; for (let i = 1; i < r.coords.length; i++) cum.push(cum[i - 1] + SS.hav(...r.coords[i - 1], ...r.coords[i]));
+  const L_ = cum[cum.length - 1];
+  const at = (s) => { s = Math.max(0, Math.min(L_, s)); let i = 1; while (i < cum.length - 1 && cum[i] < s) i++; const a = r.coords[i - 1], b = r.coords[i], f = (s - cum[i - 1]) / ((cum[i] - cum[i - 1]) || 1); return { lat: a[0] + (b[0] - a[0]) * f, lon: a[1] + (b[1] - a[1]) * f, heading: SS.bearing(a[0], a[1], b[0], b[1]) }; };
+  routeLine = L.polyline(r.coords, { color: "#3fd0c9", weight: 5, opacity: 0.35 }).addTo(map);
+
+  const firstS = truth.length ? Math.min(...truth.map((t) => t.s)) : 0;
+  let s = Math.max(0, firstS - 300), v = 32 / 3.6, crawlT = 0, crawled = false;
+  const pulses = []; const crossed = new Set();
+  $("mRoad").textContent = r.name.split("→")[0].trim();
+  $("cImu").className = "chip ok"; $("cImu").textContent = "SENSORS (DEMO)";
+  // 60 Hz synthetic accelerometer feeding the real detector
+  setInterval(() => {
+    const t = performance.now();
+    let a = (Math.random() - 0.5) * 0.06 + 0.02 * Math.sin(t / 180);
+    for (const p of pulses) { const d = (t - p.t0) / 35; a += p.amp * Math.exp(-d * d) * Math.cos(d * 1.6); }
+    det.push(t, 0.3, 0.2, G * (1 + a), S.pos?.speed || v, 3);
+  }, 1000 / 60);
+  // 10 Hz motion along the road
+  setInterval(() => {
+    const dt = 0.1;
+    let target = 32 / 3.6;
+    const al = $("alert").className, cv = S.carCheck;
+    if (al.includes("breaker")) target = (cv?.kind === "breaker" ? cv.speed : 18) / 3.6; else if (al.includes("pothole")) target = 22 / 3.6; else if (al.includes("water")) target = 9 / 3.6;
+    const water = truth.find((t) => t.type === "water" && t.active);
+    if (water && Math.abs(s - water.s) < 70) target = 5 / 3.6;
+    v += (target - v) * 0.12;
+    // Rerouted by the flood agent: the demo driver turns back before the water.
+    if (water && s > water.s - 90 && S.reroute === true) {
+      s = Math.max(0, firstS - 300); crossed.clear(); S.alerted.clear();
+      $("tNote").textContent = { English: "turned back before the water · rerouting", Hinglish: "paani se pehle wapas mude · doosra raasta", Hindi: "पानी से पहले वापस मुड़े · दूसरा रास्ता" }[S.lang];
+    }
+    const s0 = s; s = Math.min(L_, s + v * dt * 1.6);
+    for (const t of truth) {
+      if (!t.active || t.type === "water" || crossed.has(t.id) || !((t.s - s0) * (t.s - s) <= 0)) continue;
+      crossed.add(t.id);
+      const now = performance.now(), gap = (2.6 / v) * 1000, k = (v * 3.6) / 30;
+      if (t.type === "breaker") pulses.push({ t0: now, amp: 0.8 * k + 0.2 }, { t0: now + gap, amp: 0.7 * k + 0.17 });
+      else pulses.push({ t0: now, amp: -(1.0 * k + 0.25) }, { t0: now + gap, amp: -0.15 });
+    }
+    while (pulses.length && performance.now() - pulses[0].t0 > 3000) pulses.shift();
+    if (v < 10 / 3.6) crawlT += dt; else crawlT = 0;
+    const p = at(s);
+    if (!crawled && crawlT > 20 / 1.6 && (S.rain || water)) { crawled = true; S.queue.push({ device: S.device, lat: p.lat, lon: p.lon, heading: Math.round(p.heading), speed: +(v * 3.6).toFixed(1), type: "crawl", rain: true, ts: Date.now() }); $("tNote").textContent = "crawling in rain · waterlogging report sent"; }
+    updatePos(p.lat + (Math.random() - 0.5) * 2e-5, p.lon + (Math.random() - 0.5) * 2e-5, v, p.heading, 4);
+    if (s >= L_) { s = Math.max(0, firstS - 300); crossed.clear(); S.alerted.clear(); }
+  }, 100);
+}
+
+/* ---------- wiring ---------- */
+(async () => {
+  const routes = await SS.api("/api/routes");
+  for (const [id, r] of Object.entries(routes)) { const o = document.createElement("option"); o.value = id; o.textContent = r.name; $("route").append(o); }
+  try { S.queue = JSON.parse(localStorage.getItem("ss-queue") || "[]"); } catch {}
+})();
+/* ---------- Fits my car: car-specific verdicts, road wear, service and claim log ---------- */
+function seedHits() {
+  // Demo sample: a plausible earlier week of hits for this car (clearly labelled in the panel).
+  const roads = ["Aurobindo Marg", "Outer Ring Road", "Mehrauli-Badarpur Rd", "Press Enclave Marg", "Ring Road underpass"], out = [];
+  for (let i = 0; i < 34; i++) out.push({ ts: Date.now() - (6.5 - i * 0.19) * 864e5, type: i % 3 ? "breaker" : "pothole", peakG: +(0.55 + ((i * 37) % 9) / 10).toFixed(2), road: roads[i % roads.length], speed: 18 + ((i * 7) % 17), sample: true });
+  return out;
+}
+function renderCar(v) {
+  const car = SadakCar.CARS[S.car], w = SadakCar.wear(S.hits);
+  $("carName").textContent = `${car.name} · ${S.people}`;
+  $("carWear").textContent = `wear ${w.pct}%`;
+  const bar = $("carBar");
+  if (v) { bar.className = "car " + v.level; $("carLine").textContent = SadakCar.line(v, S.lang); }
+  else { bar.className = "car"; $("carLine").textContent = { English: `Clearance ${SadakCar.effectiveClearanceMm(car, S.people)} mm with ${S.people} on board · tap for road wear`, Hinglish: `${S.people} logon ke saath clearance ${SadakCar.effectiveClearanceMm(car, S.people)} mm · road wear dekhein`, Hindi: `${S.people} लोगों के साथ क्लीयरेंस ${SadakCar.effectiveClearanceMm(car, S.people)} मिमी · रोड वियर देखें` }[S.lang]; }
+  if (!$("health").hidden) renderHealth();
+}
+function renderHealth() {
+  const car = SadakCar.CARS[S.car], w = SadakCar.wear(S.hits);
+  $("hTitle").textContent = `My ${car.name}`;
+  $("hSpec").textContent = `Ground clearance about ${car.clearanceMm} mm unladen${car.assumed ? " (assumed)" : ""}, lower with ${S.people} on board. In the car this comes from the VIN and seat sensors; hits come from the car's own motion and tyre-pressure sensors.`;
+  $("hPct").textContent = `${w.pct}%`; $("hBar").style.width = w.pct + "%";
+  $("hMsg").textContent = w.due ? `${w.hits} hard hits this week. A suspension and alignment check is due before tyre wear shows.` : `${w.hits} hard hits this week. No check needed yet.`;
+  $("hLog").innerHTML = "";
+  S.hits.slice(-6).reverse().forEach((h) => { const d = document.createElement("div"); d.textContent = `${new Date(h.ts).toLocaleString("en-IN", { weekday: "short", hour: "2-digit", minute: "2-digit" })} · ${h.type} · ${h.peakG} g at ${h.speed} km/h · ${h.road}${h.sample ? " · sample" : ""}`; $("hLog").append(d); });
+  const more = document.createElement("div"); more.textContent = `${S.hits.length} entries in total, with time, place, speed and jolt size`; $("hLog").append(more);
+}
+$("carBar").onclick = () => { $("health").hidden = !$("health").hidden; if (!$("health").hidden) renderHealth(); };
+$("hClose").onclick = () => { $("health").hidden = true; };
+$("hBook").onclick = () => { $("hBook").innerHTML = "<b>Request sent to Hyundai service (demo)</b><br><span class=\"note\">The centre gets this car's hit log, so the technician knows where to look</span>"; };
+
+/* ---------- agents: act on what only the car knows, after one "haan" from the driver ---------- */
+const T3 = (en, hl, hi) => ({ English: en, Hinglish: hl, Hindi: hi }[S.lang]);
+function propose(id, text, onYes, onNo) {
+  if (S.agentDone.has(id)) return true;
+  if (S.pendingAgent || S.pendingJolt) return false;
+  S.agentDone.add(id); S.pendingAgent = { id, onYes, onNo };
+  openConvo(); $("yn").hidden = false; bubble("a", "Sadak Sense · agent", text); chime();
+  setTimeout(() => { say(text); if (SR) setTimeout(listen, 5200); }, 300);
+  clearTimeout(S.agentTimer); S.agentTimer = setTimeout(() => S.pendingAgent?.id === id && resolveAgent(null), 16000);
+  return true;
+}
+function resolveAgent(ok) {
+  const a = S.pendingAgent; if (!a) return; S.pendingAgent = null; $("yn").hidden = true; clearTimeout(S.agentTimer);
+  if (ok === true) a.onYes(); else if (ok === false) a.onNo?.();
+  else agentSay(T3("No answer, so I haven't done anything.", "Jawab nahi mila, isliye maine kuch nahi kiya.", "जवाब नहीं मिला, इसलिए मैंने कुछ नहीं किया।"));
+}
+function agentSay(text) { bubble("a", "Sadak Sense · agent", text); say(text); }
+// Keep home updated: when a road hazard changes the trip, the car tells the family by itself
+// through the paired phone (simulated in the demo). Turned on once in setup, not per message.
+function tellHome(msg) {
+  if (!S.homeOn) return false;
+  bubble("a", T3("Message to Home · demo", "Ghar ko message · demo", "घर को संदेश · डेमो"), `“${msg}”`);
+  return true;
+}
+// Flood agent: a waterlogged stretch ahead, confirmed by cars crawling or stalling in rain.
+function floodAgent(h) {
+  const n = h.devices || 3;
+  const text = T3(`The underpass ahead is waterlogged: ${n} cars crawled or got stuck there in the last 30 minutes. Shall I take the other road?`,
+    `Aage underpass mein paani bhara hai: pichhle 30 minute mein ${n} gaadiyan wahan atkin. Doosre raaste se le chalun?`,
+    `आगे अंडरपास में पानी भरा है: पिछले 30 मिनट में ${n} गाड़ियाँ वहाँ अटकीं। दूसरे रास्ते से ले चलूँ?`);
+  propose("flood-" + h.id, text,
+    () => { S.reroute = true;
+            const told = tellHome(T3("The underpass is flooded, coming by another road. About 10 minutes late.", "Underpass mein paani bhara hai, doosre raaste se aa rahe hain. Lagbhag 10 minute late.", "अंडरपास में पानी भरा है, दूसरे रास्ते से आ रहे हैं। लगभग 10 मिनट देर।"));
+            agentSay(T3(`Rerouting around the underpass.${told ? " I've told home you'll be about 10 minutes late." : ""}`, `Underpass ke bagal se le ja raha hoon.${told ? " Ghar pe bata diya ki 10 minute late honge." : ""}`, `अंडरपास से हटकर ले जा रहा हूँ।${told ? " घर पर बता दिया कि 10 मिनट देर होगी।" : ""}`)); },
+    () => { S.reroute = false; agentSay(T3("Okay. Walking pace through the water, and don't stop.", "Theek hai. Paani mein dheere chaliye, aur rukiye mat.", "ठीक है। पानी में धीरे चलें, और रुकें नहीं।")); });
+}
+// Damage agent: a hard pothole hit followed by falling tyre pressure (TPMS, simulated in the demo).
+function tyreAgent(e) {
+  if (S.agentDone.has("tyre")) return;
+  if (S.pendingAgent || S.pendingJolt) return setTimeout(() => tyreAgent(e), 3000);
+  const text = T3(`That was a hard pothole hit, and the front-left tyre pressure is dropping, 33 to 28 psi. Shall I book this evening at the nearest Hyundai service centre and prepare an insurance claim draft?`,
+    `Bade gaddhe ke baad front-left tyre ka pressure gir raha hai, 33 se 28 psi. Nearest Hyundai service pe aaj shaam ka slot book karun, aur insurance claim ka draft bana doon?`,
+    `बड़े गड्ढे के बाद आगे-बाएँ टायर का प्रेशर गिर रहा है, 33 से 28 psi। नज़दीकी Hyundai सर्विस पर आज शाम का स्लॉट बुक करूँ, और इंश्योरेंस क्लेम का ड्राफ़्ट बना दूँ?`);
+  propose("tyre", text,
+    () => { S.booked = true; renderCar();
+            tellHome(T3("A tyre took a hard hit, so driving slowly and may be a little late. The car is booked at Hyundai service this evening.", "Ek gaddhe se tyre mein dikkat lag rahi hai, isliye dheere aa rahe hain, thodi der ho sakti hai. Shaam ko Hyundai service pe dikha denge.", "एक गड्ढे से टायर में दिक़्क़त लग रही है, इसलिए धीरे आ रहे हैं, थोड़ी देर हो सकती है। शाम को Hyundai सर्विस पर दिखा देंगे।"));
+            agentSay(T3(`Booked for 6:30 pm at the nearest Hyundai service centre (demo). The claim draft has the time, place, your speed, the ${e.peakG} g jolt and the tyre pressure log. Check it before you send it.`,
+              `Shaam 6:30 ka slot book ho gaya, nearest Hyundai service pe (demo). Claim draft mein time, jagah, speed, ${e.peakG} g ka jhatka aur tyre pressure log hai. Bhejne se pehle dekh lijiye.`,
+              `शाम 6:30 का स्लॉट बुक हो गया, नज़दीकी Hyundai सर्विस पर (डेमो)। क्लेम ड्राफ़्ट में समय, जगह, गति, ${e.peakG} g का झटका और टायर प्रेशर लॉग है। भेजने से पहले देख लें।`)); },
+    () => agentSay(T3("Okay. Stay under 60 and check the tyre at the next stop.", "Theek hai. 60 se neeche chaliye aur agle stop pe tyre check kar lijiye.", "ठीक है। 60 से नीचे चलें और अगले स्टॉप पर टायर जाँच लें।")));
+}
+
+/* ---------- voice picker: Indian voices for the chosen language, best first ---------- */
+const SAMPLE = { English: "Speed breaker in 110 metres. Slow to 20.", Hinglish: "110 metre mein speed breaker hai. 20 ki speed rakhiye.", Hindi: "110 मीटर पर स्पीड ब्रेकर है। गति 20 रखें।" };
+async function fillVoices() {
+  const all = await SadakSpeech.voices(), lang = $("lang").value, list = SadakSpeech.rank(all, lang), sel = $("voiceSel"), keep = SadakSpeech.chosen();
+  sel.innerHTML = "";
+  list.forEach((v, i) => { const o = document.createElement("option"); o.value = v.name; o.textContent = (i ? "" : "Best: ") + v.name.replace(/^Microsoft /, "").replace(/ (Online )?\(Natural\)/, "").replace(/ - .*$/, ""); sel.append(o); });
+  if (!list.length) { const o = document.createElement("option"); o.value = ""; o.textContent = "No Indian voice in this browser"; sel.append(o); }
+  if (list.some((v) => v.name === keep)) sel.value = keep;
+  $("voiceHint").textContent = SadakSpeech.isNatural(list[0]) ? "Natural Indian voice found" : "For the most natural voice, open this in Microsoft Edge or Chrome";
+}
+$("lang").addEventListener("change", fillVoices);
+$("voiceSel").onchange = () => SadakSpeech.choose($("voiceSel").value);
+$("voiceTest").onclick = () => { SadakSpeech.choose($("voiceSel").value); SadakSpeech.speak(SAMPLE[$("lang").value], $("lang").value); };
+fillVoices();
+if (typeof speechSynthesis !== "undefined") speechSynthesis.addEventListener?.("voiceschanged", fillVoices);
+
+async function go(mode) {
+  S.mode = mode; S.lang = $("lang").value; S.rain = $("rain").checked; S.device = await dailyId();
+  S.car = $("carSel").value; S.people = +$("people").value; S.homeOn = $("homeOn").checked; S.hits = seedHits(); renderCar();
+  // Browser-only edition: this page runs its own virtual fleet, so rain floods its underpass too.
+  if (S.rain && window.SSMods) SS.api("/api/sim", { monsoon: true }).catch(() => {});
+  $("start").hidden = true; chime();
+  if (mode === "real") await startReal(); else await startDemo($("route").value);
+  setInterval(tick, 400); setInterval(flush, 3000); drawTrace();
+}
+$("realBtn").onclick = () => go("real");
+$("demoBtn").onclick = () => go("demo");
+$("voiceBtn").onclick = () => { S.voice = !S.voice; $("voiceBtn").textContent = "Voice: " + (S.voice ? "on" : "off"); };
+$("stopBtn").onclick = () => location.reload();
+$("briefBtn").onclick = async () => {
+  const b = $("brief");
+  if (b.classList.contains("show")) return b.classList.remove("show");
+  $("briefT").textContent = "Preparing…"; b.classList.add("show");
+  const coords = routeLine ? routeLine.getLatLngs().map((p) => [p.lat, p.lng]) : null;
+  const res = await SS.api("/api/brief", coords ? { coords, lang: S.lang } : { routeId: $("route").value, lang: S.lang });
+  $("briefT").textContent = res.text; say(res.text);
+  setTimeout(() => b.classList.remove("show"), 12000);
+};
+
+
+/* ---------- two-way voice: Hinglish / Hindi / English ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, listening = false;
+const CHIPS = { Hinglish: ["Aage koi gaddha hai?", "Meri gaadi nikal jayegi?", "Underpass mein paani hai kya?", "Yahan bada gaddha hai", "Aaj ka road brief do"], Hindi: ["आगे कोई गड्ढा है?", "मेरी गाड़ी निकल जाएगी?", "अंडरपास में पानी है क्या?", "यहाँ बड़ा गड्ढा है", "आज का रोड ब्रीफ़ दो"], English: ["Any pothole ahead?", "Will my car make it?", "Is the underpass flooded?", "Pothole here", "Give me today's road brief"] };
+function bubble(cls, who, text) { const d = document.createElement("div"); d.className = cls; d.innerHTML = `<span class="who">${who}</span>`; d.append(document.createTextNode(text)); $("msgs").append(d); $("msgs").scrollTop = 1e6; while ($("msgs").children.length > 8) $("msgs").firstChild.remove(); }
+function openConvo() { $("convo").hidden = false; $("chips").innerHTML = ""; for (const c of CHIPS[S.lang]) { const b = document.createElement("button"); b.className = "btn"; b.type = "button"; b.textContent = c; b.onclick = () => ask(c); $("chips").append(b); } }
+async function ask(text) {
+  openConvo(); bubble("u", S.lang === "English" ? "You" : "Aap", text);
+  const itn = SadakVoice.intent(text).name;
+  if (S.pendingAgent && (itn === "yes" || itn === "no")) return resolveAgent(itn === "yes");
+  if (itn === "ask_car") {
+    // Answered in the car from its own specification and load: no server, works offline.
+    let lang = SadakVoice.detectLang(text); if (S.lang === "Hinglish" && lang === "Hindi") lang = "Hinglish";
+    const r = SadakVoice.reply(text, { prefer: S.lang, carCheck: S.carCheck ? SadakCar.line(S.carCheck, lang) : null });
+    bubble("a", "Sadak Sense", r.reply); const keep = S.lang; S.lang = r.lang; say(r.reply); S.lang = keep; return;
+  }
+  const p = S.pos || {};
+  try {
+    const r = await SS.api("/api/ask", { text, lat: p.lat, lon: p.lon, heading: p.heading, device: S.device, routeId: S.routeId, pending: S.pendingJolt ? { type: S.pendingJolt.type } : null, prefer: S.lang });
+    bubble("a", "Sadak Sense", r.reply);
+    const keep = S.lang; S.lang = r.lang; say(r.reply); S.lang = keep;
+    if (r.action && "confirm" in r.action && S.pendingJolt) resolveJolt(r.action.confirm);
+    if (r.action?.report) { S.sent++; $("cNet").textContent = `${S.sent} SENT`; fetchKnown(); }
+  } catch { bubble("a", "Sadak Sense", "Network nahi mil raha. Report phone mein save hai, baad mein bhej dunga."); }
+}
+function askConfirm(ev) {
+  S.pendingJolt = ev; openConvo(); $("yn").hidden = false;
+  const q = SadakVoice.askAfterJolt(ev.type, S.lang);
+  bubble("a", "Sadak Sense", q); chime(); setTimeout(() => { say(q); if (SR) setTimeout(listen, 2600); }, 300);
+  clearTimeout(S.pendTimer); S.pendTimer = setTimeout(() => S.pendingJolt === ev && resolveJolt(true, true), 9000);
+}
+function resolveJolt(ok, timeout) {
+  const ev = S.pendingJolt; if (!ev) return; S.pendingJolt = null; $("yn").hidden = true; clearTimeout(S.pendTimer);
+  if (ok) { ev.confirmed = !timeout; S.queue.push(ev); } else { S.jolts = Math.max(0, S.jolts - 1); $("mJolts").textContent = S.jolts; $("tNote").textContent = "driver said no · jolt not reported"; }
+  if (timeout) bubble("a", "Sadak Sense", { English: "No answer, reporting it from the sensors.", Hinglish: "Jawab nahi mila, sensor ke hisaab se report kar diya.", Hindi: "जवाब नहीं मिला, सेंसर के आधार पर रिपोर्ट कर दिया।" }[S.lang]);
+}
+function listen() {
+  if (!SR) { $("micState").textContent = "type or tap a phrase"; return; }
+  if (listening) { rec?.stop(); return; }
+  rec = new SR(); rec.lang = S.lang === "English" ? "en-IN" : "hi-IN"; rec.interimResults = false; rec.maxAlternatives = 1;
+  rec.onstart = () => { listening = true; $("micBtn").classList.add("listening"); $("micState").textContent = "listening…"; };
+  rec.onend = () => { listening = false; $("micBtn").classList.remove("listening"); $("micState").textContent = ""; };
+  rec.onerror = () => { $("micState").textContent = "mic unavailable · type instead"; };
+  rec.onresult = (e) => { const t = e.results[0][0].transcript; if (t) ask(t); };
+  try { rec.start(); } catch {}
+}
+$("micBtn").onclick = () => { openConvo(); listen(); };
+$("ynYes").onclick = () => ask({ English: "Yes", Hinglish: "Haan", Hindi: "हाँ" }[S.lang]);
+$("ynNo").onclick = () => ask({ English: "No", Hinglish: "Na", Hindi: "ना" }[S.lang]);
+$("sayForm").onsubmit = (e) => { e.preventDefault(); const v = $("sayIn").value.trim(); if (v) { ask(v); $("sayIn").value = ""; } };
+
+</script>
+</body>
+</html>
