@@ -1,0 +1,47 @@
+/* Sadak Sense design tokens: night road. Single dark theme by design (in-car + ops console). */
+:root{
+  color-scheme:dark;
+  --bg:#080b10; --bg2:#0d1219; --panel:#111823; --panel2:#172131; --line:#223047; --line2:#2d3d57;
+  --fg:#e9eef5; --muted:#8a98ad; --dim:#5d6b80;
+  --accent:#3fd0c9; --breaker:#ffb23f; --pothole:#ff5d5d; --water:#4aa3ff; --ok:#4fd18b; --warn:#ffb23f;
+  --display:"Chakra Petch",system-ui,sans-serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --r:14px;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--display);margin:0;letter-spacing:.02em}
+button,select,input{font:inherit;color:inherit}
+.btn{background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:8px 12px;cursor:pointer;transition:border-color .15s,background .15s}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:#04201f;border-color:var(--accent);font-weight:600}
+.btn.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,var(--panel2))}
+.btn:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+select{background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:7px 10px}
+input[type=range]{accent-color:var(--accent)}
+.label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.brand{font-family:var(--display);font-weight:700;letter-spacing:.04em}
+.brand b{color:var(--accent);font-weight:700}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%}
+.live{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--ok)}
+.live .dot{background:var(--ok);box-shadow:0 0 0 0 rgba(79,209,139,.6);animation:pulse 1.6s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(79,209,139,.6)}70%{box-shadow:0 0 0 8px rgba(79,209,139,0)}100%{box-shadow:0 0 0 0 rgba(79,209,139,0)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* map markers */
+.hz{display:grid;place-items:center;border-radius:50%;font-family:var(--display);font-weight:700;color:#0b0f14;box-shadow:0 0 0 3px rgba(8,11,16,.85)}
+.hz.breaker{background:var(--breaker)}.hz.pothole{background:var(--pothole)}.hz.water{background:var(--water)}
+.hz.confirmed::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid currentColor;opacity:.0;animation:ring 2.4s infinite}
+.hz.breaker.confirmed{color:var(--breaker)}.hz.pothole.confirmed{color:var(--pothole)}.hz.water.confirmed{color:var(--water)}
+@keyframes ring{0%{transform:scale(.8);opacity:.7}100%{transform:scale(1.8);opacity:0}}
+.hz.candidate{background:transparent!important;border:2.5px solid currentColor;box-shadow:none}
+.hz.candidate.breaker{color:var(--breaker)}.hz.candidate.pothole{color:var(--pothole)}.hz.candidate.water{color:var(--water)}
+.hzlabel{position:absolute;left:100%;top:-6px;margin-left:4px;font-family:var(--mono);font-size:10px;color:var(--fg);background:rgba(8,11,16,.8);padding:1px 5px;border-radius:6px;white-space:nowrap}
+.flash{width:14px;height:14px;border-radius:50%;border:2px solid var(--breaker);animation:flash 1.4s ease-out forwards}
+@keyframes flash{0%{transform:scale(.5);opacity:1}100%{transform:scale(3);opacity:0}}
+.leaflet-container{background:#0a0e14;font-family:var(--body)}
+.leaflet-control-attribution{background:rgba(8,11,16,.7)!important;color:var(--dim)!important}
+.leaflet-control-attribution a{color:var(--muted)!important}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--panel);color:var(--fg);border:1px solid var(--line2)}
+
+.dark-tiles{filter:invert(1) hue-rotate(180deg) brightness(.82) contrast(1.05) saturate(.35)}
+[hidden]{display:none!important}

@@ -1,0 +1,9 @@
+services:
+  sadak-sense:
+    build: .
+    ports: ["3000:3000"]
+    environment:
+      AUTOSTART_SIM: "true"
+    volumes: ["sadak-data:/app/data"]
+volumes:
+  sadak-data:

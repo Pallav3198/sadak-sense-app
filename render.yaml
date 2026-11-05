@@ -1,0 +1,14 @@
+# One-click deploy on Render (render.com): New + > Blueprint > pick this repo.
+services:
+  - type: web
+    name: sadak-sense
+    runtime: docker
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: AUTOSTART_SIM        # start the virtual fleet on boot so the console is live for demos
+        value: "true"
+      - key: ENABLE_SIM
+        value: "true"
+      - key: ANTHROPIC_API_KEY    # optional: natural-language morning brief via Claude; templates otherwise
+        sync: false

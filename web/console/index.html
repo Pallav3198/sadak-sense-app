@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sadak Sense · Fleet Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="/shared/ui.css">
+<style>
+/* Layout: top bar; map fills the left; operations rail on the right. */
+body{display:grid;grid-template-rows:56px 1fr;height:100vh;overflow:hidden}
+header{display:flex;align-items:center;gap:18px;padding:0 18px;border-bottom:1px solid var(--line);background:var(--bg2)}
+header .brand{font-size:20px}
+header .sub{color:var(--muted);font-size:12.5px}
+header .grow{flex:1}
+header a{color:var(--muted);text-decoration:none;font-size:13px;border:1px solid var(--line2);padding:6px 10px;border-radius:10px}
+header a:hover{color:var(--fg);border-color:var(--accent)}
+main{display:grid;grid-template-columns:minmax(0,1fr) 400px;min-height:0}
+#map{min-height:0}
+aside{border-left:1px solid var(--line);background:var(--bg2);overflow:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px}
+.kpi b{display:block;font-family:var(--display);font-size:24px;font-variant-numeric:tabular-nums;line-height:1.1}
+.kpi span{font-size:11px;color:var(--muted)}
+.kpi.c b{color:var(--ok)}.kpi.w b{color:var(--breaker)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row label{font-size:12px;color:var(--muted)}
+#route{flex:1 1 100%;min-width:0;max-width:100%}
+.feed{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto;font-size:12.5px}
+.feed div{display:grid;grid-template-columns:10px 1fr auto;gap:8px;align-items:center;padding:6px 8px;background:var(--panel);border-radius:8px;border:1px solid var(--line)}
+.feed time{font-family:var(--mono);font-size:10.5px;color:var(--dim)}
+.detail .big{font-family:var(--display);font-size:20px}
+.pill{font-family:var(--mono);font-size:10.5px;padding:2px 8px;border-radius:999px;border:1px solid var(--line2);color:var(--muted)}
+.pill.ok{color:var(--ok);border-color:var(--ok)}.pill.cand{color:var(--breaker);border-color:var(--breaker)}.pill.gone{color:var(--dim)}
+.passes{display:flex;gap:3px;flex-wrap:wrap;margin-top:6px}
+.passes i{width:10px;height:10px;border-radius:2px;background:var(--line2)}
+.passes i.h{background:var(--pothole)}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:4px}.bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--breaker),var(--pothole))}
+.brief{font-size:14px;line-height:1.5;background:var(--panel2);border-radius:10px;padding:10px;min-height:44px;white-space:pre-wrap}
+.legend{position:absolute;left:14px;bottom:24px;z-index:500;background:rgba(8,11,16,.86);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:12px;display:grid;gap:5px}
+.legend span{display:flex;gap:8px;align-items:center}
+.mapwrap{position:relative;min-height:0}
+.toast{position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:600;background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:8px 14px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+@media (max-width:900px){main{grid-template-columns:1fr;grid-template-rows:55vh auto}body{overflow:auto;height:auto}aside{border-left:0}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">SADAK <b>SENSE</b></div>
+  <div class="sub">Fleet hazard console · Delhi pilot</div>
+  <span class="live" id="live"><i class="dot"></i>LIVE</span>
+  <div class="grow"></div>
+  <a href="/drive/" target="_blank" rel="noopener">Open driver app ↗</a>
+</header>
+<main>
+  <div class="mapwrap">
+    <div id="map" style="position:absolute;inset:0"></div>
+    <div class="legend" aria-label="Legend">
+      <span><i class="dot" style="background:var(--breaker)"></i>Speed breaker</span>
+      <span><i class="dot" style="background:var(--pothole)"></i>Pothole</span>
+      <span><i class="dot" style="background:var(--water)"></i>Waterlogging</span>
+      <span><i class="dot" style="background:var(--accent)"></i>Connected car</span>
+      <span style="color:var(--muted)">Ring = candidate · solid = confirmed (3+ cars)</span>
+    </div>
+    <div class="toast" id="toast"></div>
+  </div>
+  <aside>
+    <div class="kpis">
+      <div class="kpi c"><b id="kConf">0</b><span>confirmed hazards</span></div>
+      <div class="kpi w"><b id="kCand">0</b><span>candidates</span></div>
+      <div class="kpi"><b id="kClear">0</b><span>auto-removed</span></div>
+      <div class="kpi"><b id="kEv">0</b><span>sensor events / h</span></div>
+      <div class="kpi"><b id="kDev">0</b><span>cars reporting / h</span></div>
+      <div class="kpi"><b id="kRej">0</b><span>false alarms filtered</span></div>
+    </div>
+
+    <section class="card" id="simCard" aria-label="Fleet simulation">
+      <div class="label" style="margin-bottom:8px">Fleet simulation · virtual cars on real roads</div>
+      <div class="row" style="margin-bottom:8px">
+        <button class="btn primary" id="simBtn" type="button">Start fleet</button>
+        <button class="btn" id="monsoonBtn" type="button">Monsoon: off</button>
+        <button class="btn" id="repairBtn" type="button">Repair a pothole</button>
+        <button class="btn" id="truthBtn" type="button">Ground truth</button>
+      </div>
+      <div class="row"><label for="cars">Cars / min</label><input type="range" id="cars" min="5" max="80" value="24"><span id="carsV" class="label">24</span>
+        <label for="spd" style="margin-left:6px">Time ×</label><input type="range" id="spd" min="1" max="20" value="8"><span id="spdV" class="label">8</span></div>
+      <p style="margin:8px 0 0;font-size:11.5px;color:var(--dim)">Simulated cars post to the same API as real phones. Hazard positions in the simulation are illustrative; roads are real.</p>
+    </section>
+
+    <section class="card detail" id="detail" aria-label="Hazard detail">
+      <div class="label">Hazard detail</div>
+      <p style="color:var(--muted);margin:8px 0 0">Select a hazard on the map.</p>
+    </section>
+
+    <section class="card" aria-label="Morning brief">
+      <div class="label" style="margin-bottom:8px">Morning road brief · Gen AI voice</div>
+      <div class="row" style="margin-bottom:8px">
+        <select id="route" aria-label="Route"></select>
+        <select id="lang" aria-label="Language"><option>English</option><option selected>Hinglish</option><option>Hindi</option></select>
+        <button class="btn" id="briefBtn" type="button">Brief</button>
+      </div>
+      <div class="brief" id="brief">Choose a route to hear what other cars felt on it today.</div>
+    </section>
+
+    <section class="card" aria-label="Live feed">
+      <div class="label" style="margin-bottom:8px">Live feed</div>
+      <div class="feed" id="feed"></div>
+    </section>
+  </aside>
+</main>
+<script src="/vendor/leaflet/leaflet.js"></script>
+<script src="/shared/common.js"></script>
+<script src="/console/console.js"></script>
+</body>
+</html>

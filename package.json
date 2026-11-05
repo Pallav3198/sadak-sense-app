@@ -1,0 +1,14 @@
+{
+  "name": "sadak-sense",
+  "version": "1.0.0",
+  "description": "Fleet-learned road hazard alerts: connected cars sense potholes, speed breakers and waterlogging; the cloud confirms; the next driver is warned.",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node --no-warnings server/index.js",
+    "test": "node --no-warnings --test test/engine.test.js test/detector.test.js test/api.test.js test/hinglish.test.js test/mycar.test.js",
+    "sim": "node --no-warnings sim/fleet.js"
+  },
+  "engines": { "node": ">=22.13" },
+  "license": "MIT",
+  "dependencies": { "express": "^4.21.2", "leaflet": "^1.9.4" }
+}
