@@ -4,6 +4,8 @@
 
 Built for the Hyundai CoE Mobility Innovation Ideathon 2026 · Topic 2 (AI-powered & digital in-vehicle experience) · Track B.
 
+**Live demo:** https://pallav3198.github.io/sadak-sense-app/ (driver app: [/drive.html](https://pallav3198.github.io/sadak-sense-app/drive.html)). Best in Microsoft Edge for the natural Indian voice.
+
 ---
 
 ## What's in the box
