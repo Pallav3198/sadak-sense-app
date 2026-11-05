@@ -90,19 +90,29 @@
   const chosen = () => { try { return localStorage.getItem(KEY) || ""; } catch { return ""; } };
   const choose = (name) => { try { name ? localStorage.setItem(KEY, name) : localStorage.removeItem(KEY); } catch {} };
 
-  let turn = 0;
-  async function speak(text, lang = "English") {
-    const s = synth(); if (!s || !text) return;
+  let turn = 0, live = []; // live keeps utterances referenced: Chrome can drop unreferenced ones mid-speech
+  // on: optional { start(voiceName), end(), fail(reason) } so the page can say what is happening.
+  async function speak(text, lang = "English", on = {}) {
+    const s = synth();
+    if (!s) return on.fail?.("unsupported");
+    if (!text) return;
     const mine = ++turn;
     const list = await voices();
     if (mine !== turn) return; // a newer line arrived while voices were loading
     const p = plan(text, lang, list, chosen());
-    s.cancel();
-    for (const part of chunks(p.text)) {
+    s.cancel(); s.resume();
+    const parts = chunks(p.text);
+    let started = false;
+    const watchdog = setTimeout(() => { if (!started && mine === turn) on.fail?.("silent"); }, 5000);
+    live = parts.map((part, i) => {
       const u = new SpeechSynthesisUtterance(part);
       u.lang = p.code; u.rate = p.rate; u.pitch = p.pitch; if (p.voice) u.voice = p.voice;
-      s.speak(u);
-    }
+      u.onstart = () => { if (!started) { started = true; clearTimeout(watchdog); on.start?.(p.voice ? p.voice.name : ""); } };
+      u.onerror = (e) => { if (e.error !== "canceled" && e.error !== "interrupted") { clearTimeout(watchdog); on.fail?.(e.error || "error"); } };
+      if (i === parts.length - 1) u.onend = () => on.end?.();
+      return u;
+    });
+    live.forEach((u) => s.speak(u));
   }
 
   return { WORDS, hinglishForSpeech, rank, isNatural, plan, chunks, voices, chosen, choose, speak };

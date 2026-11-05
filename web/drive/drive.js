@@ -312,7 +312,15 @@ async function fillVoices() {
 }
 $("lang").addEventListener("change", fillVoices);
 $("voiceSel").onchange = () => SadakSpeech.choose($("voiceSel").value);
-$("voiceTest").onclick = () => { SadakSpeech.choose($("voiceSel").value); SadakSpeech.speak(SAMPLE[$("lang").value], $("lang").value); };
+$("voiceTest").onclick = () => {
+  const hint = $("voiceHint"), said = (t) => { hint.textContent = t; };
+  SadakSpeech.choose($("voiceSel").value); said("Starting the voice…");
+  SadakSpeech.speak(SAMPLE[$("lang").value], $("lang").value, {
+    start: (name) => said(`Speaking now${name ? ": " + name.replace(/^Microsoft /, "").replace(/ (Online )?\(Natural\)/, "").replace(/ - .*$/, "") : ""}. Can't hear it? Check your volume and this tab isn't muted.`),
+    end: () => said("Done. Press again to replay."),
+    fail: (why) => said(why === "unsupported" ? "This browser can't speak. Open the link in Microsoft Edge or Chrome." : "The voice didn't start. Open the link in Microsoft Edge, and check your internet and volume."),
+  });
+};
 fillVoices();
 if (typeof speechSynthesis !== "undefined") speechSynthesis.addEventListener?.("voiceschanged", fillVoices);
 

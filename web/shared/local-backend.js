@@ -80,13 +80,18 @@
 
   // Warm start: the virtual fleet has already been driving for a while when the page opens.
   sim.configure({ carsPerMin: 24, speedup: 8 });
+  // In slices, so the page and its buttons respond at once instead of freezing for seconds.
   (function warm() {
-    const realNow = Date.now; let fake = realNow() - 40 * 60e3; Date.now = () => fake;
-    sim.last = fake; sim.refreshKnown();
-    for (let i = 0; i < 1400; i++) { fake += 200; sim.tick(); if (i % 8 === 0) sim.refreshKnown(); }
-    Date.now = realNow; sim.cars = []; sim.spawnAcc = 0;
+    const realNow = Date.now; let fake = realNow() - 40 * 60e3, i = 0;
+    const inPast = (fn) => { Date.now = () => fake; try { fn(); } finally { Date.now = realNow; } };
+    inPast(() => { sim.last = fake; });
+    (function slice() {
+      inPast(() => { for (const end = Math.min(1400, i + 40); i < end; i++) { fake += 200; sim.tick(); } });
+      if (i < 1400) return setTimeout(slice, 0);
+      sim.cars = []; sim.spawnAcc = 0;
+      if (window.SS_AUTOSTART !== false) sim.start();
+    })();
   })();
-  if (window.SS_AUTOSTART !== false) sim.start();
 
   const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "content-type": "application/json" } });
   async function handle(path, method, body) {
