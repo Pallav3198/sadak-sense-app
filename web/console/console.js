@@ -109,6 +109,6 @@ $("briefBtn").onclick = async () => {
   const b = await SS.api("/api/brief", { routeId: $("route").value, lang: $("lang").value });
   $("brief").textContent = b.text;
   const r = routes[$("route").value]; map.flyToBounds(L.latLngBounds(r.coords), { padding: [40, 40], duration: 0.8 });
-  try { const u = new SpeechSynthesisUtterance(b.text); u.lang = $("lang").value === "English" ? "en-IN" : "hi-IN"; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch {}
+  SadakSpeech.speak(b.text, $("lang").value);
 };
 boot();

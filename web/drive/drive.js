@@ -39,7 +39,7 @@ function onJolt(e) {
 /* ---------- voice + chime ---------- */
 let actx = null;
 function chime() { try { actx = actx || new AudioContext(); [880, 660].forEach((f, i) => { const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = f; o.connect(g); g.connect(actx.destination); const t = actx.currentTime + i * 0.18; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16); o.start(t); o.stop(t + 0.18); }); } catch {} }
-function say(text) { if (!S.voice) return; try { const u = new SpeechSynthesisUtterance(text); u.lang = S.lang === "English" ? "en-IN" : "hi-IN"; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch {} }
+function say(text) { if (S.voice) SadakSpeech.speak(text, S.lang); }
 const PHRASE = {
   breaker: { English: (d) => [`Speed breaker in ${d} metres`, "Slow to 20"], Hinglish: (d) => [`${d} metre mein speed breaker`, "20 ki speed rakhiye"], Hindi: (d) => [`${d} मीटर पर स्पीड ब्रेकर`, "गति 20 रखें"] },
   pothole: { English: (d) => [`Pothole in ${d} metres`, "Keep right if safe"], Hinglish: (d) => [`${d} metre mein gaddha`, "Ho sake toh right rahiye"], Hindi: (d) => [`${d} मीटर पर गड्ढा`, "संभव हो तो दाईं ओर रहें"] },
@@ -299,6 +299,22 @@ function tyreAgent(e) {
               `शाम 6:30 का स्लॉट बुक हो गया, नज़दीकी Hyundai सर्विस पर (डेमो)। क्लेम ड्राफ़्ट में समय, जगह, गति, ${e.peakG} g का झटका और टायर प्रेशर लॉग है। भेजने से पहले देख लें।`)); },
     () => agentSay(T3("Okay. Stay under 60 and check the tyre at the next stop.", "Theek hai. 60 se neeche chaliye aur agle stop pe tyre check kar lijiye.", "ठीक है। 60 से नीचे चलें और अगले स्टॉप पर टायर जाँच लें।")));
 }
+
+/* ---------- voice picker: Indian voices for the chosen language, best first ---------- */
+const SAMPLE = { English: "Speed breaker in 110 metres. Slow to 20.", Hinglish: "110 metre mein speed breaker hai. 20 ki speed rakhiye.", Hindi: "110 मीटर पर स्पीड ब्रेकर है। गति 20 रखें।" };
+async function fillVoices() {
+  const all = await SadakSpeech.voices(), lang = $("lang").value, list = SadakSpeech.rank(all, lang), sel = $("voiceSel"), keep = SadakSpeech.chosen();
+  sel.innerHTML = "";
+  list.forEach((v, i) => { const o = document.createElement("option"); o.value = v.name; o.textContent = (i ? "" : "Best: ") + v.name.replace(/^Microsoft /, "").replace(/ (Online )?\(Natural\)/, "").replace(/ - .*$/, ""); sel.append(o); });
+  if (!list.length) { const o = document.createElement("option"); o.value = ""; o.textContent = "No Indian voice in this browser"; sel.append(o); }
+  if (list.some((v) => v.name === keep)) sel.value = keep;
+  $("voiceHint").textContent = SadakSpeech.isNatural(list[0]) ? "Natural Indian voice found" : "For the most natural voice, open this in Microsoft Edge or Chrome";
+}
+$("lang").addEventListener("change", fillVoices);
+$("voiceSel").onchange = () => SadakSpeech.choose($("voiceSel").value);
+$("voiceTest").onclick = () => { SadakSpeech.choose($("voiceSel").value); SadakSpeech.speak(SAMPLE[$("lang").value], $("lang").value); };
+fillVoices();
+if (typeof speechSynthesis !== "undefined") speechSynthesis.addEventListener?.("voiceschanged", fillVoices);
 
 async function go(mode) {
   S.mode = mode; S.lang = $("lang").value; S.rain = $("rain").checked; S.device = await dailyId();

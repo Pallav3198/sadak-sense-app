@@ -5,7 +5,7 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node --no-warnings server/index.js",
-    "test": "node --no-warnings --test test/engine.test.js test/detector.test.js test/api.test.js test/hinglish.test.js test/mycar.test.js",
+    "test": "node --no-warnings --test test/engine.test.js test/detector.test.js test/api.test.js test/hinglish.test.js test/mycar.test.js test/voice.test.js",
     "sim": "node --no-warnings sim/fleet.js"
   },
   "engines": { "node": ">=22.13" },

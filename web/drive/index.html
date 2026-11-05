@@ -127,6 +127,8 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
     <h1>Your car feels the road. Now it warns the next driver.</h1>
     <p>Mount the phone in a holder. It reads the accelerometer and GPS, detects speed breakers and potholes, shares anonymous jolt reports, and warns you before hazards other cars have confirmed.</p>
     <div class="field"><label class="label" for="lang">Voice language</label><select id="lang"><option>English</option><option selected>Hinglish</option><option>Hindi</option></select></div>
+    <div class="field"><label class="label" for="voiceSel">Voice</label><select id="voiceSel"></select></div>
+    <button class="btn" id="voiceTest" type="button" style="padding:9px 14px"><b style="font-size:14px">Hear this voice</b><span id="voiceHint"></span></button>
     <div class="field"><label class="label" for="carSel">My car</label><select id="carSel"><option value="aura">Hyundai Aura</option><option value="exter">Hyundai Exter</option><option value="venue">Hyundai Venue</option><option value="creta" selected>Hyundai Creta</option><option value="bayon">Hyundai Bayon</option></select></div>
     <div class="field"><label class="label" for="people">People in the car</label><select id="people"><option>1</option><option>2</option><option>3</option><option selected>4</option><option>5</option></select></div>
     <div class="field"><label class="label" for="homeOn">Keep home updated</label><input type="checkbox" id="homeOn" checked></div>
@@ -141,6 +143,7 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
 <script src="/shared/common.js"></script>
 <script src="/shared/detector.js"></script>
 <script src="/shared/hinglish.js"></script>
+<script src="/shared/voice.js"></script>
 <script src="/shared/mycar.js"></script>
 <script src="/drive/drive.js"></script>
 </body>
