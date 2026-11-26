@@ -1,7 +1,7 @@
 // Sadak Sense service worker: makes the app installable and lets it open with a weak signal.
 // Network first for everything; the app shell is cached as a fallback. API calls are never cached.
 const SHELL = "ss-shell-v1";
-const FILES = ["/drive/", "/drive/drive.js", "/drive/own-car.js", "/drive/copilot-ui.js", "/drive/moment-ui.js", "/drive/commute-ui.js", "/shared/commute.js", "/shared/moment.js", "/drive/manifest.webmanifest", "/drive/icon-192.png",
+const FILES = ["/drive/", "/drive/drive.js", "/drive/own-car.js", "/drive/copilot-ui.js", "/drive/moment-ui.js", "/drive/personal-ui.js", "/shared/personal.js", "/drive/commute-ui.js", "/shared/commute.js", "/shared/moment.js", "/drive/manifest.webmanifest", "/drive/icon-192.png",
   "/shared/common.js", "/shared/detector.js", "/shared/brake.js", "/shared/hinglish.js", "/shared/voice.js", "/shared/mail.js", "/shared/env.js", "/shared/mycar.js", "/shared/ui.css",
   "/vendor/leaflet/leaflet.js", "/vendor/leaflet/leaflet.css"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(SHELL).then((c) => c.addAll(FILES)).catch(() => {})); self.skipWaiting(); });

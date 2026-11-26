@@ -64,10 +64,38 @@ function mountPersonal(app, { engine, accounts, maps, env = process.env, limit, 
     try { res.json({ results: await maps.search(q, near) }); } catch (e) { fail(res, e); }
   });
   const along = (coords) => engine.alongRoute(coords).map((h) => ({ id: h.id, type: h.type, lat: h.lat, lon: h.lon, devices: h.devices, severity: h.severity }));
+  // smooth: elders or kids on board (14.9) → of the fastest and up to 2 alternatives, take the one with the
+  // fewest/least severe hazards, unless it is more than 15% slower.
+  const roughness = (hz) => hz.reduce((s, h) => s + (h.type === "pothole" ? 3 : h.type === "water" ? 10 : (h.severity ?? 1) >= 1.2 ? 2 : 1) * Math.max(0.5, Math.min(2, h.severity ?? 1)), 0);
   app.post("/api/maps/route", needOwner, limit, async (req, res) => {
-    const { from, to } = req.body || {};
+    const { from, to, smooth } = req.body || {};
     if (![from?.lat, from?.lon, to?.lat, to?.lon].every(Number.isFinite)) return res.status(400).json({ error: "from and to required" });
-    try { const r = await maps.route(from, to); res.json({ ...r, hazards: along(r.coords) }); } catch (e) { fail(res, e); }
+    try {
+      const all = (await maps.routes(from, to, { alternatives: smooth ? 2 : 0 })).map((r) => ({ ...r, hazards: along(r.coords) }));
+      const fastest = all[0];
+      let pick = fastest, why = null;
+      if (smooth && all.length > 1) {
+        const ok = all.filter((r) => r.durationS <= fastest.durationS * 1.15).sort((a, b) => roughness(a.hazards) - roughness(b.hazards));
+        if (ok[0] && roughness(ok[0].hazards) < roughness(fastest.hazards)) {
+          pick = ok[0]; why = `smoother route: ${fastest.hazards.length - pick.hazards.length >= 0 ? fastest.hazards.length - pick.hazards.length : 0} fewer hazards, ${Math.round((pick.durationS - fastest.durationS) / 60)} min longer`;
+        } else why = "the fastest route is also the smoothest";
+      }
+      res.json({ ...pick, smoothWhy: why, alternatives: all.length });
+    } catch (e) { fail(res, e); }
+  });
+  app.get("/api/maps/reverse", needOwner, limit, async (req, res) => {
+    const lat = +req.query.lat, lon = +req.query.lon; if (![lat, lon].every(Number.isFinite)) return res.status(400).json({ error: "lat, lon required" });
+    try { res.json(await maps.reverse(lat, lon)); } catch (e) { fail(res, e); }
+  });
+
+  // "Reached safely" (14.9): the owner switched it on for a parent; sent automatically on arrival.
+  app.post("/api/copilot/arrived", needOwner, limit, async (req, res) => {
+    const { to, name, dest } = req.body || {};
+    if (!/^[^\s@<>,]+@[^\s@<>,]+\.[^\s@<>,]+$/.test(String(to || ""))) return res.status(400).json({ error: "parent's email required" });
+    const g = ck(req, "ss_g"); if (!g) return res.status(401).json({ error: "connect Gmail first" });
+    const who = String(name || "I").slice(0, 40), where = String(dest || "the destination").slice(0, 80);
+    try { const r = await accounts.google.send(g.r, { to, subject: `${who} reached ${where} safely`, body: `${who} reached ${where} safely at ${hhmm(Date.now())}.\n\n(Automatic message from the car, Sadak Sense.)` }); res.json({ sent: true, id: r.id }); }
+    catch (e) { fail(res, e); }
   });
 
   /* ---------- co-pilot: calendar + traffic + hazards -> leave-by, late message ---------- */
@@ -86,7 +114,8 @@ function mountPersonal(app, { engine, accounts, maps, env = process.env, limit, 
     // Meeting rescue (14.6): an online call starting soon while driving → tell the organiser / join by audio when parked.
     const rescue = call ? { title: call.title, start: call.start, joinUrl: call.joinUrl, organizer: call.organizer, source: call.source,
       draft: call.organizer ? { to: [call.organizer], subject: `Joining by audio: ${call.title}`, body: `I'm driving and will join "${call.title}" (${hhmm(call.start)}) by audio from the car.` } : null } : null;
-    if (!ev) return res.json({ event: null, call: rescue, errors, upcoming: events.length });
+    const soon = events.filter((e) => e.start > Date.now() - 60e3).slice(0, 8).map((e) => ({ title: e.title, start: e.start, attendees: (e.attendees || []).map((a) => a.email), organizer: e.organizer || null }));
+    if (!ev) return res.json({ event: null, call: rescue, events: soon, errors, upcoming: events.length });
     try {
       const place = (await maps.search(ev.location, { lat, lon }))[0];
       if (!place) return res.json({ event: ev, place: null, errors, why: "couldn't find the meeting's location on the map" });
@@ -94,7 +123,7 @@ function mountPersonal(app, { engine, accounts, maps, env = process.env, limit, 
       const hazards = along(route.coords);
       const plan = leaveBy({ event: ev, route, hazards, raining: !!raining });
       const draft = plan.late > 0 ? lateMessage({ event: ev, arrival: plan.arriveIfNow + 5 * 60e3 }) : null;
-      res.json({ event: ev, place, route: { lengthM: route.lengthM, durationS: route.durationS, trafficDelayS: route.trafficDelayS, coords: route.coords }, hazards, plan, draft, call: rescue, errors });
+      res.json({ event: ev, place, route: { lengthM: route.lengthM, durationS: route.durationS, trafficDelayS: route.trafficDelayS, coords: route.coords }, hazards, plan, draft, call: rescue, events: soon, errors });
     } catch (e) { fail(res, e); }
   });
 

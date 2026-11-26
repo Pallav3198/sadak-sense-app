@@ -198,6 +198,8 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
     <div class="note" id="hSpec"></div>
     <div><div class="label" style="display:flex;justify-content:space-between"><span>Road wear this week</span><span id="hPct">0%</span></div><div class="bar"><i id="hBar" style="width:0%"></i></div></div>
     <div id="hMsg" style="font-size:13.5px"></div>
+    <div id="hCost" style="font-size:13px"></div>
+    <div id="hComfort" class="note"></div>
     <button class="btn" id="hBook" type="button"><b>Book a free suspension and alignment check</b><br><span class="note">Nearest Hyundai service centre, with this week's hit log attached</span></button>
     <div class="label">Damage log · for a service or insurance claim</div>
     <div class="hlog" id="hLog"></div>
@@ -218,6 +220,10 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
     <div class="field"><label class="label" for="obPass">Usual passengers (with you)</label><select id="obPass"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
     <div class="field"><label class="label" for="obElders">Elders often on board</label><input type="checkbox" id="obElders"></div>
     <div class="field"><label class="label" for="obKids">Kids often on board</label><input type="checkbox" id="obKids"></div>
+    <div class="field"><label class="label" for="obQuietFrom">Quiet hours (only VIP and urgent)</label><span><input type="time" id="obQuietFrom" style="max-width:110px"> – <input type="time" id="obQuietTo" style="max-width:110px"></span></div>
+    <div class="field"><label class="label" for="obYoung">Young driver: tell a parent when I reach</label><input type="checkbox" id="obYoung"></div>
+    <div class="field"><label class="label" for="obParent">Parent's email</label><input id="obParent" type="email" placeholder="parent@example.com"></div>
+    <div class="field"><label class="label" for="obName">My name (for that message)</label><input id="obName" placeholder="Pallav"></div>
     <div class="field"><label class="label" for="obLang">Language</label><select id="obLang"><option>English</option><option>Hinglish</option><option>Hindi</option><option>Tamil</option><option>Telugu</option><option>Malayalam</option><option>Kannada</option><option>Bengali</option></select></div>
     <div class="field"><label class="label" for="obAlert">Alert style</label><select id="obAlert"><option value="chime">Chime + card</option><option value="voice">Voice</option><option value="silent">Silent</option></select></div>
     <div class="merow"><button class="btn primary" id="obSave" type="button"><b>Save</b></button><button class="btn" id="obSkip" type="button"><b>Skip</b></button></div>
@@ -246,6 +252,7 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
     <div class="field"><label class="label" for="homeOn">Keep home updated</label><input type="checkbox" id="homeOn" checked></div>
     <div class="field" id="homeMailRow" hidden><label class="label" for="homeMail">Home email</label><input id="homeMail" type="email" placeholder="family@example.com" autocomplete="email" style="min-width:0;max-width:68%;background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:8px;color:inherit;font:inherit"></div>
     <div class="field"><label class="label" for="helpMap">Help improve the map (asks about a jolt only when stopped)</label><input type="checkbox" id="helpMap"></div>
+    <div class="field"><label class="label" for="gentleToday">Elders or kids on board today (gentler advice, smoother route)</label><input type="checkbox" id="gentleToday"></div>
     <div class="field"><label class="label" for="rain">It is raining</label><input type="checkbox" id="rain"></div>
     <button class="btn primary" id="realBtn" type="button"><b>Start driving</b><span>Uses this phone's real motion sensors and GPS</span></button>
     <div class="field"><label class="label" for="route">Demo route</label><select id="route"></select></div>
@@ -270,6 +277,8 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
 <script src="/shared/commute.js"></script>
 <script src="/drive/commute-ui.js"></script>
 <script src="/drive/moment-ui.js"></script>
+<script src="/shared/personal.js"></script>
+<script src="/drive/personal-ui.js"></script>
 <div class="caption">In-car screen · runs on the head unit in production · today a tablet or laptop stands in, a phone on the dashboard senses the road</div>
 </body>
 </html>

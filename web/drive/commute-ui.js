@@ -15,6 +15,8 @@ const Commute = (() => {
     $("obVip").value = (P.vips || []).join(", "); $("obEvening").value = P.evening || "urgent";
     $("obPass").value = String(P.passengers || 1); $("obElders").checked = !!P.elders; $("obKids").checked = !!P.kids;
     $("obDomains").value = (P.workDomains || []).join(", ");
+    $("obQuietFrom").value = P.quietFrom || ""; $("obQuietTo").value = P.quietTo || "";
+    $("obYoung").checked = !!P.youngDriver; $("obParent").value = P.parentEmail || ""; $("obName").value = P.myName || "";
     $("obLang").value = $("lang").value; $("obAlert").value = S.style || "chime";
     $("obHome").textContent = P.home ? "Home saved ✓ (tap to update)" : "Use where I am now as home";
     $("obWork").textContent = P.office ? "Office saved ✓ (tap to update)" : "Use where I am now as office";
@@ -29,6 +31,8 @@ const Commute = (() => {
     P.vips = $("obVip").value.split(",").map((x) => x.trim()).filter(Boolean);
     P.evening = $("obEvening").value; P.passengers = +$("obPass").value; P.elders = $("obElders").checked; P.kids = $("obKids").checked;
     P.workDomains = $("obDomains").value.split(",").map((x) => x.trim().replace(/^@/, "")).filter(Boolean);
+    P.quietFrom = $("obQuietFrom").value || null; P.quietTo = $("obQuietTo").value || null;
+    P.youngDriver = $("obYoung").checked; P.parentEmail = $("obParent").value.trim() || null; P.myName = $("obName").value.trim() || null;
     P.skipped = false; saveP(); apply();
     $("lang").value = $("obLang").value; $("lang").dispatchEvent(new Event("change")); setStyle($("obAlert").value);
     $("onboard").hidden = true; remindBox();

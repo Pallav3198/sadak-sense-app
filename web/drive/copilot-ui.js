@@ -45,12 +45,12 @@ $("dest").addEventListener("input", () => {
 function pickDest(x) { CO.dest = x; $("dest").value = x.name; $("destList").innerHTML = ""; $("meState").textContent = `Destination: ${x.name}. Press Start driving.`; }
 async function routeToDest() {
   const p = coHere(); if (!CO.dest || !p) return;
-  const r = await post("/api/maps/route", { from: { lat: p.lat, lon: p.lon }, to: CO.dest });
+  const r = await post("/api/maps/route", { from: { lat: p.lat, lon: p.lon }, to: CO.dest, smooth: !!window.PersonalUI?.gentle });
   if (!r.coords) { bubble("a", "Maps", r.error || "Couldn't get a route."); return; }
   if (routeLine) map.removeLayer(routeLine);
   routeLine = L.polyline(r.coords, { color: "#3fd0c9", weight: 6, opacity: 0.6 }).addTo(map);
   const mins = Math.round(r.durationS / 60), late = Math.round(r.trafficDelayS / 60);
-  CO.route = r; $("mRoad").textContent = CO.dest.name;
+  CO.route = r; $("mRoad").textContent = CO.dest.name; document.dispatchEvent(new Event("ss-route"));
   coShow(`${CO.dest.name} · ${mins} min`, `${(r.lengthM / 1000).toFixed(1)} km, arrive ${hm(Date.now() + r.durationS * 1000)}${late ? ` · ${late} min traffic delay` : ""} · ${r.hazards.length} hazards on route`);
   say(coT(`${mins} minutes to ${CO.dest.name} with current traffic. ${r.hazards.length ? `${r.hazards.length} confirmed hazards on the way; I'll warn you before each.` : "No confirmed hazards on the way."}`,
     `${CO.dest.name} tak abhi ke traffic mein ${mins} minute. ${r.hazards.length ? `Raaste mein ${r.hazards.length} confirmed hazard hain, har ek se pehle bata dunga.` : "Raaste mein koi confirmed hazard nahi."}`,

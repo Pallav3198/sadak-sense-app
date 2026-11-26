@@ -63,7 +63,7 @@ const MomentUI = (() => {
   const take = (list, pred = () => true) => { const i = list.findIndex(pred); return i < 0 ? null : list.splice(i, 1)[0]; };
   const mark = (it) => { CO.seen.add(it.source + it.id); keepSeen(); };
   // 14.5 schedule: some items wait for the right time of day (e.g. work mail in the evening); VIP/urgent pass.
-  const waits = (it) => (window.Commute ? Commute.holds(it) : false) && !SadakMoment.isVip(it, vips()) && !SadakMoment.isUrgent(it);
+  const waits = (it) => ((window.Commute ? Commute.holds(it) : false) || !!window.PersonalUI?.focusHolds()) && !SadakMoment.isVip(it, vips()) && !SadakMoment.isUrgent(it);
 
   function deliver(cur, prev) {
     if (!CO.me?.owner && !st.demoItems) return;

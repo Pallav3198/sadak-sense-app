@@ -28,17 +28,30 @@ function createMaps({ key = process.env.TOMTOM_API_KEY, fetchImpl = globalThis.f
   }
 
   // Fastest route with live traffic: duration, traffic delay, arrival time and the line to draw.
-  async function route(from, to, departAt) {
+  const shape = (r) => ({ lengthM: r.summary.lengthInMeters, durationS: r.summary.travelTimeInSeconds, trafficDelayS: r.summary.trafficDelayInSeconds || 0, arrival: Date.parse(r.summary.arrivalTime),
+    coords: r.legs.flatMap((l) => l.points.map((x) => [+x.latitude.toFixed(6), +x.longitude.toFixed(6)])) });
+  // alternatives > 0 asks for other routes too (for the smoother-route choice, 14.9).
+  async function routes(from, to, { departAt, alternatives = 0 } = {}) {
     need();
     const p = new URLSearchParams({ key, traffic: "true", travelMode: "car", routeType: "fastest", routeRepresentation: "polyline" });
+    if (alternatives) p.set("maxAlternatives", String(alternatives));
     if (departAt && departAt > Date.now() + 60e3) p.set("departAt", new Date(departAt).toISOString().replace(/\.\d+Z$/, "Z"));
     const b = await get(`https://api.tomtom.com/routing/1/calculateRoute/${from.lat},${from.lon}:${to.lat},${to.lon}/json?${p}`);
-    const r = b.routes?.[0]; if (!r) throw Object.assign(new Error("no route"), { status: 404 });
-    const coords = r.legs.flatMap((l) => l.points.map((x) => [+x.latitude.toFixed(6), +x.longitude.toFixed(6)]));
-    return { lengthM: r.summary.lengthInMeters, durationS: r.summary.travelTimeInSeconds, trafficDelayS: r.summary.trafficDelayInSeconds || 0, arrival: Date.parse(r.summary.arrivalTime), coords };
+    if (!b.routes?.length) throw Object.assign(new Error("no route"), { status: 404 });
+    return b.routes.map(shape);
+  }
+  const route = async (from, to, departAt) => (await routes(from, to, { departAt }))[0];
+  // Street name for a point (commute memory: "new pothole since yesterday near <street>").
+  async function reverse(lat, lon) {
+    need();
+    const k = `r|${lat.toFixed(4)},${lon.toFixed(4)}`; if (cache.has(k)) return cache.get(k);
+    const b = await get(`https://api.tomtom.com/search/2/reverseGeocode/${lat},${lon}.json?${new URLSearchParams({ key, language: "en-GB" })}`);
+    const a = b.addresses?.[0]?.address || {};
+    const out = { street: a.streetName || null, area: a.municipalitySubdivision || a.municipality || null, text: a.streetName || a.freeformAddress || null };
+    cache.set(k, out); return out;
   }
 
-  return { on, search, route };
+  return { on, search, route, routes, reverse };
 }
 
 module.exports = { createMaps };

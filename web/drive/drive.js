@@ -38,6 +38,7 @@ function onJolt(e) {
   if (S.spots.some((x) => SS.hav(x.lat, x.lon, ev.lat, ev.lon) < 20)) { $("tNote").textContent = `${label} · same spot, already reported`; return; }
   S.spots.push({ lat: ev.lat, lon: ev.lon, ts: now });
   const known = S.known.some((h) => SS.hav(h.lat, h.lon, ev.lat, ev.lon) < 25);
+  window.PersonalUI?.onJolt(e);
   // Own-car memory + per-spot car tag (14.2) before it is queued.
   OwnCar.record(ev, !known).finally(() => S.queue.push(ev));
   $("tNote").textContent = `${label} detected · ${e.peakG} g · reported automatically${known ? " · matches a known hazard" : " · new, waiting for 2 more cars"}`;
@@ -172,7 +173,8 @@ function tick() {
     S.alertHz = next; $("repBtn").hidden = !S.reportable || !!next.personal;
     const last = S.alerted.get(next.id) || 0;
     glow(next.type);
-    if (nextD <= warnD && Date.now() - last > 10 * 60e3) { S.alerted.set(next.id, Date.now()); chime(); setTimeout(() => say(`${t}. ${cl}`, next.type === "water" ? "serious" : "info"), 400); }
+    const mild = next.type === "breaker" && (next.severity ?? 1) < 1.2 && window.PersonalUI?.quietBreakers();
+    if (nextD <= warnD && Date.now() - last > 10 * 60e3) { S.alerted.set(next.id, Date.now()); if (!mild) { chime(); setTimeout(() => say(`${t}. ${cl}`, next.type === "water" ? "serious" : "info"), 400); } }
   } else {
     el.className = "alert clear"; el.querySelector(".ic").textContent = "✓"; $("repBtn").hidden = true; glow(null);
     $("aT").textContent = { English: "Road ahead is clear", Hinglish: "Aage raasta saaf hai", Hindi: "आगे रास्ता साफ़ है" }[S.lang];
@@ -286,6 +288,8 @@ function renderCar(v) {
 }
 function renderHealth() {
   const car = SadakCar.CARS[S.car], w = SadakCar.wear(S.hits);
+  const wc = window.PersonalUI?.wearLine(); $("hCost").textContent = wc ? wc.text : ""; $("hCost").title = wc ? "Assumptions: " + wc.assumptions : "";
+  const cf = window.PersonalUI?.comfort; $("hComfort").textContent = cf && cf.style !== "learning" ? T3(`Your comfort profile (${cf.crossings} breakers): ${cf.style === "fast" ? "you usually take breakers quickly, so advice is 5 km/h slower" : cf.style === "gentle" ? "you take breakers gently, so mild ones aren't announced" : "normal"}.`, `Aapka comfort profile (${cf.crossings} breaker): ${cf.style === "fast" ? "aap breaker tez lete hain, isliye salaah 5 km/h dheere" : cf.style === "gentle" ? "aap aaram se lete hain, halke breaker nahi bataunga" : "normal"}.`, `आपकी आदत (${cf.crossings} ब्रेकर): ${cf.style === "fast" ? "आप ब्रेकर तेज़ लेते हैं, इसलिए सलाह 5 किमी/घंटा धीमी" : cf.style === "gentle" ? "आप आराम से लेते हैं, हल्के ब्रेकर नहीं बताऊँगा" : "सामान्य"}।`) : "";
   $("hTitle").textContent = `My ${car.name}`;
   $("hSpec").textContent = `Ground clearance about ${car.clearanceMm} mm unladen${car.assumed ? " (assumed)" : ""}, lower with ${S.people} on board. In the car this comes from the VIN and seat sensors; hits come from the car's own motion and tyre-pressure sensors.`;
   $("hPct").textContent = `${w.pct}%`; $("hBar").style.width = w.pct + "%";

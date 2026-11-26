@@ -90,13 +90,13 @@ Last updated: 26 Nov 2026 (session 1).
 - [ ] 8.5 Hazard-aware Smart Cruise: roadmap slide only (deck)
 
 ## 14.9 Personalisation
-- [ ] 9.1 Commute memory: brief only when something changed ("New pothole since yesterday near AIIMS gate")
-- [ ] 9.2 Elders or kids on board → smoother route and gentler advice
-- [ ] 9.3 Learned comfort profile (how this driver takes breakers; adjusts advice)
-- [ ] 9.4 Quiet hours / focus mode before important meetings
-- [ ] 9.5 Monsoon personal warning before leaving
-- [ ] 9.6 "Reached safely" alert for a parent of a young driver
-- [ ] 9.7 Road-wear cost forecast ("this route costs about ₹800 a year in extra tyre wear")
+- [x] 9.1 Commute memory: brief only when something changed ("New pothole since yesterday near AIIMS gate")
+- [x] 9.2 Elders or kids on board → smoother route and gentler advice
+- [x] 9.3 Learned comfort profile (how this driver takes breakers; adjusts advice)
+- [x] 9.4 Quiet hours / focus mode before important meetings
+- [x] 9.5 Monsoon personal warning before leaving
+- [x] 9.6 "Reached safely" alert for a parent of a young driver
+- [x] 9.7 Road-wear cost forecast ("this route costs about ₹800 a year in extra tyre wear")
 
 ## 14.10 Email home
 - [~] 10.1 EmailJS sending built; [U] needs EmailJS keys, then a reroute test to the home email
@@ -133,3 +133,4 @@ Last updated: 26 Nov 2026 (session 1).
 - 27 Nov 2026: 14.7 completed: rule brain in all 8 languages + tests; server/llm.js (Sarvam chat, tool loop, 9 s timeout) used by /api/ask with live-data tools; hazard guard rejects any hazard not from the tool; any failure falls back to rules; yes/no/report stay deterministic. Next: 14.6.
 - 27 Nov 2026: 14.6 completed: server/knowledge.js (graph over Gmail threads + history, Teams chats + history, meetings, people, places; refersTo + context lines incl. "you're N min away"), LLM linking pass restricted to real meetings, /api/copilot/compose (vague reply → message via LLM or rules, no invented times, + automatic ETA line with road event), meeting rescue (organiser email while driving, Join by audio when parked), What I know sheet, Simulate "context" with sample data. Next: 14.8.
 - 27 Nov 2026: 14.8 built: web/shared/brake.js (hard braking from GPS speed: 20+ km/h, 12+ km/h drop in 2.5 s, 3 m/s²+, good GPS), engine "nearmiss" family (30 m, 3 cars in 14 days, hourly histogram + peak hours, fades after 30 days, excluded from potholes and briefs), app warning only at peak hours, console hourly chart, simulator near-miss spot. 8.5 Smart Cruise stays a deck slide (14.11). Next: 14.9.
+- 27 Nov 2026: 14.9 built: web/shared/personal.js + web/drive/personal-ui.js. 9.1 route snapshot per destination, brief only when hazards added/removed (street name via TomTom reverse geocode, else km along the route); 9.2 "Elders or kids on board today" (default from onboarding) → breaker advice 5 km/h gentler + "extra gentle", and smoother of up to 3 TomTom routes unless >15% slower; 9.3 comfort profile from own breaker crossings (fast → advise 5 slower; gentle → mild breakers not announced); 9.4 focus 30 min before important meetings + quiet hours (onboarding) → only VIP/urgent; 9.5 monsoon warning before leaving when rain is coming and the route flooded in the last 30 days (earlier for low cars); 9.6 young-driver "reached safely" email to a parent via the owner's Gmail on arrival; 9.7 road-wear cost per year with stated assumptions (My car sheet). Next: pairing, APK, deck.
