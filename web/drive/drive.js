@@ -512,6 +512,7 @@ async function go(mode) {
   if (mode === "demo") { $("briefBtn").hidden = true; $("simBtn").hidden = false; }
   if (mode === "real") await startReal(); else await startDemo($("route").value);
   setInterval(tick, 400); setInterval(flush, 3000); drawTrace();
+  document.dispatchEvent(new Event("ss-drive-start"));
   refreshEnv(); setInterval(refreshEnv, 10 * 60e3); setInterval(deliverEnv, 3000);
 }
 $("realBtn").onclick = () => go("real");
@@ -538,6 +539,7 @@ function openConvo() { $("convo").hidden = false; $("chips").innerHTML = ""; for
 async function ask(text, shown) {
   openConvo(); bubble("u", S.lang === "English" ? "You" : "Aap", shown || text);
   const itn = SadakVoice.intent(text).name;
+  if (window.coHandle?.(text, shown, itn)) return;
   if (S.pendingAgent && (itn === "yes" || itn === "no")) return resolveAgent(itn === "yes");
   if (itn === "ask_car") {
     // Answered in the car from its own specification and load: no server, works offline.

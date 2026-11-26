@@ -10,9 +10,12 @@ const { FleetSim, ROUTES } = require("../sim/fleet");
 const { createSarvam } = require("./sarvam");
 const { complaint, cityReport, createMailer, CHANNELS, ONE_WEEK } = require("./report");
 const fs = require("node:fs");
+const { createAccounts } = require("./accounts");
+const { createMaps } = require("./maps");
+const { mountPersonal } = require("./personal");
 
 function createApp({ dbFile = process.env.DB_FILE || path.join(__dirname, "..", "data", "sadak.db"), enableSim = process.env.ENABLE_SIM !== "false",
-  seedFile = process.env.SEED_FILE || path.join(__dirname, "..", "seed", "real-drives.json"), sarvam = createSarvam(), mailer = createMailer() } = {}) {
+  seedFile = process.env.SEED_FILE || path.join(__dirname, "..", "seed", "real-drives.json"), sarvam = createSarvam(), mailer = createMailer(), accounts = createAccounts(), maps = createMaps(), env = process.env } = {}) {
   const db = openDb(dbFile);
   const clients = new Set();
   const send = (type, data) => { const msg = `event: ${type}\ndata: ${JSON.stringify(data)}\n\n`; for (const c of clients) c.write(msg); };
@@ -25,6 +28,7 @@ function createApp({ dbFile = process.env.DB_FILE || path.join(__dirname, "..", 
 
   const app = express();
   app.disable("x-powered-by");
+  app.set("trust proxy", 1); // behind Render's proxy: real https and client IP
   app.use(express.json({ limit: "64kb" }));
   app.use((req, res, next) => { res.set("Access-Control-Allow-Origin", "*"); res.set("Access-Control-Allow-Headers", "content-type"); if (req.method === "OPTIONS") return res.sendStatus(204); next(); });
 
@@ -97,6 +101,8 @@ function createApp({ dbFile = process.env.DB_FILE || path.join(__dirname, "..", 
     }
     res.json(out);
   });
+
+  mountPersonal(app, { engine, accounts, maps, env, limit });
 
   /* ---------- Sarvam voice: 8 Indian languages, key stays on this server ---------- */
   app.get("/api/voice/status", (_, res) => res.json({ sarvam: sarvam.on, languages: Object.keys(sarvam.LANGS) }));
@@ -191,6 +197,13 @@ function createApp({ dbFile = process.env.DB_FILE || path.join(__dirname, "..", 
     });
   }
 
+  // Android app (Trusted Web Activity): proves this site and the APK belong together, so the app opens full screen.
+  app.get("/.well-known/assetlinks.json", (_, res) => {
+    const pkg = env.ANDROID_PACKAGE, prints = String(env.ANDROID_SHA256 || "").split(",").map((x) => x.trim()).filter(Boolean);
+    res.json(pkg && prints.length ? [{ relation: ["delegate_permission/common.handle_all_urls"], target: { namespace: "android_app", package_name: pkg, sha256_cert_fingerprints: prints } }] : []);
+  });
+  // The service worker controls the whole site (scope "/"), so it must be served with this header.
+  app.get("/drive/sw.js", (req, res, next) => { res.set("Service-Worker-Allowed", "/"); res.set("Cache-Control", "no-cache"); next(); });
   app.use("/vendor/leaflet", express.static(path.join(__dirname, "..", "node_modules", "leaflet", "dist"), { maxAge: "7d" }));
   app.use(express.static(path.join(__dirname, "..", "web"), { extensions: ["html"] }));
   app.get("/", (_, res) => res.redirect("/console/"));

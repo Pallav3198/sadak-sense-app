@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#080b10"><link rel="manifest" href="/drive/manifest.webmanifest">
+<meta name="theme-color" content="#080b10"><link rel="manifest" href="/drive/manifest.webmanifest"><link rel="apple-touch-icon" href="/drive/icon-192.png"><link rel="icon" href="/drive/icon-192.png">
 <title>Sadak Sense · Drive</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -67,6 +67,12 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
 .msgs div{white-space:pre-line}
 .env{margin:6px 14px 0;display:flex;gap:8px;align-items:center;justify-content:space-between;padding:7px 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-size:12px;color:var(--muted)}
 .env b{color:var(--fg);font-weight:600}.env .ea{font-family:var(--mono);font-size:10px;color:var(--accent);text-align:right}
+.me{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+.me .note{font-size:12.5px;color:var(--muted)}.merow{display:flex;gap:8px;flex-wrap:wrap}.merow .btn{flex:1 1 140px;text-decoration:none;color:inherit;padding:10px 12px}
+.me input{min-width:0;flex:1;max-width:70%;background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:8px;color:inherit;font:inherit}
+#destList .btn{text-align:left}#destList .btn b{display:block;font-size:14px}#destList .btn span{font-size:11.5px;color:var(--muted)}
+.co{margin:6px 14px 0;display:flex;flex-wrap:wrap;gap:2px 10px;text-align:left;padding:8px 12px;border-radius:12px;border:1px solid var(--accent);background:var(--panel);color:inherit;font:inherit;cursor:pointer}
+.co .ct{font-weight:600;font-size:13px;flex-basis:100%}.co .cs{font-size:11.5px;color:var(--muted)}.co .ci{font-size:11.5px;color:var(--accent);margin-left:auto}
 #repChannels .btn{text-align:left;text-decoration:none;color:inherit}#repChannels .btn b{display:block;font-size:13px}#repChannels .btn span{font-size:11.5px;color:var(--muted)}
 .alert{flex-wrap:wrap}.alert .rep{flex-basis:100%;padding:7px 12px;font-size:12.5px;margin-top:2px}
 .env.warn{border-color:var(--breaker)}.env.bad{border-color:var(--pothole)}
@@ -101,6 +107,7 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
     <button class="btn rep" id="repBtn" type="button" hidden>Report to city</button>
   </div>
   <button class="car" id="carBar" type="button" aria-label="My car and road wear"><span class="cn" id="carName">My car</span><span class="cl" id="carLine">Checks every hazard against this car's clearance and load</span><span class="cw" id="carWear">wear 0%</span></button>
+  <button class="co" id="coBar" type="button" hidden><span class="ct" id="coT"></span><span class="cs" id="coS"></span><span class="ci" id="coInbox"></span></button>
   <div class="env" id="envBar" hidden><span id="envTxt"></span><span class="ea" id="envAct"></span></div>
   <div class="mid">
     <div class="speed"><span id="spd">0</span> <small>km/h</small></div>
@@ -154,6 +161,14 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
     <div class="brand" style="font-size:15px">SADAK <b>SENSE</b></div>
     <h1>Your car feels the road. Now it warns the next driver.</h1>
     <p>Mount the phone in a holder. It reads the accelerometer and GPS, detects speed breakers and potholes, shares anonymous jolt reports, and warns you before hazards other cars have confirmed.</p>
+    <div class="me" id="meBox" hidden>
+      <div class="label">Personal · your calendar, Gmail, Teams and maps</div>
+      <div class="note" id="meState"></div>
+      <div class="merow"><a class="btn" id="gIn" href="/auth/google"><b>Sign in with Google</b><span>Calendar and Gmail</span></a><a class="btn" id="mIn" href="/auth/microsoft"><b>Connect Teams</b><span>Work or college account</span></a><button class="btn" id="outBtn" type="button" hidden><b>Sign out</b><span>Removes the sign-ins from this phone</span></button></div>
+      <div class="field" id="destRow" hidden><label class="label" for="dest">Where to?</label><input id="dest" type="search" placeholder="Search a place" autocomplete="off"></div>
+      <div class="simlist" id="destList" hidden></div>
+      <div class="note" id="nextBox"></div>
+    </div>
     <div class="field"><label class="label" for="lang">Voice language</label><select id="lang"><option>English</option><option selected>Hinglish</option><option>Hindi</option><option>Tamil</option><option>Telugu</option><option>Malayalam</option><option>Kannada</option><option>Bengali</option></select></div>
     <div class="field"><label class="label" for="voiceSel">Voice</label><select id="voiceSel"></select></div>
     <button class="btn" id="voiceTest" type="button" style="padding:9px 14px"><b style="font-size:14px">Hear this voice</b><span id="voiceHint"></span></button>
@@ -178,5 +193,6 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
 <script src="/shared/env.js"></script>
 <script src="/shared/mycar.js"></script>
 <script src="/drive/drive.js"></script>
+<script src="/drive/copilot-ui.js"></script>
 </body>
 </html>

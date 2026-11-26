@@ -1,0 +1,152 @@
+// Personal co-pilot in the driver app (owner only): real place search and live-traffic route,
+// leave-by from the owner's calendar, and Gmail / Teams read aloud ONLY when the car is stopped.
+// Nothing is ever sent until the driver hears it read back and says yes.
+const CO = { me: null, dest: null, next: null, inbox: [], seen: new Set(), speeds: [], step: null, item: null, draft: null, saidLeave: false, saidLate: false, here: null };
+try { CO.seen = new Set(JSON.parse(localStorage.getItem("ss-seen") || "[]")); } catch {}
+const keepSeen = () => { try { localStorage.setItem("ss-seen", JSON.stringify([...CO.seen].slice(-200))); } catch {} };
+const coT = (en, hl, hi) => T3(en, hl, hi);
+const hm = (ts) => new Date(ts).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
+const post = (p, b) => fetch(p, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b || {}) }).then(async (r) => ({ status: r.status, ...(await r.json().catch(() => ({}))) }));
+const coHere = () => S.pos || CO.here;
+
+/* ---------- sign-in state on the start screen ---------- */
+async function coMe() {
+  try { CO.me = await fetch("/api/me").then((r) => (r.ok ? r.json() : null)); } catch { CO.me = null; }
+  const box = $("meBox"); if (!CO.me?.configured) { box.hidden = true; return; }
+  box.hidden = false; const c = CO.me.configured;
+  $("gIn").hidden = !c.google || CO.me.owner; $("mIn").hidden = !c.microsoft || !CO.me.owner || !!CO.me.microsoft; $("outBtn").hidden = !CO.me.owner;
+  $("destRow").hidden = $("destList").hidden = !(CO.me.owner && c.maps);
+  const bits = [];
+  if (!c.owner) bits.push("Personal features are not set up on this server yet.");
+  else if (!CO.me.owner) bits.push("Sign in with your Google account to use your calendar, Gmail, Teams and maps.");
+  else { bits.push("Gmail and Calendar connected."); bits.push(CO.me.microsoft ? `Teams connected (${CO.me.microsoft.email}).` : c.microsoft ? "Teams not connected." : ""); }
+  const q = new URLSearchParams(location.search).get("signin");
+  if (q) bits.unshift({ google: "Signed in.", microsoft: "Teams connected.", "not-owner": "That Google account isn't the owner of this app.", "owner-first": "Sign in with Google first, then connect Teams.", failed: "Sign-in failed, try again.", access_denied: "Sign-in cancelled." }[q] || `Sign-in: ${q}`);
+  $("meState").textContent = bits.filter(Boolean).join(" ");
+  if (CO.me.owner) { locateOnce(); }
+}
+function locateOnce() {
+  navigator.geolocation?.getCurrentPosition((p) => { CO.here = { lat: p.coords.latitude, lon: p.coords.longitude }; refreshNext(); }, () => {}, { enableHighAccuracy: true, timeout: 10000 });
+}
+$("outBtn").onclick = async () => { await post("/auth/logout"); location.href = "/drive/"; };
+
+/* ---------- where to: real search + live-traffic route ---------- */
+let searchT = null;
+$("dest").addEventListener("input", () => {
+  clearTimeout(searchT); const q = $("dest").value.trim(); if (q.length < 3) { $("destList").innerHTML = ""; return; }
+  searchT = setTimeout(async () => {
+    const p = coHere(), r = await fetch(`/api/maps/search?q=${encodeURIComponent(q)}${p ? `&lat=${p.lat}&lon=${p.lon}` : ""}`).then((x) => x.json()).catch(() => ({}));
+    $("destList").innerHTML = "";
+    for (const x of r.results || []) { const b = document.createElement("button"); b.type = "button"; b.className = "btn"; b.innerHTML = "<b></b><span></span>"; b.querySelector("b").textContent = x.name; b.querySelector("span").textContent = x.address; b.onclick = () => pickDest(x); $("destList").append(b); }
+    if (r.error) $("destList").textContent = r.error;
+  }, 450);
+});
+function pickDest(x) { CO.dest = x; $("dest").value = x.name; $("destList").innerHTML = ""; $("meState").textContent = `Destination: ${x.name}. Press Start driving.`; }
+async function routeToDest() {
+  const p = coHere(); if (!CO.dest || !p) return;
+  const r = await post("/api/maps/route", { from: { lat: p.lat, lon: p.lon }, to: CO.dest });
+  if (!r.coords) { bubble("a", "Maps", r.error || "Couldn't get a route."); return; }
+  if (routeLine) map.removeLayer(routeLine);
+  routeLine = L.polyline(r.coords, { color: "#3fd0c9", weight: 6, opacity: 0.6 }).addTo(map);
+  const mins = Math.round(r.durationS / 60), late = Math.round(r.trafficDelayS / 60);
+  CO.route = r; $("mRoad").textContent = CO.dest.name;
+  coShow(`${CO.dest.name} · ${mins} min`, `${(r.lengthM / 1000).toFixed(1)} km, arrive ${hm(Date.now() + r.durationS * 1000)}${late ? ` · ${late} min traffic delay` : ""} · ${r.hazards.length} hazards on route`);
+  say(coT(`${mins} minutes to ${CO.dest.name} with current traffic. ${r.hazards.length ? `${r.hazards.length} confirmed hazards on the way; I'll warn you before each.` : "No confirmed hazards on the way."}`,
+    `${CO.dest.name} tak abhi ke traffic mein ${mins} minute. ${r.hazards.length ? `Raaste mein ${r.hazards.length} confirmed hazard hain, har ek se pehle bata dunga.` : "Raaste mein koi confirmed hazard nahi."}`,
+    `${CO.dest.name} तक अभी के ट्रैफ़िक में ${mins} मिनट। ${r.hazards.length ? `रास्ते में ${r.hazards.length} पक्के ख़तरे हैं, हर एक से पहले बताऊँगा।` : "रास्ते में कोई पक्का ख़तरा नहीं।"}`));
+}
+function coShow(t, s) { const b = $("coBar"); b.hidden = false; $("coT").textContent = t; $("coS").textContent = s; }
+
+/* ---------- leave-by and running late (calendar + traffic + hazards + rain) ---------- */
+async function refreshNext() {
+  const p = coHere(); if (!CO.me?.owner || !p) return;
+  const r = await post("/api/copilot/next", { lat: p.lat, lon: p.lon, raining: !!S.rain });
+  if (r.status !== 200) return;
+  CO.next = r;
+  const box = $("nextBox");
+  if (!r.event) { box.textContent = r.upcoming ? "No in-person meetings with a location in the next 12 hours." : "No meetings in the next 12 hours."; return; }
+  if (!r.place) { box.textContent = `${r.event.title} at ${hm(r.event.start)}: ${r.why}`; return; }
+  const why = r.plan.parts.map((x) => `${x.min} min ${x.what}`).join(" + ");
+  box.textContent = r.plan.late > 0 ? `${r.event.title} at ${hm(r.event.start)}: you'll be about ${r.plan.late} min late (${why}).` : `${r.event.title} at ${hm(r.event.start)} · leave by ${hm(r.plan.leave)} (${why}).`;
+  if (!S.mode) return;
+  coShow(r.plan.late > 0 ? `${r.event.title}: ~${r.plan.late} min late` : `${r.event.title} ${hm(r.event.start)} · leave by ${hm(r.plan.leave)}`, `${r.place.name} · ${why}`);
+  if (!CO.dest) { CO.dest = r.place; routeToDest(); }
+  const minsToLeave = (r.plan.leave - Date.now()) / 60e3;
+  if (!CO.saidLeave && minsToLeave <= 10 && minsToLeave > 0 && (S.pos?.speed || 0) < 2) {
+    CO.saidLeave = true; say(coT(`Leave in ${Math.round(minsToLeave)} minutes for ${r.event.title}. Traffic and road hazards are included.`, `${r.event.title} ke liye ${Math.round(minsToLeave)} minute mein nikliye. Traffic aur raaste ke hazard jod liye hain.`, `${r.event.title} के लिए ${Math.round(minsToLeave)} मिनट में निकलें। ट्रैफ़िक और रास्ते के ख़तरे जोड़ लिए हैं।`));
+  }
+  if (!CO.saidLate && r.plan.late >= 3 && r.draft && r.event.attendees.length && !CO.step) {
+    CO.saidLate = true; const names = r.event.attendees.slice(0, 2).map((a) => a.name.split(" ")[0]).join(" and ");
+    coAsk("late", { to: r.event.attendees.map((a) => a.email), subject: r.draft.subject, body: r.draft.body, source: "gmail" },
+      coT(`You'll be about ${r.plan.late} minutes late for ${r.event.title}. Shall I email ${names}: "${r.draft.short}"`, `${r.event.title} ke liye lagbhag ${r.plan.late} minute late honge. ${names} ko email kar dun: "${r.draft.short}"`, `${r.event.title} के लिए लगभग ${r.plan.late} मिनट देर होगी। ${names} को ईमेल कर दूँ: "${r.draft.short}"`));
+  }
+}
+
+/* ---------- Gmail and Teams, read out only at stops ---------- */
+async function refreshInbox() {
+  if (!CO.me?.owner || !S.mode) return;
+  const r = await fetch("/api/copilot/inbox").then((x) => x.json()).catch(() => null); if (!r) return;
+  CO.inbox = (r.items || []).filter((i) => !CO.seen.has(i.source + i.id));
+  $("coInbox").textContent = CO.inbox.length ? `${CO.inbox.length} new · read at the next stop` : "";
+}
+function stoppedNow() {
+  const now = Date.now(); CO.speeds.push({ ts: now, kmh: (S.pos?.speed || 0) * 3.6 }); CO.speeds = CO.speeds.filter((x) => now - x.ts < 9000);
+  return CO.speeds.length >= 4 && now - CO.speeds[0].ts > 5500 && CO.speeds.every((x) => x.kmh < 3);
+}
+function coTick() {
+  if (!S.mode || !CO.me?.owner || S.simHold) return;
+  const stopped = stoppedNow();
+  if (!stopped && CO.step && CO.step !== "late" && (S.pos?.speed || 0) * 3.6 > 8) { // started moving: stop talking, keep it for the next stop
+    CO.step = null; $("yn").hidden = true; bubble("a", "Sadak Sense", coT("Moving again. I'll continue at the next stop.", "Gaadi chal padi. Agle stop pe baaki bataunga.", "गाड़ी चल पड़ी। अगले स्टॉप पर बाक़ी बताऊँगा।")); return;
+  }
+  if (!stopped || CO.step || S.pendingAgent || S.pendingJolt || !CO.inbox.length || !$("alert").className.includes("clear")) return;
+  const it = CO.inbox.shift(); CO.seen.add(it.source + it.id); keepSeen(); $("coInbox").textContent = CO.inbox.length ? `${CO.inbox.length} more at the next stop` : "";
+  const where = it.source === "teams" ? "Teams message" : "mail";
+  openConvo(); bubble("a", it.source === "teams" ? "Teams" : "Gmail", `${it.from}: ${it.subject}\n${it.snippet}`);
+  coAsk("reply?", it, coT(`New ${where} from ${it.from}: ${it.subject}. ${it.snippet}. Reply?`, `${it.from} ka naya ${where}: ${it.subject}. ${it.snippet}. Jawab dena hai?`, `${it.from} का नया ${where === "mail" ? "मेल" : "टीम्स मैसेज"}: ${it.subject}। ${it.snippet}। जवाब देना है?`));
+}
+
+/* ---------- the yes / dictate / read-back / yes flow ---------- */
+function coAsk(step, item, line) { CO.step = step; CO.item = item; openConvo(); $("yn").hidden = false; if (step !== "reply?") bubble("a", "Sadak Sense", line); say(line); }
+// Called from ask() in drive.js with every driver utterance. Returns true when the co-pilot handled it.
+window.coHandle = function (text, shown, itn) {
+  if (!CO.step) return false;
+  const yes = itn === "yes", no = itn === "no";
+  if (CO.step === "dictate") {
+    CO.draft = (shown || text).trim(); CO.step = "confirm";
+    const to = CO.item.source === "teams" ? CO.item.from : CO.item.from;
+    coAsk("confirm", CO.item, coT(`Sending to ${to}: "${CO.draft}". Send it?`, `${to} ko bhej rahe hain: "${CO.draft}". Bhej dun?`, `${to} को भेज रहे हैं: "${CO.draft}"। भेज दूँ?`));
+    return true;
+  }
+  if (!yes && !no) return false;
+  $("yn").hidden = true;
+  if (no) { CO.step = null; bubble("a", "Sadak Sense", coT("Okay, not sending.", "Theek hai, nahi bheja.", "ठीक है, नहीं भेजा।")); say(coT("Okay.", "Theek hai.", "ठीक है।")); return true; }
+  if (CO.step === "reply?") { CO.step = "dictate"; const l = coT("Go ahead, say your reply.", "Boliye, kya jawab dena hai.", "बोलिए, क्या जवाब देना है।"); bubble("a", "Sadak Sense", l); say(l); setTimeout(() => listen(), 1800); return true; }
+  if (CO.step === "confirm") { coSend({ ...replyOf(CO.item), body: CO.draft }); return true; }
+  if (CO.step === "late") { coSend(CO.item); return true; }
+  return false;
+};
+function replyOf(it) {
+  return it.source === "teams" ? { source: "teams", chatId: it.chatId } : { source: "gmail", to: [it.fromAddr], subject: it.subject, threadId: it.threadId, inReplyTo: it.messageId };
+}
+async function coSend(msg) {
+  $("yn").hidden = true;
+  CO.step = null;
+  const r = await post("/api/copilot/send", { ...msg, confirmed: true });
+  const ok = r.status === 200 && r.sent;
+  const l = ok ? coT("Sent.", "Bhej diya.", "भेज दिया।") : coT(`Not sent: ${r.error || "network problem"}.`, `Nahi gaya: ${r.error || "network problem"}.`, `नहीं गया: ${r.error || "नेटवर्क समस्या"}।`);
+  bubble("a", "Sadak Sense", l); say(l);
+}
+
+/* ---------- wiring ---------- */
+$("coBar").onclick = () => { if (CO.next?.plan) bubble("a", "Leave-by", CO.next.plan.parts.map((x) => `${x.min} min ${x.what}`).join("\n")); openConvo(); };
+document.addEventListener("ss-drive-start", () => {
+  if (!CO.me?.owner) return;
+  if (CO.dest) routeToDest();
+  refreshNext(); refreshInbox();
+  setInterval(refreshNext, 3 * 60e3); setInterval(refreshInbox, 90e3); setInterval(coTick, 1000);
+});
+coMe(); setInterval(() => { if (!S.mode && CO.me?.owner) refreshNext(); }, 5 * 60e3);
+
+// Installable app: register the service worker on the server edition only (not the single-file demo).
+if ("serviceWorker" in navigator && location.pathname.startsWith("/drive/")) navigator.serviceWorker.register("/drive/sw.js", { scope: "/" }).catch(() => {});
