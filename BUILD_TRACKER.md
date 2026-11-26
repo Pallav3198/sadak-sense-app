@@ -86,7 +86,7 @@ Last updated: 26 Nov 2026 (session 1).
 - [~] 8.1 Near-miss line in Simulate and Full demo (built, simulated)
 - [ ] 8.2 Real near-miss detection: hard-braking events from the phone → clusters by place and hour in the engine
 - [ ] 8.3 Near-miss zones on the console and warnings in the app ("Sudden braking is common here at this hour")
-- [ ] 8.4 Fleet-learned signal red time (shared with 14.4)
+- [x] 8.4 Fleet-learned signal red time (built in 14.4: server/signals.js)
 - [ ] 8.5 Hazard-aware Smart Cruise: roadmap slide only (deck)
 
 ## 14.9 Personalisation
