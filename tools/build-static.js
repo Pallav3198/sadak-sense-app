@@ -56,6 +56,7 @@ function page(htmlPath, extraScripts, { contentOnly, title }) {
     .replace(/<script src="\/drive\/moment-ui.js"><\/script>/, script(rd("web/drive/moment-ui.js")))
     .replace(/<script src="\/shared\/personal.js"><\/script>/, script(rd("web/shared/personal.js")))
     .replace(/<script src="\/drive\/personal-ui.js"><\/script>/, script(rd("web/drive/personal-ui.js")))
+    .replace(/<script src="\/drive\/pair-ui.js"><\/script>/, script(rd("web/drive/pair-ui.js")))
     .replace('href="/drive/" target="_blank" rel="noopener"', 'href="drive.html"')
     .replace('<a href="/drive/"', '<a href="drive.html"');
   // backend shim must load before the app scripts (it patches fetch and EventSource)

@@ -14,6 +14,7 @@ const { createAccounts } = require("./accounts");
 const { createMaps } = require("./maps");
 const { mountPersonal } = require("./personal");
 const { createSignals } = require("./signals");
+const { createPairing } = require("./pair");
 const { createLLM, hazardSafe } = require("./llm");
 const SadakCar = require("../web/shared/mycar.js");
 
@@ -147,6 +148,17 @@ function createApp({ dbFile = process.env.DB_FILE || path.join(__dirname, "..", 
   }
 
   personal = mountPersonal(app, { engine, accounts, maps, env, limit, llm });
+
+  /* ---------- pairing: dashboard phone → car screen ---------- */
+  const pairing = createPairing();
+  app.post("/api/pair/new", limit, (_, res) => res.json({ code: pairing.create() }));
+  app.get("/api/pair/:code", (req, res) => res.json({ ok: pairing.exists(req.params.code) }));
+  app.get("/api/pair/:code/stream", (req, res) => {
+    if (!pairing.exists(req.params.code)) return res.status(404).json({ error: "unknown or expired code" });
+    res.set({ "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" }); res.flushHeaders(); res.write("retry: 2000\n\n");
+    pairing.subscribe(req.params.code, res);
+  });
+  app.post("/api/pair/:code", limit, (req, res) => { const r = pairing.publish(req.params.code, req.body); res.status(r.ok ? 200 : 400).json(r); });
 
   /* ---------- traffic signals: red light vs jam, red time left (spec 14.4) ---------- */
   const signals = signalsImpl || createSignals({ db });

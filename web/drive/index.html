@@ -74,6 +74,8 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
 .env b{color:var(--fg);font-weight:600}.env .ea{font-family:var(--mono);font-size:10px;color:var(--accent);text-align:right}
 .onboard{z-index:950}.days{display:flex;flex-wrap:wrap;gap:6px}.day{display:flex;gap:4px;align-items:center;padding:6px 9px;border:1px solid var(--line2);border-radius:10px;font-size:13px}
 .onboard input:not([type=checkbox]){min-width:0;max-width:62%;background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:8px;color:inherit;font:inherit}
+.pairsheet{z-index:960;align-items:center;justify-content:center;text-align:center}.pairbig{font-family:var(--display);font-size:64px;letter-spacing:.12em;font-weight:700;color:var(--accent)}
+#pairShow{display:none}.carmode #pairShow{display:block}.carmode #pairPhone{display:none}
 .know ul{margin:4px 0 8px;padding-left:18px;font-size:13px;display:flex;flex-direction:column;gap:6px}.know span{color:var(--muted);font-size:11.5px}
 .me{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
 .me .note{font-size:12.5px;color:var(--muted)}.merow{display:flex;gap:8px;flex-wrap:wrap}.merow .btn{flex:1 1 140px;text-decoration:none;color:inherit;padding:10px 12px}
@@ -189,6 +191,13 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
     <div class="label">Or file it yourself on an official channel</div>
     <div id="repChannels" class="simlist"></div>
   </div>
+  <div class="sheet pairsheet" id="pairSheet" hidden>
+    <div class="brand" style="font-size:15px">SADAK <b>SENSE</b> · pair with the dashboard phone</div>
+    <p>On the phone, open Sadak Sense and under <b>Car screen</b> type this code, then press <b>Connect to car screen</b> and start driving.</p>
+    <div class="pairbig" id="pairBig">— — —</div>
+    <p class="note">Waiting for the phone… The code works for 12 hours.</p>
+    <button class="btn" id="pairCancel" type="button"><b>Cancel</b></button>
+  </div>
   <div class="health" id="knowSheet" hidden>
     <div style="display:flex;justify-content:space-between;align-items:center"><h3>What I know</h3><button class="btn" id="knowClose" type="button" style="padding:6px 10px">Close</button></div>
     <div id="knowBody" class="know"></div>
@@ -254,6 +263,14 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
     <div class="field"><label class="label" for="helpMap">Help improve the map (asks about a jolt only when stopped)</label><input type="checkbox" id="helpMap"></div>
     <div class="field"><label class="label" for="gentleToday">Elders or kids on board today (gentler advice, smoother route)</label><input type="checkbox" id="gentleToday"></div>
     <div class="field"><label class="label" for="rain">It is raining</label><input type="checkbox" id="rain"></div>
+    <div class="me pairbox" id="pairPhone">
+      <div class="label">Car screen (optional)</div>
+      <div class="field"><label class="label" for="pairCode">Code shown on the car screen</label><input id="pairCode" maxlength="7" placeholder="ABC 123" autocomplete="off" style="text-transform:uppercase"></div>
+      <button class="btn" id="pairBtn" type="button"><b>Connect to car screen</b><span>The car screen then shows and speaks everything this phone senses</span></button>
+      <div class="note" id="pairState"></div>
+    </div>
+    <button class="btn" id="pairShow" type="button"><b>Pair with the dashboard phone</b><span>Shows a code; the phone on the dashboard senses the road, this screen shows and speaks it</span></button>
+    <div class="note" id="pairShowState"></div>
     <button class="btn primary" id="realBtn" type="button"><b>Start driving</b><span>Uses this phone's real motion sensors and GPS</span></button>
     <div class="field"><label class="label" for="route">Demo route</label><select id="route"></select></div>
     <button class="btn primary" id="fullBtn" type="button"><b>Full demo</b><span>Plays every feature by itself in 3 minutes, with voice</span></button>
@@ -279,6 +296,7 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
 <script src="/drive/moment-ui.js"></script>
 <script src="/shared/personal.js"></script>
 <script src="/drive/personal-ui.js"></script>
+<script src="/drive/pair-ui.js"></script>
 <div class="caption">In-car screen · runs on the head unit in production · today a tablet or laptop stands in, a phone on the dashboard senses the road</div>
 </body>
 </html>

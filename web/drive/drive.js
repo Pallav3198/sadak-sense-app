@@ -68,7 +68,10 @@ function setStyle(st) {
 // Silent mode: the card glows in the hazard's colour instead of making a sound.
 function glow(type) { const d = document.querySelector(".device"); d.classList.remove("glow-breaker", "glow-pothole", "glow-water"); if (type && S.style === "silent") d.classList.add("glow-" + type); }
 async function say(text, kind = "info") {
-  if (!S.voice || !text || !speakAllowed(kind)) return;
+  if (!S.voice || !text) return;
+  // Paired with a car screen: the car speaks (with its own alert style); the phone stays quiet.
+  if (window.Pair?.forward("say", { text, kind, lang: voiceLang(), written: S.lang })) return;
+  if (!speakAllowed(kind)) return;
   if (!S.sarvam) return SadakSpeech.speak(text, S.lang);
   const mine = ++sayTurn, lang = voiceLang(), written = S.lang; S.audioBusy = true;
   try { player?.pause(); } catch {}
@@ -602,7 +605,7 @@ $("briefBtn").onclick = async () => {
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let rec = null, listening = false;
 const CHIPS = { Hinglish: ["Aage koi gaddha hai?", "Meri gaadi nikal jayegi?", "Underpass mein paani hai kya?", "Yahan bada gaddha hai", "Aaj ka road brief do"], Hindi: ["आगे कोई गड्ढा है?", "मेरी गाड़ी निकल जाएगी?", "अंडरपास में पानी है क्या?", "यहाँ बड़ा गड्ढा है", "आज का रोड ब्रीफ़ दो"], English: ["Any pothole ahead?", "Will my car make it?", "Is the underpass flooded?", "Pothole here", "Give me today's road brief"] };
-function bubble(cls, who, text) { const d = document.createElement("div"); d.className = cls; d.innerHTML = `<span class="who">${who}</span>`; d.append(document.createTextNode(text)); $("msgs").append(d); $("msgs").scrollTop = 1e6; while ($("msgs").children.length > 8) $("msgs").firstChild.remove(); }
+function bubble(cls, who, text) { const d = document.createElement("div"); d.className = cls; const w = document.createElement("span"); w.className = "who"; w.textContent = who; d.append(w, document.createTextNode(text)); $("msgs").append(d); $("msgs").scrollTop = 1e6; while ($("msgs").children.length > 8) $("msgs").firstChild.remove(); window.Pair?.forward("bubble", { cls, who: String(who), text: String(text) }); }
 function openConvo() { $("convo").hidden = false; $("chips").innerHTML = ""; for (const c of CHIPS[S.lang]) { const b = document.createElement("button"); b.className = "btn"; b.type = "button"; b.textContent = c; b.onclick = () => ask(c); $("chips").append(b); } }
 async function ask(text, shown) {
   openConvo(); bubble("u", S.lang === "English" ? "You" : "Aap", shown || text);
