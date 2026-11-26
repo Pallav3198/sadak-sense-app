@@ -85,3 +85,22 @@ test("complaint text carries evidence and a map link", () => {
   const c = complaint({ id: 7, type: "pothole", lat: 28.5, lon: 77.2, heading: 90, severity: 1.2, devices: 4, events: 6, createdTs: 0, lastHitTs: 0 }, Date.UTC(2026, 10, 27));
   assert.equal(c.ref, "SS-7-20261127"); assert.match(c.text, /felt independently by 4 different vehicles/); assert.match(c.text, /openstreetmap\.org/);
 });
+
+test("own-car memory: one car stays one car at a spot across days; 3 different cars confirm", async () => {
+  const { Engine } = require("../server/engine");
+  const { openDb } = require("../server/db");
+  const e = new Engine(openDb(":memory:"));
+  const base = { lat: 28.6, lon: 77.2, heading: 90, speed: 25, peak_g: 1, type: "pothole" };
+  // same car (same spot tag) on 3 days, each day with a new daily ID
+  for (const [i, d] of ["ph-day1aa", "ph-day2bb", "ph-day3cc"].entries()) e.ingest({ ...base, device: d, car: "aaaaaaaaaaaaaaaa", ts: Date.now() + i * 864e5 / 4 });
+  let h = e.list({ states: ["candidate", "confirmed"] })[0];
+  assert.equal(h.state, "candidate"); assert.equal(h.devices, 1, "one car, however many days");
+  e.ingest({ ...base, device: "ph-other1", car: "bbbbbbbbbbbbbbbb", ts: Date.now() });
+  e.ingest({ ...base, device: "ph-other2", car: "cccccccccccccccc", ts: Date.now() });
+  h = e.list({ states: ["candidate", "confirmed"] })[0];
+  assert.equal(h.state, "confirmed"); assert.equal(h.devices, 3);
+  // help-improve-the-map label: "none" counts as a smooth pass, a type is a vote
+  assert.equal(e.label({ device: "ph-x1", lat: 28.6, lon: 77.2, label: "none" }).ok, true);
+  assert.equal(e.hazard(h.id).cleanStreak, 1);
+  assert.equal(e.label({ device: "ph-x1", lat: 28.6, lon: 77.2, label: "maybe" }).ok, false);
+});

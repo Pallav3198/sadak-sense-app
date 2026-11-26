@@ -42,6 +42,9 @@ function openDb(file) {
     );
     CREATE INDEX IF NOT EXISTS rp_hz ON reports(hazard_id);
   `);
+  // Per-spot car tag (14.2): the same car counts once at a spot across days, but tags for different
+  // spots can't be linked, so a car can't be tracked across places. Added to older databases too.
+  if (!db.prepare("PRAGMA table_info(events)").all().some((c) => c.name === "car")) db.exec("ALTER TABLE events ADD COLUMN car TEXT");
   return db;
 }
 

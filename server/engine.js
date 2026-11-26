@@ -25,16 +25,17 @@ class Engine {
     this.q = {
       active: db.prepare("SELECT * FROM hazards WHERE family = ? AND state IN ('candidate','confirmed') AND lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?"),
       insHz: db.prepare("INSERT INTO hazards (family,type,lat,lon,heading,state,created_ts,last_hit_ts,severity,n_events) VALUES (?,?,?,?,?,'candidate',?,?,?,0)"),
-      insEv: db.prepare("INSERT INTO events (device,lat,lon,heading,speed,peak_g,type,rain,ts,hazard_id,source) VALUES (?,?,?,?,?,?,?,?,?,?,?)"),
+      insEv: db.prepare("INSERT INTO events (device,lat,lon,heading,speed,peak_g,type,rain,ts,hazard_id,source,car) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"),
       insPass: db.prepare("INSERT INTO passes (hazard_id,device,ts,hit) VALUES (?,?,?,?)"),
       getHz: db.prepare("SELECT * FROM hazards WHERE id = ?"),
       evOfHz: db.prepare("SELECT lat,lon,heading,peak_g,speed,type,device,ts FROM events WHERE hazard_id = ? ORDER BY ts DESC LIMIT 200"),
-      devices: db.prepare("SELECT COUNT(DISTINCT device) AS n FROM events WHERE hazard_id = ? AND ts >= ?"),
+      // A car is its per-spot tag when it sends one (own-car memory across days), otherwise its daily ID.
+      devices: db.prepare("SELECT COUNT(DISTINCT COALESCE(car, device)) AS n FROM events WHERE hazard_id = ? AND ts >= ?"),
       upd: db.prepare("UPDATE hazards SET lat=?,lon=?,heading=?,type=?,state=?,confirmed_ts=COALESCE(confirmed_ts,?),last_hit_ts=?,severity=?,clean_streak=0,n_events=n_events+1 WHERE id=?"),
       setState: db.prepare("UPDATE hazards SET state=?, cleared_ts=? WHERE id=?"),
       streak: db.prepare("UPDATE hazards SET clean_streak = clean_streak + 1 WHERE id = ?"),
       // Felt by a real phone or car (not the virtual demo fleet)?
-      realOf: db.prepare("SELECT COUNT(DISTINCT device) AS n FROM events WHERE hazard_id = ? AND source != 'sim'"),
+      realOf: db.prepare("SELECT COUNT(DISTINCT COALESCE(car, device)) AS n FROM events WHERE hazard_id = ? AND source != 'sim'"),
     };
   }
 
@@ -67,7 +68,8 @@ class Engine {
       const r = this.q.insHz.run(family, type, e.lat, e.lon, e.heading ?? null, e.ts, e.ts, e.peak_g ?? null);
       h = this.q.getHz.get(r.lastInsertRowid); created = true;
     }
-    this.q.insEv.run(e.device, e.lat, e.lon, e.heading ?? null, e.speed ?? null, e.peak_g ?? null, e.type, e.rain ? 1 : 0, e.ts, h.id, source);
+    const car = typeof e.car === "string" && /^[0-9a-f]{8,32}$/.test(e.car) ? e.car : null;
+    this.q.insEv.run(e.device, e.lat, e.lon, e.heading ?? null, e.speed ?? null, e.peak_g ?? null, e.type, e.rain ? 1 : 0, e.ts, h.id, source, car);
     this.q.insPass.run(h.id, e.device, e.ts, 1);
 
     // Re-estimate the hazard from its recent events: robust centre, majority type, median severity.
@@ -103,6 +105,16 @@ class Engine {
       this.onChange({ kind: state, hazard: this.hazard(h.id) });
     }
     return { ok: true, state, cleanStreak: streak };
+  }
+
+  // "Help improve the map" (optional, off by default): the driver says what a jolt was.
+  // "none" counts as this car passing smoothly; a type is one more vote for that type from the same car.
+  label({ device, car, lat, lon, heading, label, ts = Date.now() }) {
+    if (!["pothole", "breaker", "none"].includes(label)) return { ok: false, error: "label must be pothole, breaker or none" };
+    const h = this.list({ lat, lon, radius: 25, states: ["candidate", "confirmed"] }).filter((x) => x.family === "surface")[0];
+    if (!h) return { ok: false, error: "no hazard here" };
+    if (label === "none") return { ok: true, hazardId: h.id, ...this.pass(h.id, device, ts) };
+    return { ok: true, hazardId: h.id, ...this.ingest({ device, car, lat, lon, heading, speed: null, peak_g: null, type: label, ts }, "label") };
   }
 
   // Periodic housekeeping: water recedes, stale candidates expire.

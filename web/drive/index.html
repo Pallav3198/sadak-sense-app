@@ -163,6 +163,7 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
   <div class="convo" id="convo" hidden>
     <div class="label" style="display:flex;justify-content:space-between"><span id="convoLbl">Baat kijiye · English, Hindi, Hinglish</span><span id="micState"></span></div>
     <div class="msgs" id="msgs"></div>
+    <div class="yn" id="labelRow" hidden><button class="btn" type="button" data-label="pothole">Gaddha</button><button class="btn" type="button" data-label="breaker">Speed breaker</button><button class="btn" type="button" data-label="none">Kuch nahi</button></div>
     <div class="yn" id="yn" hidden><button class="btn" id="ynYes" type="button">Haan</button><button class="btn" id="ynNo" type="button">Na</button></div>
     <div class="chips2" id="chips"></div>
     <form class="say" id="sayForm"><label for="sayIn" style="position:absolute;left:-9999px">Say something</label><input id="sayIn" placeholder="Bolo ya type karo…" autocomplete="off"><button class="btn" type="submit">Send</button></form>
@@ -215,6 +216,7 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
     <div class="field"><label class="label" for="people">People in the car</label><select id="people"><option>1</option><option>2</option><option>3</option><option selected>4</option><option>5</option></select></div>
     <div class="field"><label class="label" for="homeOn">Keep home updated</label><input type="checkbox" id="homeOn" checked></div>
     <div class="field" id="homeMailRow" hidden><label class="label" for="homeMail">Home email</label><input id="homeMail" type="email" placeholder="family@example.com" autocomplete="email" style="min-width:0;max-width:68%;background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:8px;color:inherit;font:inherit"></div>
+    <div class="field"><label class="label" for="helpMap">Help improve the map (asks about a jolt only when stopped)</label><input type="checkbox" id="helpMap"></div>
     <div class="field"><label class="label" for="rain">It is raining</label><input type="checkbox" id="rain"></div>
     <button class="btn primary" id="realBtn" type="button"><b>Start driving</b><span>Uses this phone's real motion sensors and GPS</span></button>
     <div class="field"><label class="label" for="route">Demo route</label><select id="route"></select></div>
@@ -231,6 +233,7 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
 <script src="/shared/mail.js"></script>
 <script src="/shared/env.js"></script>
 <script src="/shared/mycar.js"></script>
+<script src="/drive/own-car.js"></script>
 <script src="/drive/drive.js"></script>
 <script src="/drive/copilot-ui.js"></script>
 <div class="caption">In-car screen · runs on the head unit in production · today a tablet or laptop stands in, a phone on the dashboard senses the road</div>

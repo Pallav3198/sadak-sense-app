@@ -50,6 +50,12 @@ function createApp({ dbFile = process.env.DB_FILE || path.join(__dirname, "..", 
     const results = arr.map((e) => engine.ingest({ ...e, ts: Number.isFinite(e.ts) ? e.ts : Date.now() }, e.source === "sim" ? "sim" : "phone"));
     res.status(results.every((r) => r.ok) ? 201 : 207).json({ results });
   });
+  app.post("/api/label", limit, (req, res) => {
+    const b = req.body || {};
+    if (typeof b.device !== "string" || ![b.lat, b.lon].every(Number.isFinite)) return res.status(400).json({ error: "device, lat, lon required" });
+    const r = engine.label({ ...b, ts: Number.isFinite(b.ts) ? b.ts : Date.now() });
+    res.status(r.ok ? 200 : 400).json(r);
+  });
   // A car crossed a known hazard and felt nothing.
   app.post("/api/passes", limit, (req, res) => {
     const { hazardId, device, ts } = req.body || {};
@@ -157,7 +163,7 @@ function createApp({ dbFile = process.env.DB_FILE || path.join(__dirname, "..", 
 
   /* ---------- real drives: export, and replay on boot (free hosting has no lasting disk) ---------- */
   app.get("/api/export", (_, res) => {
-    const events = db.prepare("SELECT device,lat,lon,heading,speed,peak_g,type,rain,ts,source FROM events WHERE source != 'sim' ORDER BY ts").all();
+    const events = db.prepare("SELECT device,lat,lon,heading,speed,peak_g,type,rain,ts,source,car FROM events WHERE source != 'sim' ORDER BY ts").all();
     const passes = db.prepare("SELECT p.device, p.ts, h.lat, h.lon, h.type FROM passes p JOIN hazards h ON h.id = p.hazard_id WHERE p.hit = 0 AND p.device LIKE 'ph-%' ORDER BY p.ts").all();
     res.set("Content-Disposition", `attachment; filename="sadak-real-drives-${new Date().toISOString().slice(0, 10)}.json"`).json({ exported: Date.now(), events, passes });
   });

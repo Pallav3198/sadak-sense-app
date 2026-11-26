@@ -22,9 +22,9 @@ Last updated: 26 Nov 2026 (session 1).
 
 ## 14.2 No "Was it a pothole?" by default
 - [x] 2.1 Every jolt recorded and sent automatically, no question (commit c3ba6e7)
-- [ ] 2.2 Own-car repeat memory: same car felt the same spot on several days → strong signal for that driver's own route (personal warning before fleet confirmation)
-- [ ] 2.3 Own car still counts as ONE car on the public map across days (today's daily-rotating ID would count it once per day: fix with a per-spot car tag that can't be linked across places)
-- [ ] 2.4 "Help improve the map" setting, off by default; when on, ask only when stopped or slow
+- [x] 2.2 Own-car repeat memory: same car felt the same spot on several days → strong signal for that driver's own route (personal warning before fleet confirmation)
+- [x] 2.3 Own car still counts as ONE car on the public map across days (today's daily-rotating ID would count it once per day: fix with a per-spot car tag that can't be linked across places)
+- [x] 2.4 "Help improve the map" setting, off by default; when on, ask only when stopped or slow
 
 ## 14.3 Breaker vs pothole
 - [~] 3.1 Axle timing (front then rear, wheelbase ÷ speed): built in the detector; keep
@@ -126,3 +126,4 @@ Last updated: 26 Nov 2026 (session 1).
 ## Build log
 - 26 Nov 2026: tracker created.
 - 26 Nov 2026: 14.1 alert styles built (Voice / Chime + card default / Silent with glow and big Haan-Na; serious events speak in Chime mode; Full demo forces Voice and restores). Next: 14.2.
+- 26 Nov 2026: 14.2 built: own-car memory on the phone (spot felt on 2+ days warns this driver before fleet confirmation; 3 smooth passes forget it), per-spot car tag so one car counts once per spot across days, optional "Help improve the map" asking only when stopped/slow (Gaddha / Speed breaker / Kuch nahi → /api/label). Next: 14.3.

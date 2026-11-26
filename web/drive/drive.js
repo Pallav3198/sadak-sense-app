@@ -37,8 +37,9 @@ function onJolt(e) {
   const now = Date.now(); S.spots = (S.spots || []).filter((x) => now - x.ts < 120e3);
   if (S.spots.some((x) => SS.hav(x.lat, x.lon, ev.lat, ev.lon) < 20)) { $("tNote").textContent = `${label} · same spot, already reported`; return; }
   S.spots.push({ lat: ev.lat, lon: ev.lon, ts: now });
-  S.queue.push(ev);
   const known = S.known.some((h) => SS.hav(h.lat, h.lon, ev.lat, ev.lon) < 25);
+  // Own-car memory + per-spot car tag (14.2) before it is queued.
+  OwnCar.record(ev, !known).finally(() => S.queue.push(ev));
   $("tNote").textContent = `${label} detected · ${e.peakG} g · reported automatically${known ? " · matches a known hazard" : " · new, waiting for 2 more cars"}`;
   try { localStorage.setItem("ss-queue", JSON.stringify(S.queue.slice(-200))); } catch {}
 }
@@ -145,6 +146,9 @@ function tick() {
     const dirOk = h.type !== "pothole" || h.heading == null || SS.hdiff(h.heading, heading) < 90;
     if (ahead && dirOk && d < Math.max(warnD, 250) && d < nextD) { next = h; nextD = d; }
   }
+  // Own-car memory (14.2): a spot this car felt on 2+ days warns this driver even before the fleet confirms it.
+  OwnCar.passCheck(lat, lon, speed, S.recent);
+  if (!next) { const p = OwnCar.ahead(lat, lon, heading, warnD, S.known); if (p) { next = p.h; nextD = p.d; } }
   const el = $("alert");
   // "Fits my car" looks a little further ahead, so the driver can ask about it before the alert
   const nextCar = next || S.known.filter((h) => h.state === "confirmed").map((h) => ({ h, d: SS.hav(lat, lon, h.lat, h.lon) }))
@@ -159,9 +163,9 @@ function tick() {
     const [t, s] = PHRASE[next.type][S.lang](dist);
     const v = SadakCar.check(S.car, S.people, next), cl = SadakCar.line(v, S.lang);
     el.className = "alert " + next.type; el.querySelector(".ic").textContent = SS.SYM[next.type];
-    $("aT").textContent = t; $("aS").textContent = v.kind === "pothole" ? `${s} · felt by ${next.devices} cars` : `Felt by ${next.devices} cars`;
+    $("aT").textContent = t; $("aS").textContent = next.personal ? T3(`Your car felt this here on ${next.days} days · not yet confirmed by other cars`, `Aapki gaadi ne yahan ${next.days} din jhatka mehsoos kiya · baaki gaadiyon se abhi confirm nahi`, `आपकी गाड़ी ने यहाँ ${next.days} दिन झटका महसूस किया · बाक़ी गाड़ियों से अभी पुष्टि नहीं`) : v.kind === "pothole" ? `${s} · felt by ${next.devices} cars` : `Felt by ${next.devices} cars`;
     $("aD").innerHTML = `${dist}<small>metres</small>`;
-    S.alertHz = next; $("repBtn").hidden = !S.reportable;
+    S.alertHz = next; $("repBtn").hidden = !S.reportable || !!next.personal;
     const last = S.alerted.get(next.id) || 0;
     glow(next.type);
     if (nextD <= warnD && Date.now() - last > 10 * 60e3) { S.alerted.set(next.id, Date.now()); chime(); setTimeout(() => say(`${t}. ${cl}`, next.type === "water" ? "serious" : "info"), 400); }
@@ -654,3 +658,20 @@ $("repBtn").onclick = () => openReport(S.alertHz);
 $("repClose").onclick = () => { $("repSheet").hidden = true; };
 SS.api("/api/voice/status").then((r) => { S.sarvam = !!r.sarvam; if (S.sarvam) fillVoices(); }).catch(() => {});
 SS.api("/api/report/status").then((r) => { S.reportable = !!r.channels; }).catch(() => {});
+
+/* ---------- "Help improve the map" (14.2, optional, off by default) ---------- */
+function helpAsk() {
+  if (!S.mode || S.simHold) return;
+  const busy = S.pendingAgent || S.pendingJolt || (window.CO && CO.step) || !$("alert").className.includes("clear");
+  const q = OwnCar.maybeAsk((S.pos?.speed || 0) * 3.6, busy); if (!q) return;
+  openConvo(); const row = $("labelRow"); row.hidden = false;
+  const line = T3("That jolt a little while ago: what was it?", "Thodi der pehle wala jhatka: kya tha?", "थोड़ी देर पहले वाला झटका: क्या था?");
+  bubble("a", "Sadak Sense", line); say(line, "info");
+  row.querySelectorAll("button").forEach((b) => (b.onclick = async () => {
+    row.hidden = true;
+    const r = await SS.api("/api/label", { device: S.device, car: q.car, lat: q.lat, lon: q.lon, heading: q.heading, label: b.dataset.label, ts: Date.now() }).catch(() => ({}));
+    bubble("a", "Sadak Sense", r.ok ? T3("Thanks, noted.", "Shukriya, note kar liya.", "धन्यवाद, नोट कर लिया।") : T3("Couldn't save that now.", "Abhi save nahi hua.", "अभी सेव नहीं हुआ।"));
+  }));
+}
+setInterval(helpAsk, 3000);
+$("helpMap").checked = OwnCar.help; $("helpMap").onchange = () => OwnCar.setHelp($("helpMap").checked);
