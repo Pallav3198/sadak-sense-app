@@ -45,15 +45,28 @@ function onJolt(e) {
 
 /* ---------- voice + chime ---------- */
 let actx = null;
-function chime() { try { actx = actx || new AudioContext(); [880, 660].forEach((f, i) => { const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = f; o.connect(g); g.connect(actx.destination); const t = actx.currentTime + i * 0.18; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16); o.start(t); o.stop(t + 0.18); }); } catch {} }
+function chime() { if (S.style === "silent") return; try { actx = actx || new AudioContext(); [880, 660].forEach((f, i) => { const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = f; o.connect(g); g.connect(actx.destination); const t = actx.currentTime + i * 0.18; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16); o.start(t); o.stop(t + 0.18); }); } catch {} }
 // Languages beyond English/Hinglish/Hindi: the app writes in English and the server translates and speaks.
 const EXTRA = ["Tamil", "Telugu", "Malayalam", "Kannada", "Bengali"];
 const CODES = Object.fromEntries([["English", "en"], ["Hinglish", "hi"], ["Hindi", "hi"], ["Tamil", "ta"], ["Telugu", "te"], ["Malayalam", "ml"], ["Kannada", "kn"], ["Bengali", "bn"]].map(([k, c]) => [k, c + "-IN"]));
 const voiceLang = () => S.replyVoice || (EXTRA.includes(S.voiceLang) ? S.voiceLang : S.lang);
 let player = null, sayTurn = 0;
 // Sarvam (server) when available: natural Indian voices in 8 languages. Otherwise the browser's own voice.
-async function say(text) {
-  if (!S.voice || !text) return;
+// Alert style (14.1): "voice" speaks everything; "chime" (default) speaks only serious events and answers
+// to the driver's own questions; "silent" never makes a sound. kind: "info" | "serious" | "reply" | "test".
+const STYLES = { voice: "Voice", chime: "Chime + card", silent: "Silent" };
+try { S.style = localStorage.getItem("ss-alert") || "chime"; } catch { S.style = "chime"; }
+function speakAllowed(kind) { return kind === "test" || (S.style === "voice" ? true : S.style === "chime" ? kind === "serious" || kind === "reply" : false); }
+function setStyle(st) {
+  S.style = STYLES[st] ? st : "chime"; try { localStorage.setItem("ss-alert", S.style); } catch {}
+  document.documentElement.dataset.alert = S.style;
+  if ($("alertSel")) $("alertSel").value = S.style; if ($("voiceBtn")) $("voiceBtn").textContent = STYLES[S.style];
+  if (S.style === "silent") { try { player?.pause(); } catch {} try { speechSynthesis.cancel(); } catch {} }
+}
+// Silent mode: the card glows in the hazard's colour instead of making a sound.
+function glow(type) { const d = document.querySelector(".device"); d.classList.remove("glow-breaker", "glow-pothole", "glow-water"); if (type && S.style === "silent") d.classList.add("glow-" + type); }
+async function say(text, kind = "info") {
+  if (!S.voice || !text || !speakAllowed(kind)) return;
   if (!S.sarvam) return SadakSpeech.speak(text, S.lang);
   const mine = ++sayTurn, lang = voiceLang(), written = S.lang; S.audioBusy = true;
   try { player?.pause(); } catch {}
@@ -150,9 +163,10 @@ function tick() {
     $("aD").innerHTML = `${dist}<small>metres</small>`;
     S.alertHz = next; $("repBtn").hidden = !S.reportable;
     const last = S.alerted.get(next.id) || 0;
-    if (nextD <= warnD && Date.now() - last > 10 * 60e3) { S.alerted.set(next.id, Date.now()); chime(); setTimeout(() => say(`${t}. ${cl}`), 400); }
+    glow(next.type);
+    if (nextD <= warnD && Date.now() - last > 10 * 60e3) { S.alerted.set(next.id, Date.now()); chime(); setTimeout(() => say(`${t}. ${cl}`, next.type === "water" ? "serious" : "info"), 400); }
   } else {
-    el.className = "alert clear"; el.querySelector(".ic").textContent = "✓"; $("repBtn").hidden = true;
+    el.className = "alert clear"; el.querySelector(".ic").textContent = "✓"; $("repBtn").hidden = true; glow(null);
     $("aT").textContent = { English: "Road ahead is clear", Hinglish: "Aage raasta saaf hai", Hindi: "आगे रास्ता साफ़ है" }[S.lang];
     $("aS").textContent = `No confirmed hazards in the next ${Math.round(warnD + 150)} m`; $("aD").textContent = "";
   }
@@ -283,7 +297,7 @@ function propose(id, text, onYes, onNo) {
   if (S.pendingAgent || S.pendingJolt) return false;
   S.agentDone.add(id); S.pendingAgent = { id, onYes, onNo };
   openConvo(); $("yn").hidden = false; bubble("a", "Sadak Sense · agent", text); chime();
-  setTimeout(() => { say(text); if (SR && !S.simHold) setTimeout(listen, 5200); }, 300);
+  setTimeout(() => { say(text, "serious"); if (SR && !S.simHold && S.style !== "silent") setTimeout(listen, 5200); }, 300);
   clearTimeout(S.agentTimer); if (!S.simHold) S.agentTimer = setTimeout(() => S.pendingAgent?.id === id && resolveAgent(null), 16000);
   return true;
 }
@@ -292,7 +306,7 @@ function resolveAgent(ok) {
   if (ok === true) a.onYes(); else if (ok === false) a.onNo?.();
   else agentSay(T3("No answer, so I haven't done anything.", "Jawab nahi mila, isliye maine kuch nahi kiya.", "जवाब नहीं मिला, इसलिए मैंने कुछ नहीं किया।"));
 }
-function agentSay(text) { bubble("a", "Sadak Sense · agent", text); say(text); }
+function agentSay(text) { bubble("a", "Sadak Sense · agent", text); say(text, "reply"); }
 // Keep home updated: when a road hazard changes the trip, the car tells the family by itself
 // through the paired phone (simulated in the demo). Turned on once in setup, not per message.
 function tellHome(msg) {
@@ -304,7 +318,7 @@ function tellHome(msg) {
       : r.why === "limit" ? T3("Today's email limit is reached, so this one was not sent.", "Aaj ki email limit poori ho gayi, ye email nahi gaya.", "आज की ईमेल सीमा पूरी हो गई, यह ईमेल नहीं गया।")
       : T3("The email could not be sent. Please call home.", "Email nahi ja paya. Ghar pe call kar lijiye.", "ईमेल नहीं जा पाया। घर पर फ़ोन कर लें।");
     bubble("a", "Sadak Sense · agent", note);
-    if (!r.ok) say(note);
+    if (!r.ok) say(note, "reply");
   });
   return true;
 }
@@ -354,7 +368,7 @@ $("voiceTest").onclick = () => {
   SadakSpeech.choose($("voiceSel").value); said("Starting the voice…");
   if (S.sarvam) {
     const l = $("lang").value; S.voice = true; S.voiceLang = l; S.lang = EXTRA.includes(l) ? "English" : l;
-    say(SAMPLE[S.lang]); said(`Speaking in ${l}. Can't hear it? Check your volume.`); return;
+    say(SAMPLE[S.lang], "test"); said(`Speaking in ${l}. Can't hear it? Check your volume.`); return;
   }
   SadakSpeech.speak(SAMPLE[$("lang").value], $("lang").value, {
     start: (name) => said(`Speaking now${name ? ": " + name.replace(/^Microsoft /, "").replace(/ (Online )?\(Natural\)/, "").replace(/ - .*$/, "") : ""}. Can't hear it? Check your volume and this tab isn't muted.`),
@@ -381,7 +395,7 @@ function simAlert(type, dist, devices, severity) {
   const [t] = PHRASE[type][S.lang](dist), v = SadakCar.check(S.car, S.people, { type, severity, devices, family: type === "water" ? "water" : "surface" }), el = $("alert");
   S.carCheck = v; el.className = "alert " + type; el.querySelector(".ic").textContent = SS.SYM[type];
   $("aT").textContent = t; $("aS").textContent = `Felt by ${devices} cars`; $("aD").innerHTML = `${dist}<small>metres</small>`;
-  renderCar(v); chime(); say(`${t}. ${SadakCar.line(v, S.lang)}`);
+  renderCar(v); glow(type); chime(); say(`${t}. ${SadakCar.line(v, S.lang)}`, type === "water" ? "serious" : "info");
 }
 const here = () => S.pos || { lat: 28.6315, lon: 77.2167, heading: 0, speed: 8 };
 function clearPending() { clearTimeout(S.pendTimer); clearTimeout(S.agentTimer); S.pendingJolt = null; S.pendingAgent = null; $("yn").hidden = true; }
@@ -392,12 +406,12 @@ async function agentPlan(you, title, steps, line) {
 }
 const STEPS = {
   brief: [T3("Morning road brief", "Morning road brief", "सुबह का रोड ब्रीफ़"), async () => {
-    const r = await SS.api("/api/brief", { routeId: S.routeId, lang: S.lang }); $("briefT").textContent = r.text; $("brief").classList.add("show"); say(r.text); await spoken(); $("brief").classList.remove("show"); }],
+    const r = await SS.api("/api/brief", { routeId: S.routeId, lang: S.lang }); $("briefT").textContent = r.text; $("brief").classList.add("show"); say(r.text, "reply"); await spoken(); $("brief").classList.remove("show"); }],
   breaker: [T3("Speed breaker, advice for this car", "Speed breaker, is gaadi ke liye salah", "स्पीड ब्रेकर, इस गाड़ी के लिए सलाह"), async () => { simAlert("breaker", 110, 46, 1.4); await spoken(); }],
   pothole: [T3("Pothole alert", "Gaddhe ka alert", "गड्ढे की चेतावनी"), async () => { simAlert("pothole", 90, 31, 1.5); await spoken(); }],
   ask: [T3("Ask by voice", "Bolkar poochhiye", "बोलकर पूछिए"), async () => {
     const q = CHIPS[S.lang][0], r = SadakVoice.reply(q, { ahead: [{ type: "pothole", dist: 190, devices: 46 }], prefer: S.lang });
-    openConvo(); bubble("u", S.lang === "English" ? "You" : "Aap", q); bubble("a", "Sadak Sense", r.reply); say(r.reply); await spoken(); }],
+    openConvo(); bubble("u", S.lang === "English" ? "You" : "Aap", q); bubble("a", "Sadak Sense", r.reply); say(r.reply, "reply"); await spoken(); }],
   car: [T3("Will my car make it?", "Meri gaadi nikal jayegi?", "मेरी गाड़ी निकल जाएगी?"), async () => { S.carCheck = SadakCar.check(S.car, S.people, { type: "breaker", severity: 1.4 }); await ask(CHIPS[S.lang][1]); await spoken(); }],
   jolt: [T3("New pothole, reported automatically", "Naya gaddha, apne aap report", "नया गड्ढा, अपने आप रिपोर्ट"), async () => {
     clearPending(); const p = here();
@@ -426,7 +440,7 @@ const STEPS = {
     warn.forEach((t) => bubble("a", T3("Air and weather", "Hawa aur mausam", "हवा और मौसम"), t.text));
     say(warn.map((t) => t.text).slice(0, 2).join(" ").replace(/, lagbhag [^,]*,/, ",").replace(/ Fog lights on kar di hain, doori rakhiye\./, "")); await spoken(); }],
   wear: [T3("Road wear and damage log", "Road wear aur damage log", "रोड वियर और डैमेज लॉग"), async () => {
-    $("convo").hidden = true; $("health").hidden = false; renderHealth(); say(T3("Here is this car's road wear and damage log.", "Ye hai is gaadi ka road wear aur damage log.", "यह है इस गाड़ी का रोड वियर और डैमेज लॉग।")); await spoken(); await pause(800); $("health").hidden = true; }],
+    $("convo").hidden = true; $("health").hidden = false; renderHealth(); say(T3("Here is this car's road wear and damage log.", "Ye hai is gaadi ka road wear aur damage log.", "यह है इस गाड़ी का रोड वियर और डैमेज लॉग।"), "reply"); await spoken(); await pause(800); $("health").hidden = true; }],
   repair: [T3("Road repaired: hazard removed", "Sadak theek hui: hazard hata", "सड़क ठीक हुई: ख़तरा हटा"), async () => {
     try { await SS.api("/api/sim", { action: "repair" }); } catch {}
     openConvo(); agentSay(T3("A pothole was repaired. Cars stop feeling it, and after 8 clean passes it leaves the map by itself.", "Ek gaddha theek ho gaya. Gaadiyon ko jhatka nahi lagega, aur 8 saaf passes ke baad wo map se apne aap hat jayega.", "एक गड्ढा ठीक हो गया। गाड़ियों को झटका नहीं लगेगा, और 8 साफ़ पास के बाद वह मैप से अपने आप हट जाएगा।")); await spoken(); }],
@@ -450,7 +464,7 @@ const TOUR = ["brief", "air", "breaker", "nearmiss", "ask", "car", "jolt", "tyre
 async function runStep(key) {
   try { await STEPS[key][1](); } catch (e) { console.warn("simulate step skipped", key, e); }
 }
-function simEnd() { S.simHold = false; S.tour = false; clearPending(); if (S.env) renderEnv(S.env); $("tourBar").hidden = true; $("brief").classList.remove("show"); $("health").hidden = true; }
+function simEnd() { if (S.styleBefore) { setStyle(S.styleBefore); S.styleBefore = null; } S.simHold = false; S.tour = false; clearPending(); if (S.env) renderEnv(S.env); $("tourBar").hidden = true; $("brief").classList.remove("show"); $("health").hidden = true; }
 async function simOne(key) {
   if (S.tour) return;
   $("simSheet").hidden = true; S.simHold = true; S.simRun = (S.simRun || 0) + 1; const run = S.simRun;
@@ -478,7 +492,7 @@ $("simBtn").onclick = () => { buildSim(); $("simSheet").hidden = !$("simSheet").
 $("simClose").onclick = () => { $("simSheet").hidden = true; };
 $("simAll").onclick = () => tour();
 $("tourStop").onclick = () => { S.tourStop = true; try { speechSynthesis.cancel(); } catch {} };
-$("fullBtn").onclick = async () => { $("route").value = "cp-minto"; $("rain").checked = true; await go("demo"); await pause(1200); tour(); };
+$("fullBtn").onclick = async () => { S.styleBefore = S.style; setStyle("voice"); $("route").value = "cp-minto"; $("rain").checked = true; await go("demo"); await pause(1200); tour(); };
 
 /* ---------- air and weather: free Open-Meteo data, advice the car can act on ---------- */
 const AQI_TONE = { Good: "", Satisfactory: "", Moderate: "warn", Poor: "bad", "Very Poor": "bad", Severe: "bad" };
@@ -526,7 +540,9 @@ async function go(mode) {
 }
 $("realBtn").onclick = () => go("real");
 $("demoBtn").onclick = () => go("demo");
-$("voiceBtn").onclick = () => { S.voice = !S.voice; $("voiceBtn").textContent = "Voice: " + (S.voice ? "on" : "off"); };
+$("voiceBtn").onclick = () => { const order = ["chime", "voice", "silent"]; setStyle(order[(order.indexOf(S.style) + 1) % 3]); };
+$("alertSel").onchange = () => setStyle($("alertSel").value);
+setStyle(S.style);
 $("stopBtn").onclick = () => location.reload();
 $("briefBtn").onclick = async () => {
   const b = $("brief");
@@ -534,7 +550,7 @@ $("briefBtn").onclick = async () => {
   $("briefT").textContent = "Preparing…"; b.classList.add("show");
   const coords = routeLine ? routeLine.getLatLngs().map((p) => [p.lat, p.lng]) : null;
   const res = await SS.api("/api/brief", coords ? { coords, lang: S.lang } : { routeId: $("route").value, lang: S.lang });
-  $("briefT").textContent = res.text; say(res.text);
+  $("briefT").textContent = res.text; say(res.text, "reply");
   setTimeout(() => b.classList.remove("show"), 12000);
 };
 
@@ -554,13 +570,13 @@ async function ask(text, shown) {
     // Answered in the car from its own specification and load: no server, works offline.
     let lang = SadakVoice.detectLang(text); if (S.lang === "Hinglish" && lang === "Hindi") lang = "Hinglish";
     const r = SadakVoice.reply(text, { prefer: S.lang, carCheck: S.carCheck ? SadakCar.line(S.carCheck, lang) : null });
-    bubble("a", "Sadak Sense", r.reply); const keep = S.lang; S.lang = r.lang; say(r.reply); S.lang = keep; return;
+    bubble("a", "Sadak Sense", r.reply); const keep = S.lang; S.lang = r.lang; say(r.reply, "reply"); S.lang = keep; return;
   }
   const p = S.pos || {};
   try {
     const r = await SS.api("/api/ask", { text, lat: p.lat, lon: p.lon, heading: p.heading, device: S.device, routeId: S.routeId, pending: S.pendingJolt ? { type: S.pendingJolt.type } : null, prefer: S.lang });
     bubble("a", "Sadak Sense", r.reply);
-    const keep = S.lang; S.lang = r.lang; say(r.reply); S.lang = keep;
+    const keep = S.lang; S.lang = r.lang; say(r.reply, "reply"); S.lang = keep;
     if (r.action && "confirm" in r.action && S.pendingJolt) resolveJolt(r.action.confirm);
     if (r.action?.report) { S.sent++; $("cNet").textContent = `${S.sent} SENT`; fetchKnown(); }
   } catch { bubble("a", "Sadak Sense", "Network nahi mil raha. Report phone mein save hai, baad mein bhej dunga."); }

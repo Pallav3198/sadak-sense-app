@@ -107,7 +107,8 @@ function coTick() {
 }
 
 /* ---------- the yes / dictate / read-back / yes flow ---------- */
-function coAsk(step, item, line) { CO.step = step; CO.item = item; openConvo(); $("yn").hidden = false; if (step !== "reply?") bubble("a", "Sadak Sense", line); say(line); }
+// Agent permission questions are "serious" (spoken in Chime + card mode too); the rest follow the alert style.
+function coAsk(step, item, line) { CO.step = step; CO.item = item; openConvo(); $("yn").hidden = false; if (step !== "reply?") bubble("a", "Sadak Sense", line); say(line, step === "late" ? "serious" : step === "reply?" ? "info" : "reply"); }
 // Called from ask() in drive.js with every driver utterance. Returns true when the co-pilot handled it.
 window.coHandle = function (text, shown, itn) {
   if (!CO.step) return false;
@@ -120,8 +121,8 @@ window.coHandle = function (text, shown, itn) {
   }
   if (!yes && !no) return false;
   $("yn").hidden = true;
-  if (no) { CO.step = null; bubble("a", "Sadak Sense", coT("Okay, not sending.", "Theek hai, nahi bheja.", "ठीक है, नहीं भेजा।")); say(coT("Okay.", "Theek hai.", "ठीक है।")); return true; }
-  if (CO.step === "reply?") { CO.step = "dictate"; const l = coT("Go ahead, say your reply.", "Boliye, kya jawab dena hai.", "बोलिए, क्या जवाब देना है।"); bubble("a", "Sadak Sense", l); say(l); setTimeout(() => listen(), 1800); return true; }
+  if (no) { CO.step = null; bubble("a", "Sadak Sense", coT("Okay, not sending.", "Theek hai, nahi bheja.", "ठीक है, नहीं भेजा।")); say(coT("Okay.", "Theek hai.", "ठीक है।"), "reply"); return true; }
+  if (CO.step === "reply?") { CO.step = "dictate"; const l = coT("Go ahead, say your reply.", "Boliye, kya jawab dena hai.", "बोलिए, क्या जवाब देना है।"); bubble("a", "Sadak Sense", l); say(l, "reply"); setTimeout(() => listen(), 1800); return true; }
   if (CO.step === "confirm") { coSend({ ...replyOf(CO.item), body: CO.draft }); return true; }
   if (CO.step === "late") { coSend(CO.item); return true; }
   return false;
@@ -135,7 +136,7 @@ async function coSend(msg) {
   const r = await post("/api/copilot/send", { ...msg, confirmed: true });
   const ok = r.status === 200 && r.sent;
   const l = ok ? coT("Sent.", "Bhej diya.", "भेज दिया।") : coT(`Not sent: ${r.error || "network problem"}.`, `Nahi gaya: ${r.error || "network problem"}.`, `नहीं गया: ${r.error || "नेटवर्क समस्या"}।`);
-  bubble("a", "Sadak Sense", l); say(l);
+  bubble("a", "Sadak Sense", l); say(l, "reply");
 }
 
 /* ---------- wiring ---------- */

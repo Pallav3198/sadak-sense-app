@@ -12,13 +12,13 @@ Last updated: 26 Nov 2026 (session 1).
 ---
 
 ## 14.1 Alert styles (voice optional)
-- [ ] 1.1 Setting "Alert style" with three options: Voice / Chime + card / Silent (start screen + in-drive quick switch)
-- [ ] 1.2 Voice: chime + card + spoken line
-- [ ] 1.3 Chime + card is the default
-- [ ] 1.4 In Chime + card, voice still speaks for serious events only: flooded underpass, tyre damage, an agent asking permission
-- [ ] 1.5 Silent: card only + coloured edge glow (amber breaker, red pothole, blue water), nothing audible (no chime, no voice)
-- [ ] 1.6 Silent: agent questions become a card with large Haan / Na buttons
-- [ ] 1.7 No phone push notifications while driving (verify nothing pushes; drive-aware delivery holds the rest)
+- [x] 1.1 Setting "Alert style" with three options: Voice / Chime + card / Silent (start screen + in-drive quick switch)
+- [x] 1.2 Voice: chime + card + spoken line
+- [x] 1.3 Chime + card is the default
+- [x] 1.4 In Chime + card, voice still speaks for serious events only: flooded underpass, tyre damage, an agent asking permission
+- [x] 1.5 Silent: card only + coloured edge glow (amber breaker, red pothole, blue water), nothing audible (no chime, no voice)
+- [x] 1.6 Silent: agent questions become a card with large Haan / Na buttons
+- [x] 1.7 No phone push notifications while driving: the app registers no push at all (service worker has no push handler); in-drive messages follow 14.4
 
 ## 14.2 No "Was it a pothole?" by default
 - [x] 2.1 Every jolt recorded and sent automatically, no question (commit c3ba6e7)
@@ -124,4 +124,5 @@ Last updated: 26 Nov 2026 (session 1).
 ---
 
 ## Build log
-- 26 Nov 2026: tracker created. Next: 14.1.
+- 26 Nov 2026: tracker created.
+- 26 Nov 2026: 14.1 alert styles built (Voice / Chime + card default / Silent with glow and big Haan-Na; serious events speak in Chime mode; Full demo forces Voice and restores). Next: 14.2.

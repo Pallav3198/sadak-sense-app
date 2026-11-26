@@ -61,6 +61,11 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
 .chips2 button{font-size:12px;padding:6px 10px;border-radius:999px}
 .say{display:flex;gap:6px}.say input{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:9px}
 .yn{display:flex;gap:8px}.yn .btn{flex:1;padding:12px;font-weight:600}
+/* Silent alert style (14.1): coloured edge glow instead of sound; big Haan / Na for agent questions */
+.device.glow-breaker{box-shadow:inset 0 0 0 5px var(--breaker),inset 0 0 70px color-mix(in srgb,var(--breaker) 45%,transparent)}
+.device.glow-pothole{box-shadow:inset 0 0 0 5px var(--pothole),inset 0 0 70px color-mix(in srgb,var(--pothole) 45%,transparent)}
+.device.glow-water{box-shadow:inset 0 0 0 5px var(--water),inset 0 0 70px color-mix(in srgb,var(--water) 45%,transparent)}
+[data-alert="silent"] .yn .btn{padding:22px 12px;font-size:22px;font-family:var(--display)}
 .brief{position:absolute;left:14px;right:14px;bottom:84px;z-index:800;background:var(--panel2);border:1px solid var(--line2);border-radius:16px;padding:12px 14px;font-size:14px;display:none}
 .brief.show{display:block}
 .brief .label{margin-bottom:4px}
@@ -152,7 +157,7 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
     <button class="btn" id="briefBtn" type="button">Road brief</button>
     <button class="btn" id="simBtn" type="button" hidden>Simulate</button>
     <button class="btn mic" id="micBtn" type="button" aria-label="Talk to Sadak Sense"><span class="mi">●</span> Bolo</button>
-    <button class="btn" id="voiceBtn" type="button">Voice: on</button>
+    <button class="btn" id="voiceBtn" type="button" aria-label="Alert style">Chime + card</button>
     <button class="btn" id="stopBtn" type="button">End</button>
   </div>
   <div class="convo" id="convo" hidden>
@@ -203,6 +208,7 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
       <div class="note" id="nextBox"></div>
     </div>
     <div class="field"><label class="label" for="lang">Voice language</label><select id="lang"><option>English</option><option selected>Hinglish</option><option>Hindi</option><option>Tamil</option><option>Telugu</option><option>Malayalam</option><option>Kannada</option><option>Bengali</option></select></div>
+    <div class="field"><label class="label" for="alertSel">Alert style</label><select id="alertSel"><option value="chime" selected>Chime + card (voice only for serious events)</option><option value="voice">Voice</option><option value="silent">Silent</option></select></div>
     <div class="field"><label class="label" for="voiceSel">Voice</label><select id="voiceSel"></select></div>
     <button class="btn" id="voiceTest" type="button" style="padding:9px 14px"><b style="font-size:14px">Hear this voice</b><span id="voiceHint"></span></button>
     <div class="field"><label class="label" for="carSel">My car</label><select id="carSel"><option value="aura">Hyundai Aura</option><option value="exter">Hyundai Exter</option><option value="venue">Hyundai Venue</option><option value="creta" selected>Hyundai Creta</option><option value="bayon">Hyundai Bayon</option></select></div>
