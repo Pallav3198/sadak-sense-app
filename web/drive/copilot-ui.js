@@ -148,5 +148,8 @@ document.addEventListener("ss-drive-start", () => {
 });
 coMe(); setInterval(() => { if (!S.mode && CO.me?.owner) refreshNext(); }, 5 * 60e3);
 
+// Car-screen clock (the head unit shows the time like any infotainment screen).
+if (document.documentElement.classList.contains("carmode")) { const tickClock = () => { $("clock").textContent = new Date().toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" }); }; tickClock(); setInterval(tickClock, 15e3); setTimeout(() => map.invalidateSize(), 400);
+  const intro = document.querySelector("#start > p"); if (intro) intro.textContent = "The car feels speed breakers, potholes and flooded underpasses through its own sensors, shares anonymous reports with other Hyundais, and warns you before hazards the fleet has confirmed. In this prototype a phone on the dashboard does the sensing."; }
 // Installable app: register the service worker on the server edition only (not the single-file demo).
 if ("serviceWorker" in navigator && location.pathname.startsWith("/drive/")) navigator.serviceWorker.register("/drive/sw.js", { scope: "/" }).catch(() => {});

@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta charset="utf-8"><script>if (/^\/car\b/.test(location.pathname) || /[?&]car\b/.test(location.search)) document.documentElement.classList.add("carmode");</script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#080b10"><link rel="manifest" href="/drive/manifest.webmanifest"><link rel="apple-touch-icon" href="/drive/icon-192.png"><link rel="icon" href="/drive/icon-192.png">
 <title>Sadak Sense · Drive</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -75,6 +75,38 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
 .co .ct{font-weight:600;font-size:13px;flex-basis:100%}.co .cs{font-size:11.5px;color:var(--muted)}.co .ci{font-size:11.5px;color:var(--accent);margin-left:auto}
 #repChannels .btn{text-align:left;text-decoration:none;color:inherit}#repChannels .btn b{display:block;font-size:13px}#repChannels .btn span{font-size:11.5px;color:var(--muted)}
 .alert{flex-wrap:wrap}.alert .rep{flex-basis:100%;padding:7px 12px;font-size:12.5px;margin-top:2px}
+/* ---------- Car-screen mode (/car/): a wide in-dash touchscreen. Same app, same live data. ---------- */
+.clock{display:none}
+.carmode body{background:radial-gradient(1400px 700px at 50% 120%,#1b2433 0%,#06080c 60%);padding:18px 0}
+.carmode .device{width:min(98vw,1560px);height:min(calc(98vw / 2.35),92dvh,680px);border-radius:26px;border:10px solid #0c0f14;outline:1px solid #2a3342;
+  box-shadow:0 50px 140px rgba(0,0,0,.75),inset 0 0 0 1px #1d2633;margin:0;display:grid;gap:0 14px;padding:0 14px 0 0;
+  grid-template-columns:minmax(0,1.55fr) minmax(330px,1fr);grid-template-rows:auto auto auto auto auto minmax(0,1fr) auto auto;
+  grid-template-areas:"top top" "map alert" "map co" "map car" "map env" "map mid" "map trace" "dock dock"}
+.carmode .top{grid-area:top;padding:10px 4px 8px 18px}
+.carmode .clock{display:block;font-family:var(--display);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;margin-left:auto;margin-right:14px}
+.carmode .alert{grid-area:alert;margin:0 0 8px;min-height:96px;padding:12px 14px}
+.carmode .alert .t{font-size:24px}.carmode .dist{font-size:44px}
+.carmode #coBar{grid-area:co;margin:0 0 8px}
+.carmode #carBar{grid-area:car;margin:0 0 8px;width:100%}
+.carmode #envBar{grid-area:env;margin:0 0 8px}
+.carmode .mid{grid-area:mid;padding:0;align-items:end}
+.carmode .speed{font-size:72px}
+.carmode #map{grid-area:map;margin:0;border-radius:0 18px 18px 0;border-left:0;min-height:0;height:100%}
+.carmode .trace{grid-area:trace;margin:8px 0 0}
+.carmode .trace canvas{height:44px}
+.carmode .bottom{grid-area:dock;padding:10px 0 12px 14px}
+.carmode .bottom .btn{padding:12px 16px;font-size:15px}
+.carmode .health{left:auto;right:14px;width:min(36%,520px);bottom:76px;max-height:74%}
+.carmode .convo,.carmode .brief{left:24px;right:auto;width:min(40%,560px);bottom:84px;max-height:66%}
+.carmode .tourbar{left:auto;right:14px;width:min(36%,520px);top:56px}
+.carmode .sheet{display:grid;grid-template-columns:1fr 1fr;align-content:start;gap:12px 28px;padding:28px 36px}
+.carmode .sheet > .brand,.carmode .sheet > h1,.carmode .sheet > p{grid-column:1/-1}
+.carmode .sheet > .me{grid-column:1;grid-row:span 8;align-self:start}
+.carmode .sheet h1{font-size:34px}
+.carmode .caption{display:block}
+.caption{display:none;position:fixed;left:0;right:0;bottom:6px;text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#5b6b7c}
+@media (max-width:820px){.carmode .device{grid-template-columns:1fr;grid-template-rows:auto auto auto 260px auto auto auto;grid-template-areas:"top" "alert" "co" "map" "car" "env" "mid" "trace" "dock";height:auto;min-height:100dvh;overflow:auto}
+  .carmode #map{border-radius:14px;border-left:1px solid var(--line)}}
 .env.warn{border-color:var(--breaker)}.env.bad{border-color:var(--pothole)}
 .simlist{display:grid;grid-template-columns:1fr 1fr;gap:6px}.simlist .btn{padding:9px;border-radius:12px;font-size:12px;text-align:left;line-height:1.25}
 .tourbar{position:absolute;top:calc(env(safe-area-inset-top,0px) + 52px);left:14px;right:14px;z-index:870;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--accent);color:#04201f;border-radius:12px;padding:6px 10px;font-size:12.5px;font-weight:600}
@@ -99,6 +131,7 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
 <div class="device">
   <div class="top">
     <div class="brand">SADAK <b>SENSE</b></div>
+    <span class="clock" id="clock"></span>
     <div class="chips"><span class="chip" id="cGps">GPS</span><span class="chip" id="cImu">SENSORS</span><span class="chip" id="cNet">0 SENT</span></div>
   </div>
   <div class="alert clear" id="alert" role="status" aria-live="assertive">
@@ -194,5 +227,6 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
 <script src="/shared/mycar.js"></script>
 <script src="/drive/drive.js"></script>
 <script src="/drive/copilot-ui.js"></script>
+<div class="caption">In-car screen · runs on the head unit in production · today a tablet or laptop stands in, a phone on the dashboard senses the road</div>
 </body>
 </html>

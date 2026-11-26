@@ -204,6 +204,8 @@ function createApp({ dbFile = process.env.DB_FILE || path.join(__dirname, "..", 
   });
   // The service worker controls the whole site (scope "/"), so it must be served with this header.
   app.get("/drive/sw.js", (req, res, next) => { res.set("Service-Worker-Allowed", "/"); res.set("Cache-Control", "no-cache"); next(); });
+  // Car-screen mode: the same driver app laid out for an in-dash touchscreen.
+  app.get(["/car", "/car/"], (_, res) => res.sendFile(path.join(__dirname, "..", "web", "drive", "index.html")));
   app.use("/vendor/leaflet", express.static(path.join(__dirname, "..", "node_modules", "leaflet", "dist"), { maxAge: "7d" }));
   app.use(express.static(path.join(__dirname, "..", "web"), { extensions: ["html"] }));
   app.get("/", (_, res) => res.redirect("/console/"));
