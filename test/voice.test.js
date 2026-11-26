@@ -54,8 +54,8 @@ test("every Hinglish word the app says is in the word list", () => {
   lines.push(E.advise({ rainProbNext2h: 70 }, "Hinglish")[0].text);
   lines.push(template([{ type: "breaker" }, { type: "pothole" }, { type: "water" }], "Hinglish", ""));
   // Hinglish literals in the driver app: the middle argument of T3(...) and the Hinglish: keys.
-  const src = fs.readFileSync(path.join(__dirname, "../web/drive/drive.js"), "utf8");
-  for (const m of src.matchAll(/T3\(\s*[`"].*?[`"],\s*[`"](.*?)[`"],\s*[`"]/gs)) lines.push(m[1].replace(/\$\{[^}]*\}/g, " "));
+  const src = ["drive.js", "copilot-ui.js", "moment-ui.js", "commute-ui.js", "own-car.js"].map((f) => fs.readFileSync(path.join(__dirname, "../web/drive", f), "utf8")).join("\n");
+  for (const m of src.matchAll(/(?:T3|coT)\(\s*[`"].*?[`"],\s*[`"](.*?)[`"],\s*[`"]/gs)) lines.push(m[1].replace(/\$\{[^}]*\}/g, " "));
   for (const m of src.matchAll(/Hinglish: (?:\(d\) => \[)?[`"](.*?)[`"]/g)) lines.push(m[1].replace(/\$\{[^}]*\}/g, " "));
   assert.ok(lines.length > 30);
   const missing = new Set();

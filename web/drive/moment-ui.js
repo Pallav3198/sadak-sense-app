@@ -111,3 +111,5 @@ const MomentUI = (() => {
   return { tick, simulate, demoItems, get state() { return st.cur; }, get held() { return st.held; }, MO };
 })();
 setInterval(() => { try { MomentUI.tick(); } catch (e) { console.warn("moment", e); } }, 1000);
+
+window.MomentUI = MomentUI;

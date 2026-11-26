@@ -50,12 +50,12 @@ Last updated: 26 Nov 2026 (session 1).
 - [x] 4.12 Demo: simulate red-light countdown and traffic-jam states (Simulate + Full demo)
 
 ## 14.5 Commute awareness, onboarding, no cold start
-- [ ] 5.1 Optional onboarding (~30 s): work days, office time, home/office (or "learn it"), apps to connect, VIP contacts (boss, family), evening preference (yes / urgent only / no), usual passengers, language, alert style
-- [ ] 5.2 Default if skipped: weekday 7–11 am → work notifications on, at calm moments
-- [ ] 5.3 Default: evenings and weekends → personal only; work held unless VIP or urgent
-- [ ] 5.4 After about a week: learn the real commute (home, office, times) from trip patterns
-- [ ] 5.5 Gentle "set your office time?" reminder every few days
-- [ ] 5.6 Voice override: "Aaj shaam bhi office messages batana" (and the opposite)
+- [x] 5.1 Optional onboarding (~30 s): work days, office time, home/office (or "learn it"), apps to connect, VIP contacts (boss, family), evening preference (yes / urgent only / no), usual passengers, language, alert style
+- [x] 5.2 Default if skipped: weekday 7–11 am → work notifications on, at calm moments
+- [x] 5.3 Default: evenings and weekends → personal only; work held unless VIP or urgent
+- [x] 5.4 After about a week: learn the real commute (home, office, times) from trip patterns
+- [x] 5.5 Gentle "set your office time?" reminder every few days
+- [x] 5.6 Voice override: "Aaj shaam bhi office messages batana" (and the opposite)
 
 ## 14.6 Context co-pilot (Gmail, Outlook, Teams)
 - [~] 6.0 Reads next meetings, unread Gmail (Primary) and Teams; replies with read-back + yes; running-late email (built)
@@ -129,3 +129,4 @@ Last updated: 26 Nov 2026 (session 1).
 - 26 Nov 2026: 14.2 built: own-car memory on the phone (spot felt on 2+ days warns this driver before fleet confirmation; 3 smooth passes forget it), per-spot car tag so one car counts once per spot across days, optional "Help improve the map" asking only when stopped/slow (Gaddha / Speed breaker / Kuch nahi → /api/label). Next: 14.3.
 - 26 Nov 2026: 14.3 built: detector reports first movement up/down + axle pair; fleet decides type from votes, both-directions (+3 breaker) and 60-day permanence; up-first jolts merge across directions; reasons shown in console and by tapping the warning. Next: 14.4.
 - 26 Nov 2026: 14.4 server part built (server/signals.js): OSM signals via Overpass (cached), fleet-learned stop lines and signals, red length per approach/hour from front-of-queue waits (p90, 5+ samples, else cautious 45 s), current phase from Hyundais stopped now, start-together ratio. Then phone side: web/shared/moment.js (clear/busy/red/jam/parked + tiers, fleet start-together pattern), web/drive/moment-ui.js (stop reporting, delivery, hold & batch, VIP/urgent, Teams short call, light-turning-green pause), Simulate "redlight" (in Full demo) and "jam". 14.4 done. Next: 14.5.
+- 26 Nov 2026: 14.5 built: web/shared/commute.js (profile + defaults, work/personal by source and work domain, time windows, today's voice override, learn commute from 5+ weekday trips on 5+ days, 3-day reminder) and web/drive/commute-ui.js (onboarding sheet on first open with Skip, preferences button, reminder card, trip logging, override by voice). Fixed: modules now exposed on window (CO, Commute, MomentUI, OwnCar) so they see each other. Next: 14.6.

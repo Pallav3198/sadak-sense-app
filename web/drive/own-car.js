@@ -68,3 +68,5 @@ const OwnCar = (() => {
   function setHelp(on) { help = !!on; try { localStorage.setItem("ss-helpmap", help ? "1" : "0"); } catch {} }
   return { tag, record, ahead, passCheck, maybeAsk, setHelp, get help() { return help; }, get spots() { return mem; }, cellOf };
 })();
+
+window.OwnCar = OwnCar;

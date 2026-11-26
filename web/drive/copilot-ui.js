@@ -2,6 +2,7 @@
 // leave-by from the owner's calendar, and Gmail / Teams read aloud ONLY when the car is stopped.
 // Nothing is ever sent until the driver hears it read back and says yes.
 const CO = { me: null, dest: null, next: null, inbox: [], seen: new Set(), speeds: [], step: null, item: null, draft: null, saidLeave: false, saidLate: false, here: null };
+window.CO = CO;
 try { CO.seen = new Set(JSON.parse(localStorage.getItem("ss-seen") || "[]")); } catch {}
 const keepSeen = () => { try { localStorage.setItem("ss-seen", JSON.stringify([...CO.seen].slice(-200))); } catch {} };
 const coT = (en, hl, hi) => T3(en, hl, hi);
@@ -97,6 +98,7 @@ function coTick() {}
 function coAsk(step, item, line) { CO.step = step; CO.item = item; openConvo(); $("yn").hidden = false; if (step !== "reply?") bubble("a", "Sadak Sense", line); say(line, step === "late" ? "serious" : step === "reply?" ? "info" : "reply"); }
 // Called from ask() in drive.js with every driver utterance. Returns true when the co-pilot handled it.
 window.coHandle = function (text, shown, itn) {
+  if (window.Commute && Commute.voice(shown || text)) return true;
   if (!CO.step) return false;
   const yes = itn === "yes", no = itn === "no";
   if (CO.step === "dictate") {
