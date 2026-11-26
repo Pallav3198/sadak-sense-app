@@ -46,6 +46,7 @@ function page(htmlPath, extraScripts, { contentOnly, title }) {
     .replace(/<script src="\/shared\/mail.js"><\/script>/, script(rd("web/shared/mail.js")))
     .replace(/<script src="\/shared\/env.js"><\/script>/, script(rd("web/shared/env.js")))
     .replace(/<script src="\/console\/console.js"><\/script>/, script(rd("web/console/console.js")))
+    .replace(/<script src="\/shared\/brake.js"><\/script>/, script(rd("web/shared/brake.js")))
     .replace(/<script src="\/drive\/own-car.js"><\/script>/, script(rd("web/drive/own-car.js")))
     .replace(/<script src="\/drive\/drive.js"><\/script>/, script(rd("web/drive/drive.js")))
     .replace(/<script src="\/drive\/copilot-ui.js"><\/script>/, script(rd("web/drive/copilot-ui.js")))

@@ -16,7 +16,10 @@ const CFG = {
   candidateTtlMs: 7 * 864e5,
 };
 
-const FAMILY = { breaker: "surface", pothole: "surface", bump: "surface", crawl: "water" };
+const FAMILY = { breaker: "surface", pothole: "surface", bump: "surface", crawl: "water", brake: "nearmiss" };
+// Near-miss zones (14.8): hard braking clusters within 30 m, same direction; 3 different cars in 14 days confirm;
+// a zone with no hard braking for 30 days is cleared. Hours of the day are kept, so the warning comes at the right time.
+const NEARMISS = { radiusM: 30, windowMs: 14 * 864e5, decayMs: 30 * 864e5 };
 
 class Engine {
   constructor(db, { onChange } = {}) {
@@ -46,7 +49,7 @@ class Engine {
   }
 
   _nearby(family, lat, lon, heading, type, first) {
-    const r = family === "water" ? CFG.waterRadiusM : CFG.surfaceRadiusM;
+    const r = family === "water" ? CFG.waterRadiusM : family === "nearmiss" ? NEARMISS.radiusM : CFG.surfaceRadiusM;
     const dLat = r / 110540, dLon = r / (111320 * Math.cos((lat * Math.PI) / 180));
     let best = null, bestD = Infinity;
     for (const h of this.q.active.all(family, lat - dLat, lat + dLat, lon - dLon, lon + dLon)) {
@@ -62,7 +65,7 @@ class Engine {
   ingest(e, source = "phone") {
     if (!Engine.validEvent(e)) return { ok: false, error: "invalid event" };
     const family = FAMILY[e.type];
-    const type = e.type === "crawl" ? "water" : e.type === "bump" ? "breaker" : e.type;
+    const type = e.type === "crawl" ? "water" : e.type === "bump" ? "breaker" : e.type === "brake" ? "nearmiss" : e.type;
     const first = e.first === "up" || e.first === "down" ? e.first : null;
     let h = this._nearby(family, e.lat, e.lon, e.heading, type, first);
     let created = false;
@@ -78,10 +81,10 @@ class Engine {
     const evs = this.q.evOfHz.all(h.id);
     const lat = median(evs.map((v) => v.lat)), lon = median(evs.map((v) => v.lon));
     const hdg = circularMean(evs.map((v) => v.heading).filter((x) => x != null));
-    const majority = family === "water" ? "water" : decideType(evs, h.created_ts, e.ts).type;
+    const majority = family === "water" ? "water" : family === "nearmiss" ? "nearmiss" : decideType(evs, h.created_ts, e.ts).type;
     // Severity: peak vertical g normalised to 30 km/h (impact grows roughly with speed).
     const sev = median(evs.filter((v) => v.peak_g != null).map((v) => v.peak_g * (30 / Math.max(10, v.speed || 30))));
-    const windowMs = family === "water" ? CFG.waterWindowMs : CFG.confirmWindowMs;
+    const windowMs = family === "water" ? CFG.waterWindowMs : family === "nearmiss" ? NEARMISS.windowMs : CFG.confirmWindowMs;
     const n = this.q.devices.get(h.id, e.ts - windowMs).n;
     const need = family === "water" ? CFG.waterDevices : CFG.confirmDevices;
     const state = h.state === "confirmed" || n >= need ? "confirmed" : "candidate";
@@ -95,7 +98,7 @@ class Engine {
   // A car drove over a known hazard location without feeling anything.
   pass(hazardId, device, ts) {
     const h = this.q.getHz.get(hazardId);
-    if (!h || !["candidate", "confirmed"].includes(h.state) || h.family === "water") return { ok: false };
+    if (!h || !["candidate", "confirmed"].includes(h.state) || h.family !== "surface") return { ok: false };
     this.q.insPass.run(h.id, device, ts, 0);
     this.q.streak.run(h.id);
     const streak = h.clean_streak + 1;
@@ -124,6 +127,7 @@ class Engine {
     const changed = [];
     for (const h of this.db.prepare("SELECT * FROM hazards WHERE state IN ('candidate','confirmed')").all()) {
       if (h.family === "water" && now - h.last_hit_ts > CFG.waterDecayMs) { this.q.setState.run("cleared", now, h.id); changed.push(h.id); }
+      else if (h.family === "nearmiss" && now - h.last_hit_ts > NEARMISS.decayMs) { this.q.setState.run("cleared", now, h.id); changed.push(h.id); }
       else if (h.state === "candidate" && now - h.created_ts > CFG.candidateTtlMs) { this.q.setState.run("rejected", now, h.id); changed.push(h.id); }
     }
     changed.forEach((id) => this.onChange({ kind: "swept", hazard: this.hazard(id) }));
@@ -133,11 +137,12 @@ class Engine {
   hazard(id) {
     const h = this.q.getHz.get(id);
     if (!h) return null;
-    const windowMs = h.family === "water" ? CFG.waterWindowMs : CFG.confirmWindowMs;
+    const windowMs = h.family === "water" ? CFG.waterWindowMs : h.family === "nearmiss" ? NEARMISS.windowMs : CFG.confirmWindowMs;
     const ref = h.last_hit_ts || Date.now();
+    const hours = h.family === "nearmiss" ? hourly(this.q.evOfHz.all(h.id)) : null;
     const why = h.family === "surface" ? decideType(this.q.evOfHz.all(h.id), h.created_ts, h.last_hit_ts || Date.now()) : null;
     return {
-      why: why && why.reasons,
+      why: why && why.reasons, hours,
       id: h.id, type: h.type, family: h.family, lat: round(h.lat, 6), lon: round(h.lon, 6), heading: h.heading == null ? null : Math.round(h.heading),
       state: h.state, severity: h.severity == null ? null : round(h.severity, 2), cleanStreak: h.clean_streak, events: h.n_events,
       devices: this.q.devices.get(h.id, ref - windowMs).n, realDevices: this.q.realOf.get(h.id).n, createdTs: h.created_ts, confirmedTs: h.confirmed_ts, clearedTs: h.cleared_ts, lastHitTs: h.last_hit_ts,
@@ -152,7 +157,7 @@ class Engine {
   // Confirmed hazards along a route polyline, in driving order.
   alongRoute(line, tolM = 25) {
     const confirmed = this.list({ states: ["confirmed"] });
-    const hits = confirmed.filter((h) => distToPolyline(h.lat, h.lon, line) <= (h.family === "water" ? 80 : tolM));
+    const hits = confirmed.filter((h) => h.family !== "nearmiss" && distToPolyline(h.lat, h.lon, line) <= (h.family === "water" ? 80 : tolM));
     const idx = (h) => { let bi = 0, bd = Infinity; line.forEach(([a, b], i) => { const d = haversine(h.lat, h.lon, a, b); if (d < bd) { bd = d; bi = i; } }); return bi; };
     return hits.sort((a, b) => idx(a) - idx(b));
   }
@@ -197,9 +202,24 @@ function decideType(evs, createdTs, now) {
   return { type, score: { breaker: b, pothole: p }, reasons };
 }
 
+// Hard braking by hour of day (IST) at a near-miss zone, and the hours when it is common.
+function hourly(evs) {
+  const counts = Array(24).fill(0);
+  for (const v of evs) counts[new Date(v.ts + 5.5 * 3600e3).getUTCHours()]++;
+  const total = counts.reduce((a, b) => a + b, 0), max = Math.max(...counts);
+  const peak = counts.map((c, h) => ({ h, c })).filter((x) => x.c >= 2 && x.c >= max * 0.5).map((x) => x.h);
+  return { counts, total, peak };
+}
+// Is hard braking common here at this hour (the hour itself or a neighbour is a peak hour)?
+function nearMissNow(h, now = Date.now()) {
+  if (!h.hours || h.state !== "confirmed") return false;
+  const hr = new Date(now + 5.5 * 3600e3).getUTCHours();
+  return h.hours.peak.some((p) => Math.min(Math.abs(p - hr), 24 - Math.abs(p - hr)) <= 1);
+}
+
 function median(a) { if (!a.length) return NaN; const s = [...a].sort((x, y) => x - y); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
 function mode(a) { const c = {}; let best = a[0], n = 0; for (const x of a) { c[x] = (c[x] || 0) + 1; if (c[x] > n) { n = c[x]; best = x; } } return best; }
 function circularMean(a) { if (!a.length) return null; let s = 0, c = 0; for (const d of a) { s += Math.sin((d * Math.PI) / 180); c += Math.cos((d * Math.PI) / 180); } return ((Math.atan2(s, c) * 180) / Math.PI + 360) % 360; }
 function round(x, n) { const k = 10 ** n; return Math.round(x * k) / k; }
 
-module.exports = { Engine, CFG, decideType };
+module.exports = { Engine, CFG, decideType, hourly, nearMissNow, NEARMISS };

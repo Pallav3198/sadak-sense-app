@@ -97,7 +97,7 @@ function createApp({ dbFile = process.env.DB_FILE || path.join(__dirname, "..", 
     const ctx = { pending: pending || null, prefer };
     if (Number.isFinite(lat) && Number.isFinite(lon)) {
       const near = engine.list({ lat, lon, radius: 1500, states: ["confirmed"] });
-      ctx.ahead = near.filter((h) => h.family !== "water").map((h) => ({ ...h, dist: haversine(lat, lon, h.lat, h.lon) }))
+      ctx.ahead = near.filter((h) => h.family === "surface").map((h) => ({ ...h, dist: haversine(lat, lon, h.lat, h.lon) }))
         .filter((h) => heading == null || h.dist < 15 || headingDiff(bearing(lat, lon, h.lat, h.lon), heading) < 40).filter((h) => h.dist <= 1000).sort((a, b) => a.dist - b.dist);
       const w = near.filter((h) => h.family === "water").map((h) => ({ ...h, dist: haversine(lat, lon, h.lat, h.lon) })).sort((a, b) => a.dist - b.dist)[0];
       ctx.water = w || null;

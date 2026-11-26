@@ -96,6 +96,7 @@ function updatePos(lat, lon, speed, heading, acc) {
     if (heading == null && d > 3) heading = SS.bearing(p.lat, p.lon, lat, lon);
   }
   S.pos = { lat, lon, speed: speed ?? 0, heading: heading ?? p?.heading ?? null, acc, t: Date.now() };
+  if (S.mode === "real") brakeDet.push(Date.now(), S.pos.speed, acc);
   me.setLatLng([lat, lon]);
   if (!S.zoomed) { S.zoomed = true; map.setView([lat, lon], 16); } else map.panTo([lat, lon], { animate: true, duration: 0.4 });
   $("spd").textContent = Math.round(S.pos.speed * 3.6);
@@ -127,6 +128,7 @@ function tick() {
   const warnD = Math.max(60, speed * 6 + 40);
   let next = null, nextD = Infinity;
   for (const h of S.known) {
+    if (h.family === "nearmiss") continue;
     const d = SS.hav(lat, lon, h.lat, h.lon);
     // clean pass bookkeeping: we came within 15 m and are now moving away without a jolt there
     if (h.family !== "water") {
@@ -149,6 +151,8 @@ function tick() {
   // Own-car memory (14.2): a spot this car felt on 2+ days warns this driver even before the fleet confirms it.
   OwnCar.passCheck(lat, lon, speed, S.recent);
   if (!next) { const p = OwnCar.ahead(lat, lon, heading, warnD, S.known); if (p) { next = p.h; nextD = p.d; } }
+  // Near-miss zone (14.8): only when nothing else is ahead, and only at the hours hard braking is common there.
+  if (!next) { const z = nearMissAhead(lat, lon, heading, warnD); if (z) { showNearMiss(z.h, z.d); return; } }
   const el = $("alert");
   // "Fits my car" looks a little further ahead, so the driver can ask about it before the alert
   const nextCar = next || S.known.filter((h) => h.state === "confirmed").map((h) => ({ h, d: SS.hav(lat, lon, h.lat, h.lon) }))
@@ -710,3 +714,32 @@ function helpAsk() {
 }
 setInterval(helpAsk, 3000);
 $("helpMap").checked = OwnCar.help; $("helpMap").onchange = () => OwnCar.setHelp($("helpMap").checked);
+
+/* ---------- near-miss zones (14.8): hard braking detected here, warnings at the right hours ---------- */
+const brakeDet = SadakBrake.createBrake({ onBrake: (b) => {
+  if (!S.pos) return;
+  const ev = { device: S.device, lat: +S.pos.lat.toFixed(6), lon: +S.pos.lon.toFixed(6), heading: Math.round(S.pos.heading ?? 0), speed: b.fromKmh, peak_g: Math.round((b.decel / 9.81) * 100) / 100, type: "brake", ts: b.ts };
+  OwnCar.tag(ev.lat, ev.lon).then((t) => { ev.car = t; S.queue.push(ev); }).catch(() => S.queue.push(ev));
+  $("tNote").textContent = `hard braking ${b.fromKmh}→${b.toKmh} km/h · reported for near-miss zones`;
+} });
+const peakNow = (h) => { const hr = new Date(Date.now() + 5.5 * 3600e3).getUTCHours(); return (h.hours?.peak || []).some((p) => Math.min(Math.abs(p - hr), 24 - Math.abs(p - hr)) <= 1); };
+function nearMissAhead(lat, lon, heading, warnD) {
+  let best = null;
+  for (const h of S.known) {
+    if (h.family !== "nearmiss" || h.state !== "confirmed" || !peakNow(h)) continue;
+    const d = SS.hav(lat, lon, h.lat, h.lon);
+    if (d > Math.max(warnD, 250) || (heading != null && d > 12 && SS.hdiff(SS.bearing(lat, lon, h.lat, h.lon), heading) > 35)) continue;
+    if (h.heading != null && heading != null && SS.hdiff(h.heading, heading) > 60) continue;
+    if (!best || d < best.d) best = { h, d };
+  }
+  return best;
+}
+function showNearMiss(h, d) {
+  const el = $("alert"), peak = h.hours.peak, hr = (x) => `${((x + 11) % 12) + 1} ${x < 12 ? "am" : "pm"}`;
+  el.className = "alert nearmiss"; el.querySelector(".ic").textContent = "!"; S.alertHz = h; $("repBtn").hidden = true; glow("breaker");
+  $("aT").textContent = T3("Sudden braking zone ahead", "Aage achanak brake wala zone", "आगे अचानक ब्रेक वाला ज़ोन");
+  $("aS").textContent = T3(`${h.devices} cars braked hard here, mostly around ${hr(peak[0])}`, `${h.devices} gaadiyon ne yahan zor se brake lagaya, zyada tar ${hr(peak[0])} ke aas paas`, `${h.devices} गाड़ियों ने यहाँ ज़ोर से ब्रेक लगाया, ज़्यादातर ${hr(peak[0])} के आसपास`);
+  $("aD").innerHTML = `${Math.max(10, Math.round(d / 10) * 10)}<small>metres</small>`;
+  const last = S.alerted.get(h.id) || 0;
+  if (Date.now() - last > 10 * 60e3) { S.alerted.set(h.id, Date.now()); chime(); say(T3("Sudden braking is common here at this hour. Take it slow.", "Is waqt yahan gaadiyan achanak brake lagati hain. Dheere chaliye.", "इस समय यहाँ गाड़ियाँ अचानक ब्रेक लगाती हैं। धीरे चलें।"), "info"); }
+}

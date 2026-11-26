@@ -29,6 +29,7 @@ input[type=range]{accent-color:var(--accent)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 /* map markers */
 .hz{display:grid;place-items:center;border-radius:50%;font-family:var(--display);font-weight:700;color:#0b0f14;box-shadow:0 0 0 3px rgba(8,11,16,.85)}
+.hz.nearmiss{background:#f0b429;border-radius:4px}.hz.nearmiss.confirmed{color:#f0b429}
 .hz.breaker{background:var(--breaker)}.hz.pothole{background:var(--pothole)}.hz.water{background:var(--water)}
 .hz.confirmed::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid currentColor;opacity:.0;animation:ring 2.4s infinite}
 .hz.breaker.confirmed{color:var(--breaker)}.hz.pothole.confirmed{color:var(--pothole)}.hz.water.confirmed{color:var(--water)}

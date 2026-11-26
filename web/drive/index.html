@@ -115,6 +115,7 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
 .caption{display:none;position:fixed;left:0;right:0;bottom:6px;text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#5b6b7c}
 @media (max-width:820px){.carmode .device{grid-template-columns:1fr;grid-template-rows:auto auto auto 260px auto auto auto;grid-template-areas:"top" "alert" "co" "map" "car" "env" "mid" "trace" "dock";height:auto;min-height:100dvh;overflow:auto}
   .carmode #map{border-radius:14px;border-left:1px solid var(--line)}}
+.alert.nearmiss{border-color:#f0b429;background:color-mix(in srgb,#f0b429 14%,var(--bg))}.alert.nearmiss .ic{background:#f0b429}
 .env.warn{border-color:var(--breaker)}.env.bad{border-color:var(--pothole)}
 .simlist{display:grid;grid-template-columns:1fr 1fr;gap:6px}.simlist .btn{padding:9px;border-radius:12px;font-size:12px;text-align:left;line-height:1.25}
 .tourbar{position:absolute;top:calc(env(safe-area-inset-top,0px) + 52px);left:14px;right:14px;z-index:870;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--accent);color:#04201f;border-radius:12px;padding:6px 10px;font-size:12.5px;font-weight:600}
@@ -256,6 +257,7 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
 <script src="/vendor/leaflet/leaflet.js"></script>
 <script src="/shared/common.js"></script>
 <script src="/shared/detector.js"></script>
+<script src="/shared/brake.js"></script>
 <script src="/shared/hinglish.js"></script>
 <script src="/shared/voice.js"></script>
 <script src="/shared/mail.js"></script>

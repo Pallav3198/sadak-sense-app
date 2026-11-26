@@ -11,6 +11,7 @@ const ROUTES = require("./routes.json");
 const SCENARIO = [
   ["iit-hauzkhas", 0.28, "breaker", "Unmarked speed breaker"], ["iit-hauzkhas", 0.62, "pothole", "Pothole, kerb lane"],
   ["iit-aiims", 0.16, "breaker", "Speed breaker, faded paint"], ["iit-aiims", 0.47, "pothole", "Deep pothole"], ["iit-aiims", 0.81, "breaker", "Speed breaker near gate"],
+  ["saket-munirka", 0.45, "nearmiss", "School gate: sudden braking (simulated)"],
   ["saket-munirka", 0.30, "pothole", "Pothole cluster"], ["saket-munirka", 0.56, "pothole", "Broken patch after rain"], ["saket-munirka", 0.76, "breaker", "Rumble strip / breaker"],
   ["iit-vasantvihar", 0.35, "breaker", "Speed breaker, no sign"], ["iit-vasantvihar", 0.70, "pothole", "Pothole near bus stop"],
   ["cp-minto", 0.12, "pothole", "Pothole near Outer Circle"], ["cp-minto", null, "water", "Minto Bridge underpass"], ["cp-minto", 0.86, "breaker", "Speed breaker near station"],
@@ -76,7 +77,7 @@ class FleetSim {
   async refreshKnown() {
     try {
       const list = await this.hazardsFn();
-      this.known = list.filter((h) => h.family !== "water" && ["candidate", "confirmed"].includes(h.state)).map((h) => {
+      this.known = list.filter((h) => h.family === "surface" && ["candidate", "confirmed"].includes(h.state)).map((h) => {
         const proj = {};
         for (const [rid, r] of Object.entries(this.routes)) { const p = project(r, h.lat, h.lon); if (p.d < 15) proj[rid] = p.s; }
         return { ...h, proj };
@@ -109,11 +110,12 @@ class FleetSim {
       for (const t of this.truth) {
         if (t.route !== c.rid || !t.active || t.type === "water" || !crossed(t.s)) continue;
         const sameDir = headingDiff(hdg, t.heading) < 90;
-        const p = t.type === "breaker" ? 0.9 : sameDir ? 0.6 : 0; // potholes are in one carriageway
+        const p = t.type === "breaker" ? 0.9 : t.type === "nearmiss" ? (sameDir ? 0.35 : 0) : sameDir ? 0.6 : 0; // potholes and near-miss spots are one carriageway
         if (Math.random() < p) {
           const [la, lo] = offset(t.lat, t.lon, Math.random() * 5, Math.random() * 360); // GPS error ~5 m
           const peak = (t.type === "breaker" ? 0.75 : 1.0) * (v * 3.6 / 30) * (0.75 + Math.random() * 0.5);
-          this.ingest({ device: c.device, lat: la, lon: lo, heading: hdg, speed: v * 3.6, peak_g: +peak.toFixed(2), type: t.type, ts });
+          if (t.type === "nearmiss") this.ingest({ device: c.device, lat: la, lon: lo, heading: hdg, speed: v * 3.6, peak_g: 0.38, type: "brake", ts });
+          else this.ingest({ device: c.device, lat: la, lon: lo, heading: hdg, speed: v * 3.6, peak_g: +peak.toFixed(2), type: t.type, ts });
           this.stats.events++; reported.push(t);
         }
       }

@@ -83,9 +83,9 @@ Last updated: 26 Nov 2026 (session 1).
 - [U] 7.8 One real spoken test per language by a native speaker
 
 ## 14.8 Moat features
-- [~] 8.1 Near-miss line in Simulate and Full demo (built, simulated)
-- [ ] 8.2 Real near-miss detection: hard-braking events from the phone → clusters by place and hour in the engine
-- [ ] 8.3 Near-miss zones on the console and warnings in the app ("Sudden braking is common here at this hour")
+- [x] 8.1 Near-miss line in Simulate and Full demo; now also real (8.2, 8.3)
+- [x] 8.2 Real near-miss detection: hard-braking events from the phone → clusters by place and hour in the engine
+- [x] 8.3 Near-miss zones on the console and warnings in the app ("Sudden braking is common here at this hour")
 - [x] 8.4 Fleet-learned signal red time (built in 14.4: server/signals.js)
 - [ ] 8.5 Hazard-aware Smart Cruise: roadmap slide only (deck)
 
@@ -132,3 +132,4 @@ Last updated: 26 Nov 2026 (session 1).
 - 26 Nov 2026: 14.5 built: web/shared/commute.js (profile + defaults, work/personal by source and work domain, time windows, today's voice override, learn commute from 5+ weekday trips on 5+ days, 3-day reminder) and web/drive/commute-ui.js (onboarding sheet on first open with Skip, preferences button, reminder card, trip logging, override by voice). Fixed: modules now exposed on window (CO, Commute, MomentUI, OwnCar) so they see each other. Next: 14.6.
 - 27 Nov 2026: 14.7 completed: rule brain in all 8 languages + tests; server/llm.js (Sarvam chat, tool loop, 9 s timeout) used by /api/ask with live-data tools; hazard guard rejects any hazard not from the tool; any failure falls back to rules; yes/no/report stay deterministic. Next: 14.6.
 - 27 Nov 2026: 14.6 completed: server/knowledge.js (graph over Gmail threads + history, Teams chats + history, meetings, people, places; refersTo + context lines incl. "you're N min away"), LLM linking pass restricted to real meetings, /api/copilot/compose (vague reply → message via LLM or rules, no invented times, + automatic ETA line with road event), meeting rescue (organiser email while driving, Join by audio when parked), What I know sheet, Simulate "context" with sample data. Next: 14.8.
+- 27 Nov 2026: 14.8 built: web/shared/brake.js (hard braking from GPS speed: 20+ km/h, 12+ km/h drop in 2.5 s, 3 m/s²+, good GPS), engine "nearmiss" family (30 m, 3 cars in 14 days, hourly histogram + peak hours, fades after 30 days, excluded from potholes and briefs), app warning only at peak hours, console hourly chart, simulator near-miss spot. 8.5 Smart Cruise stays a deck slide (14.11). Next: 14.9.
