@@ -27,12 +27,12 @@ Last updated: 26 Nov 2026 (session 1).
 - [x] 2.4 "Help improve the map" setting, off by default; when on, ask only when stopped or slow
 
 ## 14.3 Breaker vs pothole
-- [~] 3.1 Axle timing (front then rear, wheelbase ÷ speed): built in the detector; keep
-- [ ] 3.2 Up/down shape: breaker = car goes up first; pothole = car drops first
-- [ ] 3.3 Fleet both-directions check: felt in both directions → breaker; one direction/lane → pothole
-- [ ] 3.4 Stable for months (breaker) vs disappears after repair (pothole): use age and clean-pass history in the decision
-- [ ] 3.5 Explain the decision in the hazard details (console + car screen): shape, axle timing, directions, age
-- [P] 3.6 Per-wheel speed (left/right wheel) — needs the car's wheel-speed sensors; document in the code and deck
+- [x] 3.1 Axle timing (front then rear, wheelbase ÷ speed): built; now reported per jolt as evidence
+- [x] 3.2 Up/down shape: breaker = car goes up first; pothole = car drops first
+- [x] 3.3 Fleet both-directions check: felt in both directions → breaker; one direction/lane → pothole
+- [x] 3.4 Stable for months (breaker) vs disappears after repair (pothole): use age and clean-pass history in the decision
+- [x] 3.5 Explain the decision in the hazard details (console + car screen): shape, axle timing, directions, age
+- [P] 3.6 Per-wheel speed (left/right wheel) — needs the car's wheel-speed sensors; documented in detector.js; deck to mention
 
 ## 14.4 Drive-aware notifications
 - [ ] 4.1 Moment detector on the phone: moving on a clear road / stopped at a red light / traffic jam / moving with hazards / parked
@@ -127,3 +127,4 @@ Last updated: 26 Nov 2026 (session 1).
 - 26 Nov 2026: tracker created.
 - 26 Nov 2026: 14.1 alert styles built (Voice / Chime + card default / Silent with glow and big Haan-Na; serious events speak in Chime mode; Full demo forces Voice and restores). Next: 14.2.
 - 26 Nov 2026: 14.2 built: own-car memory on the phone (spot felt on 2+ days warns this driver before fleet confirmation; 3 smooth passes forget it), per-spot car tag so one car counts once per spot across days, optional "Help improve the map" asking only when stopped/slow (Gaddha / Speed breaker / Kuch nahi → /api/label). Next: 14.3.
+- 26 Nov 2026: 14.3 built: detector reports first movement up/down + axle pair; fleet decides type from votes, both-directions (+3 breaker) and 60-day permanence; up-first jolts merge across directions; reasons shown in console and by tapping the warning. Next: 14.4.

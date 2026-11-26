@@ -35,6 +35,7 @@ async function select(id) {
     ${sev == null ? "" : `<div style="margin-top:10px;font-size:12px;color:var(--muted)">Severity (speed-normalised jolt): <b style="color:var(--fg)">${h.severity} g</b><div class="bar"><i style="width:${Math.round(sev * 100)}%"></i></div></div>`}
     ${h.family === "water" ? `<div style="margin-top:10px;font-size:12px;color:var(--muted)">Confirmed from cars crawling below 10 km/h in rain. Recedes after 2 h without reports.</div>` :
       `<div style="margin-top:10px;font-size:12px;color:var(--muted)">Recent passes (red = jolt felt, grey = clean). ${h.cleanStreak}/8 clean in a row before removal.</div><div class="passes">${timeline.slice(0, 32).reverse().map((p) => `<i class="${p.hit ? "h" : ""}" title="${new Date(p.ts).toLocaleTimeString()}"></i>`).join("")}</div>`}
+    ${h.why ? `<div style="margin-top:10px;font-size:12px;color:var(--muted)">Why ${SS.LABEL[h.type].toLowerCase()}: <span style="color:var(--fg)">${h.why.join(" · ")}</span></div>` : ""}
     <div style="margin-top:8px;font-family:var(--mono);font-size:10.5px;color:var(--dim)">${h.lat.toFixed(5)}, ${h.lon.toFixed(5)}${h.heading != null ? ` · heading ${h.heading}°` : ""}</div>`;
 }
 

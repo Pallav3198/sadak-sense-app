@@ -44,7 +44,11 @@ function openDb(file) {
   `);
   // Per-spot car tag (14.2): the same car counts once at a spot across days, but tags for different
   // spots can't be linked, so a car can't be tracked across places. Added to older databases too.
-  if (!db.prepare("PRAGMA table_info(events)").all().some((c) => c.name === "car")) db.exec("ALTER TABLE events ADD COLUMN car TEXT");
+  const cols = db.prepare("PRAGMA table_info(events)").all().map((c) => c.name);
+  if (!cols.includes("car")) db.exec("ALTER TABLE events ADD COLUMN car TEXT");
+  // Breaker vs pothole evidence per jolt (14.3): first movement up/down, and whether both axles hit.
+  if (!cols.includes("first")) db.exec("ALTER TABLE events ADD COLUMN first TEXT");
+  if (!cols.includes("pair")) db.exec("ALTER TABLE events ADD COLUMN pair INTEGER");
   return db;
 }
 

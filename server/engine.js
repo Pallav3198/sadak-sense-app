@@ -25,10 +25,10 @@ class Engine {
     this.q = {
       active: db.prepare("SELECT * FROM hazards WHERE family = ? AND state IN ('candidate','confirmed') AND lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?"),
       insHz: db.prepare("INSERT INTO hazards (family,type,lat,lon,heading,state,created_ts,last_hit_ts,severity,n_events) VALUES (?,?,?,?,?,'candidate',?,?,?,0)"),
-      insEv: db.prepare("INSERT INTO events (device,lat,lon,heading,speed,peak_g,type,rain,ts,hazard_id,source,car) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"),
+      insEv: db.prepare("INSERT INTO events (device,lat,lon,heading,speed,peak_g,type,rain,ts,hazard_id,source,car,first,pair) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"),
       insPass: db.prepare("INSERT INTO passes (hazard_id,device,ts,hit) VALUES (?,?,?,?)"),
       getHz: db.prepare("SELECT * FROM hazards WHERE id = ?"),
-      evOfHz: db.prepare("SELECT lat,lon,heading,peak_g,speed,type,device,ts FROM events WHERE hazard_id = ? ORDER BY ts DESC LIMIT 200"),
+      evOfHz: db.prepare("SELECT lat,lon,heading,peak_g,speed,type,device,ts,first,pair FROM events WHERE hazard_id = ? ORDER BY ts DESC LIMIT 200"),
       // A car is its per-spot tag when it sends one (own-car memory across days), otherwise its daily ID.
       devices: db.prepare("SELECT COUNT(DISTINCT COALESCE(car, device)) AS n FROM events WHERE hazard_id = ? AND ts >= ?"),
       upd: db.prepare("UPDATE hazards SET lat=?,lon=?,heading=?,type=?,state=?,confirmed_ts=COALESCE(confirmed_ts,?),last_hit_ts=?,severity=?,clean_streak=0,n_events=n_events+1 WHERE id=?"),
@@ -45,14 +45,15 @@ class Engine {
       FAMILY[e.type] && Number.isFinite(e.ts);
   }
 
-  _nearby(family, lat, lon, heading, type) {
+  _nearby(family, lat, lon, heading, type, first) {
     const r = family === "water" ? CFG.waterRadiusM : CFG.surfaceRadiusM;
     const dLat = r / 110540, dLon = r / (111320 * Math.cos((lat * Math.PI) / 180));
     let best = null, bestD = Infinity;
     for (const h of this.q.active.all(family, lat - dLat, lat + dLat, lon - dLon, lon + dLon)) {
       const d = haversine(lat, lon, h.lat, h.lon);
       // Speed breakers span the road: either direction matches. Potholes are lane specific.
-      const dirOk = family === "water" || type === "breaker" || h.type === "breaker" || headingDiff(heading, h.heading) <= CFG.headingTolDeg;
+      // An up-first jolt looks like a breaker, so it may join a feature felt from the other direction too.
+      const dirOk = family === "water" || type === "breaker" || h.type === "breaker" || first === "up" || headingDiff(heading, h.heading) <= CFG.headingTolDeg;
       if (d <= r && dirOk && d < bestD) { best = h; bestD = d; }
     }
     return best;
@@ -62,21 +63,22 @@ class Engine {
     if (!Engine.validEvent(e)) return { ok: false, error: "invalid event" };
     const family = FAMILY[e.type];
     const type = e.type === "crawl" ? "water" : e.type === "bump" ? "breaker" : e.type;
-    let h = this._nearby(family, e.lat, e.lon, e.heading, type);
+    const first = e.first === "up" || e.first === "down" ? e.first : null;
+    let h = this._nearby(family, e.lat, e.lon, e.heading, type, first);
     let created = false;
     if (!h) {
       const r = this.q.insHz.run(family, type, e.lat, e.lon, e.heading ?? null, e.ts, e.ts, e.peak_g ?? null);
       h = this.q.getHz.get(r.lastInsertRowid); created = true;
     }
     const car = typeof e.car === "string" && /^[0-9a-f]{8,32}$/.test(e.car) ? e.car : null;
-    this.q.insEv.run(e.device, e.lat, e.lon, e.heading ?? null, e.speed ?? null, e.peak_g ?? null, e.type, e.rain ? 1 : 0, e.ts, h.id, source, car);
+    this.q.insEv.run(e.device, e.lat, e.lon, e.heading ?? null, e.speed ?? null, e.peak_g ?? null, e.type, e.rain ? 1 : 0, e.ts, h.id, source, car, first, typeof e.pair === "boolean" ? +e.pair : null);
     this.q.insPass.run(h.id, e.device, e.ts, 1);
 
     // Re-estimate the hazard from its recent events: robust centre, majority type, median severity.
     const evs = this.q.evOfHz.all(h.id);
     const lat = median(evs.map((v) => v.lat)), lon = median(evs.map((v) => v.lon));
     const hdg = circularMean(evs.map((v) => v.heading).filter((x) => x != null));
-    const majority = family === "water" ? "water" : mode(evs.map((v) => (v.type === "bump" ? "breaker" : v.type)));
+    const majority = family === "water" ? "water" : decideType(evs, h.created_ts, e.ts).type;
     // Severity: peak vertical g normalised to 30 km/h (impact grows roughly with speed).
     const sev = median(evs.filter((v) => v.peak_g != null).map((v) => v.peak_g * (30 / Math.max(10, v.speed || 30))));
     const windowMs = family === "water" ? CFG.waterWindowMs : CFG.confirmWindowMs;
@@ -133,7 +135,9 @@ class Engine {
     if (!h) return null;
     const windowMs = h.family === "water" ? CFG.waterWindowMs : CFG.confirmWindowMs;
     const ref = h.last_hit_ts || Date.now();
+    const why = h.family === "surface" ? decideType(this.q.evOfHz.all(h.id), h.created_ts, h.last_hit_ts || Date.now()) : null;
     return {
+      why: why && why.reasons,
       id: h.id, type: h.type, family: h.family, lat: round(h.lat, 6), lon: round(h.lon, 6), heading: h.heading == null ? null : Math.round(h.heading),
       state: h.state, severity: h.severity == null ? null : round(h.severity, 2), cleanStreak: h.clean_streak, events: h.n_events,
       devices: this.q.devices.get(h.id, ref - windowMs).n, realDevices: this.q.realOf.get(h.id).n, createdTs: h.created_ts, confirmedTs: h.confirmed_ts, clearedTs: h.cleared_ts, lastHitTs: h.last_hit_ts,
@@ -167,9 +171,35 @@ class Engine {
   }
 }
 
+// Breaker vs pothole for a hazard (spec 14.3), from all its jolts:
+// - each jolt's own verdict (1 vote), its first movement up/down (1 vote), its axle pair (0.5 vote for breaker);
+// - felt from both directions (headings 120°+ apart) = +3 for breaker: potholes are in one lane;
+// - felt for 60+ days without being cleared = +1 for breaker: breakers are permanent, potholes get repaired.
+function decideType(evs, createdTs, now) {
+  let b = 0, p = 0, up = 0, down = 0, pairs = 0;
+  for (const v of evs) {
+    if (v.type === "breaker" || v.type === "bump") b++; else if (v.type === "pothole") p++;
+    if (v.first === "up") { b++; up++; } else if (v.first === "down") { p++; down++; }
+    if (v.pair === 1) { b += 0.5; pairs++; }
+  }
+  const hs = evs.map((v) => v.heading).filter((x) => x != null);
+  let bothWays = false;
+  for (let i = 0; i < hs.length && !bothWays; i++) for (let j = i + 1; j < hs.length; j++) if (headingDiff(hs[i], hs[j]) >= 120) { bothWays = true; break; }
+  if (bothWays) b += 3;
+  const ageDays = Math.max(0, Math.floor((now - createdTs) / 864e5));
+  if (ageDays >= 60 && evs.length >= 3) b += 1;
+  const type = b > p ? "breaker" : "pothole";
+  const reasons = [];
+  if (up || down) reasons.push(`${up} jolt${up === 1 ? "" : "s"} lifted the car first, ${down} dropped it first`);
+  if (pairs) reasons.push(`front and rear axles both hit in ${pairs} jolt${pairs === 1 ? "" : "s"}`);
+  reasons.push(bothWays ? "felt from both directions (spans the road)" : "felt from one direction only");
+  if (ageDays) reasons.push(`first felt ${ageDays} day${ageDays === 1 ? "" : "s"} ago${ageDays >= 60 ? " and still there (permanent)" : ""}`);
+  return { type, score: { breaker: b, pothole: p }, reasons };
+}
+
 function median(a) { if (!a.length) return NaN; const s = [...a].sort((x, y) => x - y); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
 function mode(a) { const c = {}; let best = a[0], n = 0; for (const x of a) { c[x] = (c[x] || 0) + 1; if (c[x] > n) { n = c[x]; best = x; } } return best; }
 function circularMean(a) { if (!a.length) return null; let s = 0, c = 0; for (const d of a) { s += Math.sin((d * Math.PI) / 180); c += Math.cos((d * Math.PI) / 180); } return ((Math.atan2(s, c) * 180) / Math.PI + 360) % 360; }
 function round(x, n) { const k = 10 ** n; return Math.round(x * k) / k; }
 
-module.exports = { Engine, CFG };
+module.exports = { Engine, CFG, decideType };

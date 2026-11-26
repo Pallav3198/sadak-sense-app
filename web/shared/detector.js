@@ -7,7 +7,12 @@
 // 2. High-pass (subtract a 1 s moving mean) so slopes and braking don't trigger.
 // 3. A peak is |a_v| above max(minG, k * rolling noise).
 // 4. Axle-pair test: a second peak arriving wheelbase / speed later (±35%) means both axles
-//    crossed the same feature across the road -> speed breaker. A single sharp peak -> pothole.
+//    crossed the same feature across the road -> speed breaker evidence.
+// 4b. Shape (spec 14.3): a breaker lifts the car first (first peak UP); a pothole drops it first (DOWN).
+//    Decision: up-first + axle pair = breaker; down-first without a pair = pothole; when they disagree the
+//    shape wins (a pothole hit by front and rear wheels of the same side also gives two peaks).
+//    Each event carries its evidence { first: "up" | "down", pair: true | false } for the fleet.
+//    Production adds per-wheel speed (left/right) from the car: breakers hit both sides, potholes one.
 // 5. Suppress while the phone is being handled (high rotation rate) or below 8 km/h.
 (function (root, factory) {
   if (typeof module === "object" && module.exports) module.exports = factory();
@@ -41,7 +46,7 @@
       const active = speed >= cfg.minSpeed && t >= handlingUntil;
 
       // close pending single peak if its pair window expired
-      if (pending && t > pending.windowEnd) { emit("pothole", pending.peak, pending.t, speed); pending = null; }
+      if (pending && t > pending.windowEnd) { emit(pending.first === "up" ? "breaker" : "pothole", pending.peak, pending.t, speed, pending.first, false); pending = null; }
 
       if (!active || t < refractoryUntil) return v;
       if (Math.abs(v) >= thr) {
@@ -49,15 +54,15 @@
         const expected = (cfg.wheelbase / Math.max(speed, 1)) * 1000;
         if (pending && t >= pending.t + expected * 0.65 && t <= pending.t + expected * 1.35) {
           const ratio = Math.abs(v) / pending.peak;
-          if (ratio > 0.35 && ratio < 2.8) { emit("breaker", Math.max(pending.peak, Math.abs(v)), pending.t, speed); pending = null; return v; }
+          if (ratio > 0.35 && ratio < 2.8) { emit(pending.first === "down" ? "pothole" : "breaker", Math.max(pending.peak, Math.abs(v)), pending.t, speed, pending.first, true); pending = null; return v; }
         }
-        if (!pending) pending = { t, peak: Math.abs(v), windowEnd: t + expected * 1.35 + 60 };
+        if (!pending) pending = { t, peak: Math.abs(v), first: v > 0 ? "up" : "down", windowEnd: t + expected * 1.35 + 60 };
         else pending.peak = Math.max(pending.peak, Math.abs(v));
       }
       return v;
     }
 
-    function emit(type, peak, t, speed) { onEvent({ type, peakG: Math.round(peak * 100) / 100, t, speed }); }
+    function emit(type, peak, t, speed, first, pair) { onEvent({ type, peakG: Math.round(peak * 100) / 100, t, speed, first, pair }); }
     return { push, trace, cfg };
   }
 

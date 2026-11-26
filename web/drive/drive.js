@@ -28,7 +28,7 @@ function onJolt(e) {
   S.hits.push({ ts: Date.now(), type: e.type, peakG: e.peakG, road: $("mRoad").textContent, speed: Math.round(S.pos.speed * 3.6) }); renderCar();
   // In the car this is triggered by the tyre-pressure sensor; the demo uses the first hard pothole hit.
   if (e.type === "pothole" && e.peakG >= (S.mode === "demo" ? 0.5 : 0.9) && !S.agentDone.has("tyre")) setTimeout(() => tyreAgent(e), 3500);
-  const ev = { device: S.device, lat: +S.pos.lat.toFixed(6), lon: +S.pos.lon.toFixed(6), heading: Math.round(S.pos.heading ?? 0), speed: +(S.pos.speed * 3.6).toFixed(1), peak_g: e.peakG, type: e.type, ts: Date.now() };
+  const ev = { device: S.device, lat: +S.pos.lat.toFixed(6), lon: +S.pos.lon.toFixed(6), heading: Math.round(S.pos.heading ?? 0), speed: +(S.pos.speed * 3.6).toFixed(1), peak_g: e.peakG, type: e.type, first: e.first, pair: e.pair, ts: Date.now() };
   // Fully automatic: the driver is never asked. False alarms are filtered by machines, not people:
   // on the phone (below 8 km/h, phone being handled, weak GPS, the same spot twice in one pass) and in the
   // cloud (3 different cars must feel it; 8 cars passing smoothly removes it).
@@ -654,7 +654,10 @@ async function openReport(h) {
     };
   } catch { $("repDraft").textContent = "Reports need the server edition of Sadak Sense."; }
 }
-$("repBtn").onclick = () => openReport(S.alertHz);
+$("repBtn").onclick = (e) => { e.stopPropagation(); openReport(S.alertHz); };
+// Tap the warning to see why the fleet thinks it is a breaker or a pothole (14.3).
+$("alert").onclick = () => { const h = S.alertHz; if (!h || $("alert").className.includes("clear")) return; openConvo();
+  bubble("a", T3("Why this warning", "Ye chetavni kyon", "यह चेतावनी क्यों"), h.personal ? T3(`Your own car felt it here on ${h.days} days.`, `Aapki gaadi ne yahan ${h.days} din jhatka mehsoos kiya.`, `आपकी गाड़ी ने यहाँ ${h.days} दिन झटका महसूस किया।`) : `${h.devices} cars · ${(h.why || []).join(" · ")}`); };
 $("repClose").onclick = () => { $("repSheet").hidden = true; };
 SS.api("/api/voice/status").then((r) => { S.sarvam = !!r.sarvam; if (S.sarvam) fillVoices(); }).catch(() => {});
 SS.api("/api/report/status").then((r) => { S.reportable = !!r.channels; }).catch(() => {});
