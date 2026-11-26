@@ -773,6 +773,9 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
 .brief.show{display:block}
 .brief .label{margin-bottom:4px}
 .msgs div{white-space:pre-line}
+.env{margin:6px 14px 0;display:flex;gap:8px;align-items:center;justify-content:space-between;padding:7px 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-size:12px;color:var(--muted)}
+.env b{color:var(--fg);font-weight:600}.env .ea{font-family:var(--mono);font-size:10px;color:var(--accent);text-align:right}
+.env.warn{border-color:var(--breaker)}.env.bad{border-color:var(--pothole)}
 .simlist{display:grid;grid-template-columns:1fr 1fr;gap:6px}.simlist .btn{padding:9px;border-radius:12px;font-size:12px;text-align:left;line-height:1.25}
 .tourbar{position:absolute;top:calc(env(safe-area-inset-top,0px) + 52px);left:14px;right:14px;z-index:870;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--accent);color:#04201f;border-radius:12px;padding:6px 10px;font-size:12.5px;font-weight:600}
 .tourbar button{background:#04201f;color:#fff;border:0;border-radius:8px;padding:5px 10px;font:inherit}
@@ -803,6 +806,7 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
     <div class="dist" id="aD"></div>
   </div>
   <button class="car" id="carBar" type="button" aria-label="My car and road wear"><span class="cn" id="carName">My car</span><span class="cl" id="carLine">Checks every hazard against this car's clearance and load</span><span class="cw" id="carWear">wear 0%</span></button>
+  <div class="env" id="envBar" hidden><span id="envTxt"></span><span class="ea" id="envAct"></span></div>
   <div class="mid">
     <div class="speed"><span id="spd">0</span> <small>km/h</small></div>
     <div class="meta"><div><b id="mRoad">—</b></div><div>Hazards known nearby: <b id="mKnown">0</b></div><div>Jolts detected: <b id="mJolts">0</b></div></div>
@@ -1530,7 +1534,8 @@ window.SS = {
     underpass: "अंडरपास", uske: "उसके",
     wahan: "वहाँ", wapas: "वापस", wear: "वियर", wo: "वो",
     yahan: "यहाँ", ya: "या", zor: "ज़ोर", email: "ईमेल", paya: "पाया", poori: "पूरी", gayi: "गई", ye: "ये", safar: "सफ़र", khabar: "ख़बर", sadak: "सड़क", sense: "सेंस",
-    agent: "एजेंट", mode: "मोड", preview: "प्रीव्यू", salah: "सलाह", alert: "अलर्ट", bolkar: "बोलकर", anjaan: "अनजान", poochhti: "पूछती", naya: "नया", damage: "डैमेज", hui: "हुई", hata: "हटा", lagega: "लगेगा", passes: "पास", map: "मैप", apne: "अपने", hat: "हट", mera: "मेरा", plan: "प्लान", karo: "करो", kal: "कल", subah: "सुबह", baje: "बजे", gurgaon: "गुड़गाँव", office: "ऑफ़िस", jaana: "जाना", sab: "सब", set: "सेट", hard: "हार्ड", nikliye: "निकलिए", reminder: "रिमाइंडर", cabin: "केबिन", thanda: "ठंडा", nikalte: "निकलते", hi: "ही", taiyaar: "तैयार", city: "सिटी", complaint: "कंप्लेंट", din: "दिन", saboot: "सबूत", personal: "पर्सनल", data: "डेटा", portal: "पोर्टल", file: "फ़ाइल", aapka: "आपका", naam: "नाम", khat: "खट", visit: "विज़िट", hafte: "हफ़्ते", jhatke: "झटके", shanivaar: "शनिवार", pick: "पिक", up: "अप", hit: "हिट", technician: "टेक्नीशियन", bheja: "भेजा", poora: "पूरा", rahega: "रहेगा", jagah: "जगह",
+    agent: "एजेंट", mode: "मोड", preview: "प्रीव्यू", salah: "सलाह", alert: "अलर्ट", bolkar: "बोलकर", anjaan: "अनजान", poochhti: "पूछती", naya: "नया", damage: "डैमेज", hui: "हुई", hata: "हटा", lagega: "लगेगा", passes: "पास", map: "मैप", apne: "अपने", hat: "हट", mera: "मेरा", plan: "प्लान", karo: "करो", kal: "कल", subah: "सुबह", baje: "बजे", gurgaon: "गुड़गाँव", office: "ऑफ़िस", jaana: "जाना", sab: "सब", set: "सेट", hard: "हार्ड", nikliye: "निकलिए", reminder: "रिमाइंडर", cabin: "केबिन", thanda: "ठंडा", nikalte: "निकलते", hi: "ही", taiyaar: "तैयार", city: "सिटी", complaint: "कंप्लेंट", din: "दिन", saboot: "सबूत", personal: "पर्सनल", data: "डेटा", portal: "पोर्टल", file: "फ़ाइल", aapka: "आपका", naam: "नाम", khat: "खट", visit: "विज़िट", hafte: "हफ़्ते", jhatke: "झटके", shanivaar: "शनिवार", pick: "पिक", up: "अप", hit: "हिट", technician: "टेक्नीशियन", bheja: "भेजा", poora: "पूरा",
+    dhundh: "धुंध", dikh: "दिख", fog: "फ़ॉग", lights: "लाइट्स", on: "ऑन", doori: "दूरी", baarish: "बारिश", bhar: "भर", sakta: "सकता", atki: "अटकीं", hawa: "हवा", very: "वेरी", poor: "पुअर", moderate: "मॉडरेट", severe: "सीवियर", aqi: "ए क्यू आई", khidkiyan: "खिड़कियाँ", band: "बंद", air: "एयर", recirculation: "रीसर्कुलेशन", purifier: "प्यूरीफ़ायर", bahar: "बाहर", degree: "डिग्री", agli: "अगली", baar: "बार", baithne: "बैठने", bluelink: "ब्लूलिंक", app: "ऐप", ghante: "घंटे", chances: "चांसेज़", percent: "प्रतिशत", jaldi: "जल्दी", aksar: "अक्सर", bharta: "भरता", near: "नियर", miss: "मिस", zone: "ज़ोन", achanak: "अचानक", brake: "ब्रेक", wala: "वाला", lagaya: "लगाया", zyada: "ज़्यादा", tar: "तर", waqt: "वक़्त", lagati: "लगाती", mausam: "मौसम", rahega: "रहेगा", jagah: "जगह",
     ne: "ने", kiya: "किया", di: "दी", meri: "मेरी", liye: "लिए", hazard: "हैज़र्ड", kahin: "कहीं", laga: "लगा", lagta: "लगता", agle: "अगले", check: "चेक", mm: "मिलीमीटर", cm: "सेंटीमीटर", g: "जी",
   };
 
@@ -1612,7 +1617,15 @@ window.SS = {
       const u = new SpeechSynthesisUtterance(part);
       u.lang = p.code; u.rate = p.rate; u.pitch = p.pitch; if (p.voice) u.voice = p.voice;
       u.onstart = () => { if (!started) { started = true; clearTimeout(watchdog); on.start?.(p.voice ? p.voice.name : ""); } };
-      u.onerror = (e) => { if (e.error !== "canceled" && e.error !== "interrupted") { clearTimeout(watchdog); on.fail?.(e.error || "error"); } };
+      u.onerror = (e) => {
+        if (e.error === "canceled" || e.error === "interrupted" || mine !== turn) return;
+        // Online voices occasionally drop one line: retry it once before reporting a failure.
+        if (e.error === "synthesis-failed" && !u.retried) {
+          const again = new SpeechSynthesisUtterance(part); Object.assign(again, { lang: u.lang, rate: u.rate, pitch: u.pitch, voice: u.voice, onstart: u.onstart, onend: u.onend, onerror: u.onerror }); again.retried = true;
+          live.push(again); s.speak(again); return;
+        }
+        clearTimeout(watchdog); on.fail?.(e.error || "error");
+      };
       if (i === parts.length - 1) u.onend = () => on.end?.();
       return u;
     });
@@ -1665,6 +1678,79 @@ window.SS = {
   }
 
   return { CONFIG, DAILY_LIMIT, configured, validEmail, send };
+});
+
+</script>
+<script>
+// Sadak Sense air and weather: free Open-Meteo data (no key), turned into short in-car advice that the
+// car can act on: recirculate cabin air, pre-cool, fog lights, leave early before rain floods an
+// underpass. AQI uses India's CPCB National AQI breakpoints, applied to current PM levels (CPCB uses
+// 24-hour averages, so this is an indication). Pure functions plus one fetch; shared with the tests.
+(function (root, factory) {
+  if (typeof module === "object" && module.exports) module.exports = factory();
+  else root.SadakEnv = factory();
+})(typeof self !== "undefined" ? self : this, function () {
+  const PM25 = [[0, 30, 0, 50], [30, 60, 50, 100], [60, 90, 100, 200], [90, 120, 200, 300], [120, 250, 300, 400], [250, 500, 400, 500]];
+  const PM10 = [[0, 50, 0, 50], [50, 100, 50, 100], [100, 250, 100, 200], [250, 350, 200, 300], [350, 430, 300, 400], [430, 600, 400, 500]];
+  const BANDS = [[50, "Good"], [100, "Satisfactory"], [200, "Moderate"], [300, "Poor"], [400, "Very Poor"], [Infinity, "Severe"]];
+  const sub = (c, table) => {
+    if (!Number.isFinite(c) || c < 0) return null;
+    const [lo, hi, ilo, ihi] = table.find(([, h]) => c <= h) || table[table.length - 1];
+    return Math.round(Math.min(500, ilo + ((Math.min(c, hi) - lo) * (ihi - ilo)) / (hi - lo)));
+  };
+  // India National AQI: the worse of the PM2.5 and PM10 sub-indices.
+  function indiaAqi(pm25, pm10) {
+    const v = [sub(pm25, PM25), sub(pm10, PM10)].filter((x) => x != null);
+    if (!v.length) return null;
+    const aqi = Math.max(...v);
+    return { aqi, band: BANDS.find(([max]) => aqi <= max)[1] };
+  }
+
+  const SKY = (code) => code == null ? "" : code === 0 ? "Clear" : code <= 3 ? "Cloudy" : code <= 48 ? "Fog" : code <= 67 || (code >= 80 && code <= 82) ? "Rain" : code <= 77 ? "Snow" : code >= 95 ? "Thunderstorm" : "Rain";
+
+  // env: { tempC, code, rainMm, visibilityM, rainProbNext2h, pm25, pm10 }
+  // Returns advice, most important first: { key, level: "warn" | "info", text, act }
+  function advise(env, lang = "English") {
+    const T = (en, hl, hi) => ({ English: en, Hinglish: hl, Hindi: hi }[lang] || en);
+    const out = [], a = indiaAqi(env.pm25, env.pm10);
+    if (Number.isFinite(env.visibilityM) && env.visibilityM < 1000) {
+      const m = Math.max(50, Math.round(env.visibilityM / 50) * 50);
+      out.push({ key: "fog", level: "warn", act: T("Fog lights on (demo)", "Fog lights on (demo)", "फ़ॉग लाइट चालू (डेमो)"),
+        text: T(`Fog ahead: visibility about ${m} metres. Fog lights are on; keep extra distance.`, `Aage dhundh hai, lagbhag ${m} metre tak hi dikh raha hai. Fog lights on kar di hain, doori rakhiye.`, `आगे धुंध है, लगभग ${m} मीटर तक ही दिख रहा है। फ़ॉग लाइट चालू कर दी हैं, दूरी रखें।`) });
+    }
+    if ((env.rainMm || 0) >= 0.5 || (env.rainProbNext2h || 0) >= 60) {
+      const now = (env.rainMm || 0) >= 0.5;
+      out.push({ key: "rain", level: "warn", act: T("Underpass watch on", "Underpass watch on", "अंडरपास पर नज़र"),
+        text: now ? T("It is raining. Underpasses on your route can flood; I will warn you if cars start getting stuck.", "Baarish ho rahi hai. Raaste ke underpass mein paani bhar sakta hai, gaadiyan atki toh main bata dunga.", "बारिश हो रही है। रास्ते के अंडरपास में पानी भर सकता है, गाड़ियाँ अटकीं तो मैं बता दूँगा।")
+          : T(`Rain is likely in the next 2 hours (${env.rainProbNext2h}%). Leave a little early; underpasses on your route flood often.`, `Agle 2 ghante mein baarish ke chances hain, ${env.rainProbNext2h} percent. Thoda jaldi nikliye, raaste ke underpass mein aksar paani bharta hai.`, `अगले 2 घंटे में बारिश की संभावना ${env.rainProbNext2h} प्रतिशत है। थोड़ा जल्दी निकलें, रास्ते के अंडरपास में अक्सर पानी भरता है।`) });
+    }
+    if (a && a.aqi > 200) {
+      out.push({ key: "aqi", level: "warn", act: T("Cabin air: recirculate + purifier (demo)", "Cabin air: recirculate + purifier (demo)", "केबिन हवा: रीसर्कुलेट + प्यूरीफ़ायर (डेमो)"),
+        text: T(`Air quality is ${a.band}, AQI ${a.aqi}. Windows up; I have switched the cabin to recirculation with the air purifier.`, `Hawa ${a.band} hai, AQI ${a.aqi}. Khidkiyan band rakhiye, maine cabin air recirculation aur purifier on kar diya hai.`, `हवा ${a.band} है, AQI ${a.aqi}। खिड़कियाँ बंद रखें, मैंने केबिन हवा रीसर्कुलेशन और प्यूरीफ़ायर चालू कर दिया है।`) });
+    }
+    if (Number.isFinite(env.tempC) && env.tempC >= 38) {
+      out.push({ key: "heat", level: "info", act: T("Pre-cool from the app", "App se pre-cool", "ऐप से पहले ठंडा करें"),
+        text: T(`It is ${Math.round(env.tempC)}°C outside. Next time, pre-cool the cabin from the Bluelink app before you get in.`, `Bahar ${Math.round(env.tempC)} degree hai. Agli baar baithne se pehle Bluelink app se cabin thanda kar lijiye.`, `बाहर ${Math.round(env.tempC)} डिग्री है। अगली बार बैठने से पहले Bluelink ऐप से केबिन ठंडा कर लें।`) });
+    }
+    return out;
+  }
+
+  // Live data for a point. Resolves to env, or null when offline: the app then simply shows nothing.
+  async function fetchEnv(lat, lon, deps = {}) {
+    const get = deps.fetch || fetch.bind(globalThis);
+    const q = `latitude=${lat.toFixed(3)}&longitude=${lon.toFixed(3)}&timezone=Asia%2FKolkata`;
+    const timed = (url) => Promise.race([get(url).then((r) => (r.ok ? r.json() : null)), new Promise((r) => setTimeout(() => r(null), 6000))]).catch(() => null);
+    const [w, air] = await Promise.all([
+      timed(`https://api.open-meteo.com/v1/forecast?${q}&current=temperature_2m,precipitation,weather_code,visibility&hourly=precipitation_probability&forecast_hours=2`),
+      timed(`https://air-quality-api.open-meteo.com/v1/air-quality?${q}&current=pm2_5,pm10`),
+    ]);
+    if (!w && !air) return null;
+    const c = w?.current || {}, ac = air?.current || {};
+    return { tempC: c.temperature_2m, code: c.weather_code, rainMm: c.precipitation, visibilityM: c.visibility,
+      rainProbNext2h: Math.max(0, ...((w?.hourly?.precipitation_probability || []).filter(Number.isFinite))), pm25: ac.pm2_5, pm10: ac.pm10 };
+  }
+
+  return { indiaAqi, SKY, advise, fetchEnv };
 });
 
 </script>
@@ -1736,7 +1822,7 @@ window.SS = {
 // reporting, clean-pass reporting, and voice alerts for hazards confirmed by other cars.
 const $ = (id) => document.getElementById(id);
 const G = 9.80665;
-const S = { mode: null, lang: "Hinglish", voice: true, rain: false, pos: null, known: [], alerted: new Map(), queue: [], sent: 0, jolts: 0, recent: [], track: new Map(), device: null, lastFetch: 0, car: "creta", people: 4, hits: [], carCheck: null, agentDone: new Set(), pendingAgent: null, reroute: null };
+const S = { mode: null, lang: "Hinglish", voice: true, rain: false, pos: null, known: [], alerted: new Map(), queue: [], sent: 0, jolts: 0, recent: [], track: new Map(), device: null, lastFetch: 0, car: "creta", people: 4, hits: [], carCheck: null, envQueue: [], agentDone: new Set(), pendingAgent: null, reroute: null };
 
 /* ---------- identity: anonymous ID that rotates daily ---------- */
 async function dailyId() {
@@ -2112,6 +2198,18 @@ const STEPS = {
   flood: [T3("Flooded underpass: reroute, home", "Paani bhara underpass: naya raasta, ghar", "जलभराव: नया रास्ता, घर"), async () => {
     clearPending(); simAlert("water", 350, 35); await spoken();
     floodAgent({ id: "sim" + Date.now(), devices: 35 }); await spoken(); await ask(YES[S.lang]); await spoken(); }],
+  nearmiss: [T3("Near-miss zone: sudden braking", "Near-miss zone: achanak brake", "नियर-मिस ज़ोन: अचानक ब्रेक"), async () => {
+    const el = $("alert"); el.className = "alert pothole"; el.querySelector(".ic").textContent = "!";
+    $("aT").textContent = T3("Sudden braking zone ahead", "Aage achanak brake wala zone", "आगे अचानक ब्रेक वाला ज़ोन");
+    $("aS").textContent = T3("27 cars braked hard here this week, mostly 6–8 pm", "Is hafte 27 gaadiyon ne yahan zor se brake lagaya, zyada tar shaam 6 se 8", "इस हफ़्ते 27 गाड़ियों ने यहाँ ज़ोर से ब्रेक लगाया, ज़्यादातर शाम 6 से 8");
+    $("aD").innerHTML = `200<small>metres</small>`; chime();
+    say(T3("Sudden braking is common here at this hour. Take it slow.", "Is waqt yahan gaadiyan achanak brake lagati hain. Dheere chaliye.", "इस समय यहाँ गाड़ियाँ अचानक ब्रेक लगाती हैं। धीरे चलें।")); await spoken(); }],
+  air: [T3("Air and weather: fog, AQI", "Hawa aur mausam: dhundh, AQI", "हवा और मौसम: धुंध, AQI"), async () => {
+    const tips = renderEnv({ tempC: 14, code: 45, visibilityM: 380, rainMm: 0, rainProbNext2h: 0, pm25: 185, pm10: 270 }, true);
+    openConvo();
+    const warn = tips.filter((t) => t.level === "warn");
+    warn.forEach((t) => bubble("a", T3("Air and weather", "Hawa aur mausam", "हवा और मौसम"), t.text));
+    say(warn.map((t) => t.text).slice(0, 2).join(" ").replace(/, lagbhag [^,]*,/, ",").replace(/ Fog lights on kar di hain, doori rakhiye\./, "")); await spoken(); }],
   wear: [T3("Road wear and damage log", "Road wear aur damage log", "रोड वियर और डैमेज लॉग"), async () => {
     $("convo").hidden = true; $("health").hidden = false; renderHealth(); say(T3("Here is this car's road wear and damage log.", "Ye hai is gaadi ka road wear aur damage log.", "यह है इस गाड़ी का रोड वियर और डैमेज लॉग।")); await spoken(); await pause(800); $("health").hidden = true; }],
   repair: [T3("Road repaired: hazard removed", "Sadak theek hui: hazard hata", "सड़क ठीक हुई: ख़तरा हटा"), async () => {
@@ -2133,11 +2231,11 @@ const STEPS = {
     [T3("41 hard hits this week", "Is hafte 41 zor ke jhatke", "इस हफ़्ते 41 ज़ोर के झटके"), T3("Saturday 10:30, with pick-up", "Shanivaar 10:30, pick-up ke saath", "शनिवार 10:30, पिक-अप के साथ"), T3("Hit log sent to the technician", "Hit log technician ko bheja", "हिट लॉग तकनीशियन को भेजा")],
     T3("Booked for Saturday at 10:30 with pick-up, and the technician has your hit log.", "Shanivaar 10:30 ka slot pick-up ke saath book ho gaya, aur technician ko hit log bhej diya.", "शनिवार 10:30 का स्लॉट पिक-अप के साथ बुक हो गया, और तकनीशियन को हिट लॉग भेज दिया।"))],
 };
-const TOUR = ["brief", "breaker", "ask", "car", "jolt", "report", "tyre", "flood", "wear", "repair", "planDrive", "planCity", "planService"];
+const TOUR = ["brief", "air", "breaker", "nearmiss", "ask", "car", "jolt", "tyre", "flood", "wear", "planDrive", "planService"];
 async function runStep(key) {
   try { await STEPS[key][1](); } catch (e) { console.warn("simulate step skipped", key, e); }
 }
-function simEnd() { S.simHold = false; S.tour = false; clearPending(); $("tourBar").hidden = true; $("brief").classList.remove("show"); $("health").hidden = true; }
+function simEnd() { S.simHold = false; S.tour = false; clearPending(); if (S.env) renderEnv(S.env); $("tourBar").hidden = true; $("brief").classList.remove("show"); $("health").hidden = true; }
 async function simOne(key) {
   if (S.tour) return;
   $("simSheet").hidden = true; S.simHold = true; S.simRun = (S.simRun || 0) + 1; const run = S.simRun;
@@ -2167,6 +2265,36 @@ $("simAll").onclick = () => tour();
 $("tourStop").onclick = () => { S.tourStop = true; try { speechSynthesis.cancel(); } catch {} };
 $("fullBtn").onclick = async () => { $("route").value = "cp-minto"; $("rain").checked = true; await go("demo"); await pause(1200); tour(); };
 
+/* ---------- air and weather: free Open-Meteo data, advice the car can act on ---------- */
+const AQI_TONE = { Good: "", Satisfactory: "", Moderate: "warn", Poor: "bad", "Very Poor": "bad", Severe: "bad" };
+function renderEnv(env, sample) {
+  if (!env) return;
+  const a = SadakEnv.indiaAqi(env.pm25, env.pm10), bar = $("envBar"), tips = SadakEnv.advise(env, S.lang);
+  const parts = [];
+  if (Number.isFinite(env.tempC)) parts.push(`<b>${Math.round(env.tempC)}°C</b> ${SadakEnv.SKY(env.code)}`);
+  if (a) parts.push(`AQI <b>${a.aqi}</b> ${a.band}`);
+  if (Number.isFinite(env.visibilityM) && env.visibilityM < 2000) parts.push(`visibility <b>${Math.round(env.visibilityM)} m</b>`);
+  $("envTxt").innerHTML = parts.join(" · ") + (sample ? " · sample" : "");
+  $("envAct").textContent = tips[0]?.act || "";
+  bar.className = "env " + (tips.some((t) => t.key === "fog" || t.key === "rain") ? "warn" : a ? AQI_TONE[a.band] || "" : "");
+  bar.hidden = false;
+  return tips;
+}
+async function refreshEnv() {
+  const p = S.pos || { lat: 28.6315, lon: 77.2167 };
+  const env = await SadakEnv.fetchEnv(p.lat, p.lon);
+  if (!env) return;
+  S.env = env;
+  if (S.simHold) return; // shown when the simulation ends
+  for (const t of renderEnv(env) || []) if (t.level === "warn" && !S.envSaid?.has(t.key)) S.envQueue.push(t);
+}
+// Spoken only at a calm moment: no hazard on the card, no question waiting, not during a simulation.
+function deliverEnv() {
+  if (!S.envQueue?.length || S.simHold || S.pendingAgent || S.pendingJolt || !$("alert").className.includes("clear")) return;
+  const t = S.envQueue.shift(); (S.envSaid ||= new Set()).add(t.key);
+  openConvo(); bubble("a", T3("Air and weather", "Hawa aur mausam", "हवा और मौसम"), t.text); say(t.text);
+}
+
 async function go(mode) {
   S.mode = mode; S.lang = $("lang").value; S.rain = $("rain").checked; S.device = await dailyId();
   S.car = $("carSel").value; S.people = +$("people").value; S.homeOn = $("homeOn").checked; S.homeMail = SadakMail.validEmail($("homeMail").value) ? $("homeMail").value.trim() : "";
@@ -2177,6 +2305,7 @@ async function go(mode) {
   if (mode === "demo") { $("briefBtn").hidden = true; $("simBtn").hidden = false; }
   if (mode === "real") await startReal(); else await startDemo($("route").value);
   setInterval(tick, 400); setInterval(flush, 3000); drawTrace();
+  refreshEnv(); setInterval(refreshEnv, 10 * 60e3); setInterval(deliverEnv, 3000);
 }
 $("realBtn").onclick = () => go("real");
 $("demoBtn").onclick = () => go("demo");

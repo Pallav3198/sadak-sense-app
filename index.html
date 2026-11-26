@@ -1400,7 +1400,8 @@ window.SS = {
     underpass: "अंडरपास", uske: "उसके",
     wahan: "वहाँ", wapas: "वापस", wear: "वियर", wo: "वो",
     yahan: "यहाँ", ya: "या", zor: "ज़ोर", email: "ईमेल", paya: "पाया", poori: "पूरी", gayi: "गई", ye: "ये", safar: "सफ़र", khabar: "ख़बर", sadak: "सड़क", sense: "सेंस",
-    agent: "एजेंट", mode: "मोड", preview: "प्रीव्यू", salah: "सलाह", alert: "अलर्ट", bolkar: "बोलकर", anjaan: "अनजान", poochhti: "पूछती", naya: "नया", damage: "डैमेज", hui: "हुई", hata: "हटा", lagega: "लगेगा", passes: "पास", map: "मैप", apne: "अपने", hat: "हट", mera: "मेरा", plan: "प्लान", karo: "करो", kal: "कल", subah: "सुबह", baje: "बजे", gurgaon: "गुड़गाँव", office: "ऑफ़िस", jaana: "जाना", sab: "सब", set: "सेट", hard: "हार्ड", nikliye: "निकलिए", reminder: "रिमाइंडर", cabin: "केबिन", thanda: "ठंडा", nikalte: "निकलते", hi: "ही", taiyaar: "तैयार", city: "सिटी", complaint: "कंप्लेंट", din: "दिन", saboot: "सबूत", personal: "पर्सनल", data: "डेटा", portal: "पोर्टल", file: "फ़ाइल", aapka: "आपका", naam: "नाम", khat: "खट", visit: "विज़िट", hafte: "हफ़्ते", jhatke: "झटके", shanivaar: "शनिवार", pick: "पिक", up: "अप", hit: "हिट", technician: "टेक्नीशियन", bheja: "भेजा", poora: "पूरा", rahega: "रहेगा", jagah: "जगह",
+    agent: "एजेंट", mode: "मोड", preview: "प्रीव्यू", salah: "सलाह", alert: "अलर्ट", bolkar: "बोलकर", anjaan: "अनजान", poochhti: "पूछती", naya: "नया", damage: "डैमेज", hui: "हुई", hata: "हटा", lagega: "लगेगा", passes: "पास", map: "मैप", apne: "अपने", hat: "हट", mera: "मेरा", plan: "प्लान", karo: "करो", kal: "कल", subah: "सुबह", baje: "बजे", gurgaon: "गुड़गाँव", office: "ऑफ़िस", jaana: "जाना", sab: "सब", set: "सेट", hard: "हार्ड", nikliye: "निकलिए", reminder: "रिमाइंडर", cabin: "केबिन", thanda: "ठंडा", nikalte: "निकलते", hi: "ही", taiyaar: "तैयार", city: "सिटी", complaint: "कंप्लेंट", din: "दिन", saboot: "सबूत", personal: "पर्सनल", data: "डेटा", portal: "पोर्टल", file: "फ़ाइल", aapka: "आपका", naam: "नाम", khat: "खट", visit: "विज़िट", hafte: "हफ़्ते", jhatke: "झटके", shanivaar: "शनिवार", pick: "पिक", up: "अप", hit: "हिट", technician: "टेक्नीशियन", bheja: "भेजा", poora: "पूरा",
+    dhundh: "धुंध", dikh: "दिख", fog: "फ़ॉग", lights: "लाइट्स", on: "ऑन", doori: "दूरी", baarish: "बारिश", bhar: "भर", sakta: "सकता", atki: "अटकीं", hawa: "हवा", very: "वेरी", poor: "पुअर", moderate: "मॉडरेट", severe: "सीवियर", aqi: "ए क्यू आई", khidkiyan: "खिड़कियाँ", band: "बंद", air: "एयर", recirculation: "रीसर्कुलेशन", purifier: "प्यूरीफ़ायर", bahar: "बाहर", degree: "डिग्री", agli: "अगली", baar: "बार", baithne: "बैठने", bluelink: "ब्लूलिंक", app: "ऐप", ghante: "घंटे", chances: "चांसेज़", percent: "प्रतिशत", jaldi: "जल्दी", aksar: "अक्सर", bharta: "भरता", near: "नियर", miss: "मिस", zone: "ज़ोन", achanak: "अचानक", brake: "ब्रेक", wala: "वाला", lagaya: "लगाया", zyada: "ज़्यादा", tar: "तर", waqt: "वक़्त", lagati: "लगाती", mausam: "मौसम", rahega: "रहेगा", jagah: "जगह",
     ne: "ने", kiya: "किया", di: "दी", meri: "मेरी", liye: "लिए", hazard: "हैज़र्ड", kahin: "कहीं", laga: "लगा", lagta: "लगता", agle: "अगले", check: "चेक", mm: "मिलीमीटर", cm: "सेंटीमीटर", g: "जी",
   };
 
@@ -1482,7 +1483,15 @@ window.SS = {
       const u = new SpeechSynthesisUtterance(part);
       u.lang = p.code; u.rate = p.rate; u.pitch = p.pitch; if (p.voice) u.voice = p.voice;
       u.onstart = () => { if (!started) { started = true; clearTimeout(watchdog); on.start?.(p.voice ? p.voice.name : ""); } };
-      u.onerror = (e) => { if (e.error !== "canceled" && e.error !== "interrupted") { clearTimeout(watchdog); on.fail?.(e.error || "error"); } };
+      u.onerror = (e) => {
+        if (e.error === "canceled" || e.error === "interrupted" || mine !== turn) return;
+        // Online voices occasionally drop one line: retry it once before reporting a failure.
+        if (e.error === "synthesis-failed" && !u.retried) {
+          const again = new SpeechSynthesisUtterance(part); Object.assign(again, { lang: u.lang, rate: u.rate, pitch: u.pitch, voice: u.voice, onstart: u.onstart, onend: u.onend, onerror: u.onerror }); again.retried = true;
+          live.push(again); s.speak(again); return;
+        }
+        clearTimeout(watchdog); on.fail?.(e.error || "error");
+      };
       if (i === parts.length - 1) u.onend = () => on.end?.();
       return u;
     });
