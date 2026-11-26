@@ -1,14 +1,22 @@
 # One-click deploy on Render (render.com): New + > Blueprint > pick this repo.
+# Secrets (sync: false) are typed into the Render dashboard by the owner; they never live in this repo.
 services:
   - type: web
     name: sadak-sense
     runtime: docker
     plan: free
+    region: singapore           # closest free region to India
     healthCheckPath: /healthz
     envVars:
       - key: AUTOSTART_SIM        # start the virtual fleet on boot so the console is live for demos
         value: "true"
       - key: ENABLE_SIM
         value: "true"
-      - key: ANTHROPIC_API_KEY    # optional: natural-language morning brief via Claude; templates otherwise
+      - key: SARVAM_API_KEY       # Sarvam AI: speech in/out in 8 Indian languages (dashboard.sarvam.ai)
+        sync: false
+      - key: RESEND_API_KEY       # Resend: real complaint and city-report emails (resend.com)
+        sync: false
+      - key: REPORT_TO            # pilot test inbox that receives every report (never a government office yet)
+        sync: false
+      - key: ANTHROPIC_API_KEY    # optional: natural-language morning brief; templates otherwise
         sync: false

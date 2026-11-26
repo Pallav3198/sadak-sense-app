@@ -4,8 +4,8 @@
   "description": "Fleet-learned road hazard alerts: connected cars sense potholes, speed breakers and waterlogging; the cloud confirms; the next driver is warned.",
   "main": "server/index.js",
   "scripts": {
-    "start": "node --no-warnings server/index.js",
-    "test": "node --no-warnings --test test/engine.test.js test/detector.test.js test/api.test.js test/hinglish.test.js test/mycar.test.js test/voice.test.js test/mail.test.js test/env.test.js",
+    "start": "node --no-warnings --env-file-if-exists=.env server/index.js",
+    "test": "node --no-warnings --test test/engine.test.js test/detector.test.js test/api.test.js test/hinglish.test.js test/mycar.test.js test/voice.test.js test/mail.test.js test/env.test.js test/real.test.js",
     "sim": "node --no-warnings sim/fleet.js"
   },
   "engines": { "node": ">=22.13" },

@@ -33,6 +33,8 @@ class Engine {
       upd: db.prepare("UPDATE hazards SET lat=?,lon=?,heading=?,type=?,state=?,confirmed_ts=COALESCE(confirmed_ts,?),last_hit_ts=?,severity=?,clean_streak=0,n_events=n_events+1 WHERE id=?"),
       setState: db.prepare("UPDATE hazards SET state=?, cleared_ts=? WHERE id=?"),
       streak: db.prepare("UPDATE hazards SET clean_streak = clean_streak + 1 WHERE id = ?"),
+      // Felt by a real phone or car (not the virtual demo fleet)?
+      realOf: db.prepare("SELECT COUNT(DISTINCT device) AS n FROM events WHERE hazard_id = ? AND source != 'sim'"),
     };
   }
 
@@ -122,13 +124,13 @@ class Engine {
     return {
       id: h.id, type: h.type, family: h.family, lat: round(h.lat, 6), lon: round(h.lon, 6), heading: h.heading == null ? null : Math.round(h.heading),
       state: h.state, severity: h.severity == null ? null : round(h.severity, 2), cleanStreak: h.clean_streak, events: h.n_events,
-      devices: this.q.devices.get(h.id, ref - windowMs).n, createdTs: h.created_ts, confirmedTs: h.confirmed_ts, clearedTs: h.cleared_ts, lastHitTs: h.last_hit_ts,
+      devices: this.q.devices.get(h.id, ref - windowMs).n, realDevices: this.q.realOf.get(h.id).n, createdTs: h.created_ts, confirmedTs: h.confirmed_ts, clearedTs: h.cleared_ts, lastHitTs: h.last_hit_ts,
     };
   }
 
-  list({ lat, lon, radius = 5000, states = ["candidate", "confirmed"], since } = {}) {
+  list({ lat, lon, radius = 5000, states = ["candidate", "confirmed"], since, realOnly = false } = {}) {
     const rows = this.db.prepare(`SELECT id FROM hazards WHERE state IN (${states.map(() => "?").join(",")})${since ? " AND COALESCE(cleared_ts, last_hit_ts) >= ?" : ""}`).all(...states, ...(since ? [since] : []));
-    return rows.map((r) => this.hazard(r.id)).filter((h) => lat == null || haversine(lat, lon, h.lat, h.lon) <= radius);
+    return rows.map((r) => this.hazard(r.id)).filter((h) => (lat == null || haversine(lat, lon, h.lat, h.lon) <= radius) && (!realOnly || h.realDevices > 0));
   }
 
   // Confirmed hazards along a route polyline, in driving order.

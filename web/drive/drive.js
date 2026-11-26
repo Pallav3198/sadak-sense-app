@@ -39,7 +39,27 @@ function onJolt(e) {
 /* ---------- voice + chime ---------- */
 let actx = null;
 function chime() { try { actx = actx || new AudioContext(); [880, 660].forEach((f, i) => { const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = f; o.connect(g); g.connect(actx.destination); const t = actx.currentTime + i * 0.18; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16); o.start(t); o.stop(t + 0.18); }); } catch {} }
-function say(text) { if (S.voice) SadakSpeech.speak(text, S.lang); }
+// Languages beyond English/Hinglish/Hindi: the app writes in English and the server translates and speaks.
+const EXTRA = ["Tamil", "Telugu", "Malayalam", "Kannada", "Bengali"];
+const CODES = Object.fromEntries([["English", "en"], ["Hinglish", "hi"], ["Hindi", "hi"], ["Tamil", "ta"], ["Telugu", "te"], ["Malayalam", "ml"], ["Kannada", "kn"], ["Bengali", "bn"]].map(([k, c]) => [k, c + "-IN"]));
+const voiceLang = () => S.replyVoice || (EXTRA.includes(S.voiceLang) ? S.voiceLang : S.lang);
+let player = null, sayTurn = 0;
+// Sarvam (server) when available: natural Indian voices in 8 languages. Otherwise the browser's own voice.
+async function say(text) {
+  if (!S.voice || !text) return;
+  if (!S.sarvam) return SadakSpeech.speak(text, S.lang);
+  const mine = ++sayTurn, lang = voiceLang(), written = S.lang; S.audioBusy = true;
+  try { player?.pause(); } catch {}
+  try {
+    const r = await SS.api("/api/voice/say", { text, lang, writtenIn: written });
+    if (mine !== sayTurn) return;
+    if (!r.audio) throw new Error(r.error || "no audio");
+    if (EXTRA.includes(lang) && r.text && $("convo") && !$("convo").hidden) bubble("a", lang, r.text);
+    player = new Audio("data:audio/wav;base64," + r.audio);
+    player.onended = player.onerror = () => { if (mine === sayTurn) S.audioBusy = false; };
+    await player.play();
+  } catch { if (mine === sayTurn) { S.audioBusy = false; SadakSpeech.speak(text, S.lang); } }
+}
 const PHRASE = {
   breaker: { English: (d) => [`Speed breaker in ${d} metres`, "Slow to 20"], Hinglish: (d) => [`${d} metre mein speed breaker`, "20 ki speed rakhiye"], Hindi: (d) => [`${d} मीटर पर स्पीड ब्रेकर`, "गति 20 रखें"] },
   pothole: { English: (d) => [`Pothole in ${d} metres`, "Keep right if safe"], Hinglish: (d) => [`${d} metre mein gaddha`, "Ho sake toh right rahiye"], Hindi: (d) => [`${d} मीटर पर गड्ढा`, "संभव हो तो दाईं ओर रहें"] },
@@ -121,10 +141,11 @@ function tick() {
     el.className = "alert " + next.type; el.querySelector(".ic").textContent = SS.SYM[next.type];
     $("aT").textContent = t; $("aS").textContent = v.kind === "pothole" ? `${s} · felt by ${next.devices} cars` : `Felt by ${next.devices} cars`;
     $("aD").innerHTML = `${dist}<small>metres</small>`;
+    S.alertHz = next; $("repBtn").hidden = !S.reportable;
     const last = S.alerted.get(next.id) || 0;
     if (nextD <= warnD && Date.now() - last > 10 * 60e3) { S.alerted.set(next.id, Date.now()); chime(); setTimeout(() => say(`${t}. ${cl}`), 400); }
   } else {
-    el.className = "alert clear"; el.querySelector(".ic").textContent = "✓";
+    el.className = "alert clear"; el.querySelector(".ic").textContent = "✓"; $("repBtn").hidden = true;
     $("aT").textContent = { English: "Road ahead is clear", Hinglish: "Aage raasta saaf hai", Hindi: "आगे रास्ता साफ़ है" }[S.lang];
     $("aS").textContent = `No confirmed hazards in the next ${Math.round(warnD + 150)} m`; $("aD").textContent = "";
   }
@@ -311,7 +332,8 @@ function tyreAgent(e) {
 /* ---------- voice picker: Indian voices for the chosen language, best first ---------- */
 const SAMPLE = { English: "Speed breaker in 110 metres. Slow to 20.", Hinglish: "110 metre mein speed breaker hai. 20 ki speed rakhiye.", Hindi: "110 मीटर पर स्पीड ब्रेकर है। गति 20 रखें।" };
 async function fillVoices() {
-  const all = await SadakSpeech.voices(), lang = $("lang").value, list = SadakSpeech.rank(all, lang), sel = $("voiceSel"), keep = SadakSpeech.chosen();
+  if (S.sarvam) { const sel = $("voiceSel"); sel.innerHTML = '<option value="">Sarvam natural Indian voice</option>'; $("voiceHint").textContent = "Natural Indian voice in 8 languages"; return; }
+  const all = await SadakSpeech.voices(), lang = EXTRA.includes($("lang").value) ? "English" : $("lang").value, list = SadakSpeech.rank(all, lang), sel = $("voiceSel"), keep = SadakSpeech.chosen();
   sel.innerHTML = "";
   list.forEach((v, i) => { const o = document.createElement("option"); o.value = v.name; o.textContent = (i ? "" : "Best: ") + v.name.replace(/^Microsoft /, "").replace(/ (Online )?\(Natural\)/, "").replace(/ - .*$/, ""); sel.append(o); });
   if (!list.length) { const o = document.createElement("option"); o.value = ""; o.textContent = "No Indian voice in this browser"; sel.append(o); }
@@ -323,6 +345,10 @@ $("voiceSel").onchange = () => SadakSpeech.choose($("voiceSel").value);
 $("voiceTest").onclick = () => {
   const hint = $("voiceHint"), said = (t) => { hint.textContent = t; };
   SadakSpeech.choose($("voiceSel").value); said("Starting the voice…");
+  if (S.sarvam) {
+    const l = $("lang").value; S.voice = true; S.voiceLang = l; S.lang = EXTRA.includes(l) ? "English" : l;
+    say(SAMPLE[S.lang]); said(`Speaking in ${l}. Can't hear it? Check your volume.`); return;
+  }
   SadakSpeech.speak(SAMPLE[$("lang").value], $("lang").value, {
     start: (name) => said(`Speaking now${name ? ": " + name.replace(/^Microsoft /, "").replace(/ (Online )?\(Natural\)/, "").replace(/ - .*$/, "") : ""}. Can't hear it? Check your volume and this tab isn't muted.`),
     end: () => said("Done. Press again to replay."),
@@ -341,7 +367,7 @@ const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 async function spoken() {
   await pause(S.voice && typeof speechSynthesis !== "undefined" && speechSynthesis.getVoices().length ? 1900 : 1400);
   const t0 = Date.now();
-  while (typeof speechSynthesis !== "undefined" && (speechSynthesis.speaking || speechSynthesis.pending) && Date.now() - t0 < 16000) await pause(200);
+  while (((typeof speechSynthesis !== "undefined" && (speechSynthesis.speaking || speechSynthesis.pending)) || S.audioBusy) && Date.now() - t0 < 16000) await pause(200);
   await pause(350);
 }
 function simAlert(type, dist, devices, severity) {
@@ -476,7 +502,8 @@ function deliverEnv() {
 }
 
 async function go(mode) {
-  S.mode = mode; S.lang = $("lang").value; S.rain = $("rain").checked; S.device = await dailyId();
+  S.mode = mode; S.voiceLang = $("lang").value; S.lang = EXTRA.includes(S.voiceLang) ? "English" : S.voiceLang;
+  if (EXTRA.includes(S.voiceLang)) $("convoLbl").textContent = `Speak in ${S.voiceLang}, English or Hindi`; S.rain = $("rain").checked; S.device = await dailyId();
   S.car = $("carSel").value; S.people = +$("people").value; S.homeOn = $("homeOn").checked; S.homeMail = SadakMail.validEmail($("homeMail").value) ? $("homeMail").value.trim() : "";
   try { S.homeMail ? localStorage.setItem("ss-home-mail", S.homeMail) : localStorage.removeItem("ss-home-mail"); } catch {} S.hits = seedHits(); renderCar();
   // Browser-only edition: this page runs its own virtual fleet, so rain floods its underpass too.
@@ -508,8 +535,8 @@ let rec = null, listening = false;
 const CHIPS = { Hinglish: ["Aage koi gaddha hai?", "Meri gaadi nikal jayegi?", "Underpass mein paani hai kya?", "Yahan bada gaddha hai", "Aaj ka road brief do"], Hindi: ["आगे कोई गड्ढा है?", "मेरी गाड़ी निकल जाएगी?", "अंडरपास में पानी है क्या?", "यहाँ बड़ा गड्ढा है", "आज का रोड ब्रीफ़ दो"], English: ["Any pothole ahead?", "Will my car make it?", "Is the underpass flooded?", "Pothole here", "Give me today's road brief"] };
 function bubble(cls, who, text) { const d = document.createElement("div"); d.className = cls; d.innerHTML = `<span class="who">${who}</span>`; d.append(document.createTextNode(text)); $("msgs").append(d); $("msgs").scrollTop = 1e6; while ($("msgs").children.length > 8) $("msgs").firstChild.remove(); }
 function openConvo() { $("convo").hidden = false; $("chips").innerHTML = ""; for (const c of CHIPS[S.lang]) { const b = document.createElement("button"); b.className = "btn"; b.type = "button"; b.textContent = c; b.onclick = () => ask(c); $("chips").append(b); } }
-async function ask(text) {
-  openConvo(); bubble("u", S.lang === "English" ? "You" : "Aap", text);
+async function ask(text, shown) {
+  openConvo(); bubble("u", S.lang === "English" ? "You" : "Aap", shown || text);
   const itn = SadakVoice.intent(text).name;
   if (S.pendingAgent && (itn === "yes" || itn === "no")) return resolveAgent(itn === "yes");
   if (itn === "ask_car") {
@@ -538,10 +565,33 @@ function resolveJolt(ok, timeout) {
   if (ok) { ev.confirmed = !timeout; S.queue.push(ev); } else { S.jolts = Math.max(0, S.jolts - 1); $("mJolts").textContent = S.jolts; $("tNote").textContent = "driver said no · jolt not reported"; }
   if (timeout) bubble("a", "Sadak Sense", { English: "No answer, reporting it from the sensors.", Hinglish: "Jawab nahi mila, sensor ke hisaab se report kar diya.", Hindi: "जवाब नहीं मिला, सेंसर के आधार पर रिपोर्ट कर दिया।" }[S.lang]);
 }
+let recorder = null;
+async function listenSarvam() {
+  if (recorder) { recorder.stop(); return; }
+  let stream; try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch { $("micState").textContent = "mic blocked · type instead"; return; }
+  const parts = [], type = MediaRecorder.isTypeSupported?.("audio/webm") ? "audio/webm" : "";
+  recorder = new MediaRecorder(stream, type ? { mimeType: type } : undefined);
+  recorder.ondataavailable = (e) => e.data.size && parts.push(e.data);
+  recorder.onstart = () => { listening = true; $("micBtn").classList.add("listening"); $("micState").textContent = "listening… tap to stop"; };
+  recorder.onstop = async () => {
+    stream.getTracks().forEach((t) => t.stop()); recorder = null; listening = false; $("micBtn").classList.remove("listening"); $("micState").textContent = "understanding…";
+    const blob = new Blob(parts, { type: parts[0]?.type || "audio/webm" });
+    try {
+      const r = await fetch("/api/voice/listen", { method: "POST", headers: { "content-type": blob.type || "audio/webm" }, body: blob }).then((x) => x.json());
+      $("micState").textContent = "";
+      if (!r.said) { $("micState").textContent = "didn't catch that · try again"; return; }
+      S.replyVoice = EXTRA.includes(r.lang) ? r.lang : null;
+      await ask(r.english || r.said, r.said);
+      setTimeout(() => { S.replyVoice = null; }, 500);
+    } catch { $("micState").textContent = "network issue · type instead"; }
+  };
+  recorder.start(); setTimeout(() => recorder?.state === "recording" && recorder.stop(), 7000);
+}
 function listen() {
+  if (S.sarvam && typeof MediaRecorder !== "undefined" && navigator.mediaDevices) return listenSarvam();
   if (!SR) { $("micState").textContent = "type or tap a phrase"; return; }
   if (listening) { rec?.stop(); return; }
-  rec = new SR(); rec.lang = S.lang === "English" ? "en-IN" : "hi-IN"; rec.interimResults = false; rec.maxAlternatives = 1;
+  rec = new SR(); rec.lang = CODES[S.voiceLang] || (S.lang === "English" ? "en-IN" : "hi-IN"); rec.interimResults = false; rec.maxAlternatives = 1;
   rec.onstart = () => { listening = true; $("micBtn").classList.add("listening"); $("micState").textContent = "listening…"; };
   rec.onend = () => { listening = false; $("micBtn").classList.remove("listening"); $("micState").textContent = ""; };
   rec.onerror = () => { $("micState").textContent = "mic unavailable · type instead"; };
@@ -552,3 +602,28 @@ $("micBtn").onclick = () => { openConvo(); listen(); };
 $("ynYes").onclick = () => ask({ English: "Yes", Hinglish: "Haan", Hindi: "हाँ" }[S.lang]);
 $("ynNo").onclick = () => ask({ English: "No", Hinglish: "Na", Hindi: "ना" }[S.lang]);
 $("sayForm").onsubmit = (e) => { e.preventDefault(); const v = $("sayIn").value.trim(); if (v) { ask(v); $("sayIn").value = ""; } };
+
+/* ---------- report a confirmed hazard to the city: real email (pilot test inbox) or an official channel ---------- */
+async function openReport(h) {
+  if (!h) return;
+  const sh = $("repSheet"); sh.hidden = false; $("repMsg").textContent = ""; $("repOk").checked = false; $("repDraft").textContent = "Preparing…";
+  try {
+    const [d, st] = await Promise.all([SS.api(`/api/report/${h.id}`), SS.api("/api/report/status")]);
+    $("repDraft").textContent = `${d.draft.subject}\n\n${d.draft.text}`;
+    $("repWho").textContent = st.email ? `Pilot: sent by email to our test inbox (${st.to}), not yet to a government office.` : "Email is not set up on this server, so the report is only prepared.";
+    const last = d.history.find((x) => x.kind === "complaint" && x.status === "sent");
+    if (last) $("repMsg").textContent = `Already reported on ${new Date(last.ts).toLocaleDateString("en-IN")} (${last.ref}). We send one report per hazard per week.`;
+    $("repChannels").innerHTML = "";
+    for (const c of d.channels) { const a = document.createElement("a"); a.className = "btn"; a.href = c.href; a.target = "_blank"; a.rel = "noopener"; a.innerHTML = "<b></b><span></span>"; a.querySelector("b").textContent = c.name; a.querySelector("span").textContent = c.how; $("repChannels").append(a); }
+    $("repSend").onclick = async () => {
+      if (!$("repOk").checked) { $("repMsg").textContent = "Tick the box to agree first."; return; }
+      $("repMsg").textContent = "Sending…";
+      const r = await SS.api("/api/report", { hazardId: h.id, consent: true }).catch(() => ({ status: "failed" }));
+      $("repMsg").textContent = r.status === "sent" ? `Sent. Reference ${r.ref}.` : r.status === "already" ? `Already reported this week (${r.ref}).` : r.status === "prepared" ? `Prepared (${r.ref}) but not sent: email is not set up on this server.` : `Not sent: ${r.why || r.error || "network problem"}. Nothing was filed.`;
+    };
+  } catch { $("repDraft").textContent = "Reports need the server edition of Sadak Sense."; }
+}
+$("repBtn").onclick = () => openReport(S.alertHz);
+$("repClose").onclick = () => { $("repSheet").hidden = true; };
+SS.api("/api/voice/status").then((r) => { S.sarvam = !!r.sarvam; if (S.sarvam) fillVoices(); }).catch(() => {});
+SS.api("/api/report/status").then((r) => { S.reportable = !!r.channels; }).catch(() => {});

@@ -67,6 +67,8 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
 .msgs div{white-space:pre-line}
 .env{margin:6px 14px 0;display:flex;gap:8px;align-items:center;justify-content:space-between;padding:7px 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-size:12px;color:var(--muted)}
 .env b{color:var(--fg);font-weight:600}.env .ea{font-family:var(--mono);font-size:10px;color:var(--accent);text-align:right}
+#repChannels .btn{text-align:left;text-decoration:none;color:inherit}#repChannels .btn b{display:block;font-size:13px}#repChannels .btn span{font-size:11.5px;color:var(--muted)}
+.alert{flex-wrap:wrap}.alert .rep{flex-basis:100%;padding:7px 12px;font-size:12.5px;margin-top:2px}
 .env.warn{border-color:var(--breaker)}.env.bad{border-color:var(--pothole)}
 .simlist{display:grid;grid-template-columns:1fr 1fr;gap:6px}.simlist .btn{padding:9px;border-radius:12px;font-size:12px;text-align:left;line-height:1.25}
 .tourbar{position:absolute;top:calc(env(safe-area-inset-top,0px) + 52px);left:14px;right:14px;z-index:870;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--accent);color:#04201f;border-radius:12px;padding:6px 10px;font-size:12.5px;font-weight:600}
@@ -96,6 +98,7 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
   <div class="alert clear" id="alert" role="status" aria-live="assertive">
     <div class="ic">✓</div><div><div class="t" id="aT">Road ahead is clear</div><div class="s" id="aS">No confirmed hazards in the next stretch</div></div>
     <div class="dist" id="aD"></div>
+    <button class="btn rep" id="repBtn" type="button" hidden>Report to city</button>
   </div>
   <button class="car" id="carBar" type="button" aria-label="My car and road wear"><span class="cn" id="carName">My car</span><span class="cl" id="carLine">Checks every hazard against this car's clearance and load</span><span class="cw" id="carWear">wear 0%</span></button>
   <div class="env" id="envBar" hidden><span id="envTxt"></span><span class="ea" id="envAct"></span></div>
@@ -113,7 +116,7 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
     <button class="btn" id="stopBtn" type="button">End</button>
   </div>
   <div class="convo" id="convo" hidden>
-    <div class="label" style="display:flex;justify-content:space-between"><span>Baat kijiye · English, Hindi, Hinglish</span><span id="micState"></span></div>
+    <div class="label" style="display:flex;justify-content:space-between"><span id="convoLbl">Baat kijiye · English, Hindi, Hinglish</span><span id="micState"></span></div>
     <div class="msgs" id="msgs"></div>
     <div class="yn" id="yn" hidden><button class="btn" id="ynYes" type="button">Haan</button><button class="btn" id="ynNo" type="button">Na</button></div>
     <div class="chips2" id="chips"></div>
@@ -125,6 +128,16 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
     <div style="display:flex;justify-content:space-between;align-items:center"><h3>Simulate</h3><button class="btn" id="simClose" type="button" style="padding:6px 10px">Close</button></div>
     <button class="btn primary" id="simAll" type="button"><b>Run everything</b></button>
     <div class="simlist" id="simList"></div>
+  </div>
+  <div class="health" id="repSheet" hidden>
+    <div style="display:flex;justify-content:space-between;align-items:center"><h3>Report to the city</h3><button class="btn" id="repClose" type="button" style="padding:6px 10px">Close</button></div>
+    <div class="note" id="repWho"></div>
+    <pre class="hlog" id="repDraft" style="white-space:pre-wrap;font-size:12px;max-height:34vh;overflow:auto"></pre>
+    <label class="field" style="gap:10px"><input type="checkbox" id="repOk"><span style="font-size:13px">I agree to send this report. It is anonymous: no name, number plate or phone is included.</span></label>
+    <button class="btn primary" id="repSend" type="button"><b>Send the report</b></button>
+    <div id="repMsg" style="font-size:13.5px"></div>
+    <div class="label">Or file it yourself on an official channel</div>
+    <div id="repChannels" class="simlist"></div>
   </div>
   <div class="health" id="health" hidden>
     <div style="display:flex;justify-content:space-between;align-items:center"><h3 id="hTitle">My car</h3><button class="btn" id="hClose" type="button" style="padding:6px 10px">Close</button></div>
@@ -141,7 +154,7 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
     <div class="brand" style="font-size:15px">SADAK <b>SENSE</b></div>
     <h1>Your car feels the road. Now it warns the next driver.</h1>
     <p>Mount the phone in a holder. It reads the accelerometer and GPS, detects speed breakers and potholes, shares anonymous jolt reports, and warns you before hazards other cars have confirmed.</p>
-    <div class="field"><label class="label" for="lang">Voice language</label><select id="lang"><option>English</option><option selected>Hinglish</option><option>Hindi</option></select></div>
+    <div class="field"><label class="label" for="lang">Voice language</label><select id="lang"><option>English</option><option selected>Hinglish</option><option>Hindi</option><option>Tamil</option><option>Telugu</option><option>Malayalam</option><option>Kannada</option><option>Bengali</option></select></div>
     <div class="field"><label class="label" for="voiceSel">Voice</label><select id="voiceSel"></select></div>
     <button class="btn" id="voiceTest" type="button" style="padding:9px 14px"><b style="font-size:14px">Hear this voice</b><span id="voiceHint"></span></button>
     <div class="field"><label class="label" for="carSel">My car</label><select id="carSel"><option value="aura">Hyundai Aura</option><option value="exter">Hyundai Exter</option><option value="venue">Hyundai Venue</option><option value="creta" selected>Hyundai Creta</option><option value="bayon">Hyundai Bayon</option></select></div>

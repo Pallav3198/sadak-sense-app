@@ -109,3 +109,16 @@ Reports carry only location, heading, speed, jolt size and a device ID that is a
 - Lane-level pothole position is approximate with phone GPS (±5 m).
 
 Icons: none bundled. Map data © OpenStreetMap contributors. License: MIT.
+
+## Real pilot (server edition)
+
+The server edition runs the same app with a shared fleet, so several phones on a real road confirm the same hazard (3 different phones = 3 cars).
+
+| Piece | Where | Needs |
+|---|---|---|
+| **Shared fleet** | `server/` on Render (`render.yaml`) | Nothing. Real phone reports are marked `realDevices`; the console's **Show real drives only** hides the virtual fleet. |
+| **Voice in 8 languages** | `server/sarvam.js`, `/api/voice/*` | `SARVAM_API_KEY`. English, Hinglish, Hindi, Tamil, Telugu, Malayalam, Kannada, Bengali; speech in, auto-detected, answered in the same language. Without a key the browser voice is used. |
+| **Reports to the city** | `server/report.js`, `/api/report`, `/api/city-report` | `RESEND_API_KEY` + `REPORT_TO`. Real emails, pilot rule: only to our own test inbox. Only confirmed hazards, driver consent required, one report per hazard per week. Without keys the report is prepared, never claimed as sent. Official channels (PWD 1908, MCD-311, NHAI 1033) are offered for filing by hand; no city exposes an API. |
+| **Keeping real drives** | `/api/export`, `seed/real-drives.json` | Free hosting has no lasting disk: export after a drive, save as `seed/real-drives.json`, and the server replays it on boot. |
+
+Keys go in the Render dashboard (or a local `.env`, see `.env.example`); never in this repo.

@@ -4,12 +4,13 @@ SS.tiles(map);
 
 const markers = new Map();
 const carLayer = L.layerGroup().addTo(map), truthLayer = L.layerGroup(), routeLayer = L.layerGroup().addTo(map);
-let selected = null, routes = {}, sim = null, showTruth = false;
+let selected = null, routes = {}, sim = null, showTruth = false, realOnly = false;
 
 function toast(t) { const el = $("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("show"), 2600); }
 
 function upsert(h) {
   let m = markers.get(h.id);
+  if (realOnly && !h.realDevices) { if (m) { map.removeLayer(m); markers.delete(h.id); } return; }
   if (["cleared", "rejected"].includes(h.state)) {
     if (m) {
       m.setIcon(L.divIcon({ className: "", iconSize: [22, 22], iconAnchor: [11, 11], html: `<div class="hz" style="background:transparent;border:2px dashed var(--ok);width:22px;height:22px;position:relative"><span class="hzlabel" style="color:var(--ok)">${h.state === "cleared" ? "repaired · removed" : "false alarm · dropped"}</span></div>` }));
@@ -112,3 +113,26 @@ $("briefBtn").onclick = async () => {
   SadakSpeech.speak(b.text, $("lang").value);
 };
 boot();
+
+/* ---------- real drives: phones on real roads, city report, export ---------- */
+async function realSummary() {
+  try {
+    const r = await SS.api("/api/real/summary"), st = await SS.api("/api/report/status");
+    $("realCard").hidden = false;
+    $("realSum").innerHTML = r.events ? `<b>${r.phones}</b> phones · <b>${r.events}</b> jolts · <b>${r.confirmed}</b> confirmed, <b>${r.candidates}</b> waiting for more cars` : "No real drives yet. Start driving in the app on 3 phones.";
+    $("realNote").textContent = st.email ? `Pilot: reports go to our test inbox (${st.to}), not yet to a government office.` : "Email is not set up on this server: reports can be viewed, not sent.";
+    return r;
+  } catch { $("realCard").hidden = true; }
+}
+$("realBtn").onclick = async () => {
+  realOnly = !realOnly; $("realBtn").textContent = realOnly ? "Show everything" : "Show real drives only";
+  for (const m of markers.values()) map.removeLayer(m); markers.clear();
+  const { hazards } = await SS.api(`/api/hazards?states=candidate,confirmed${realOnly ? "&real=1" : ""}`); hazards.forEach(upsert);
+  if (realOnly && hazards.length) map.fitBounds(L.latLngBounds(hazards.map((h) => [h.lat, h.lon])), { padding: [60, 60], maxZoom: 17 });
+  realSummary();
+};
+$("citySend").onclick = async () => {
+  const r = await SS.api("/api/city-report/send", { real: realOnly }).catch(() => ({ status: "failed" }));
+  toast(r.status === "sent" ? `City report sent (${r.ref}, ${r.count} hazards)` : r.status === "already" ? `Already sent a few minutes ago (${r.ref})` : r.status === "prepared" ? "Email is not set up on this server" : `Not sent: ${r.why || "network problem"}`);
+};
+realSummary(); setInterval(realSummary, 15000);

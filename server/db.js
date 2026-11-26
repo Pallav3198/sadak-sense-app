@@ -33,6 +33,14 @@ function openDb(file) {
       hazard_id INTEGER NOT NULL, device TEXT NOT NULL, ts INTEGER NOT NULL, hit INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS ps_hz ON passes(hazard_id);
+    CREATE TABLE IF NOT EXISTS reports (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      kind TEXT NOT NULL,              -- 'complaint' (one hazard) | 'city' (weekly report)
+      hazard_id INTEGER, ref TEXT NOT NULL, recipient TEXT, channel TEXT NOT NULL,
+      status TEXT NOT NULL,            -- 'sent' | 'failed' | 'prepared'
+      provider_id TEXT, ts INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS rp_hz ON reports(hazard_id);
   `);
   return db;
 }

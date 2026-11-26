@@ -76,6 +76,18 @@ aside{border-left:1px solid var(--line);background:var(--bg2);overflow:auto;padd
       <div class="kpi"><b id="kRej">0</b><span>false alarms filtered</span></div>
     </div>
 
+    <section class="card" id="realCard" aria-label="Real drives" hidden>
+      <div class="label" style="margin-bottom:8px">Real drives · phones on real roads</div>
+      <p id="realSum" style="margin:0 0 8px;font-size:13px">No real drives yet.</p>
+      <div class="row" style="margin-bottom:8px">
+        <button class="btn primary" id="realBtn" type="button">Show real drives only</button>
+        <a class="btn" id="cityView" href="/api/city-report?real=1" target="_blank" rel="noopener">City report</a>
+        <button class="btn" id="citySend" type="button">Email city report</button>
+        <a class="btn" href="/api/export" download>Export data</a>
+      </div>
+      <p id="realNote" style="margin:0;font-size:11.5px;color:var(--dim)">Pilot: reports go to our own test inbox, not yet to a government office.</p>
+    </section>
+
     <section class="card" id="simCard" aria-label="Fleet simulation">
       <div class="label" style="margin-bottom:8px">Fleet simulation · virtual cars on real roads</div>
       <div class="row" style="margin-bottom:8px">
