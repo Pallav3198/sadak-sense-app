@@ -35,19 +35,19 @@ Last updated: 26 Nov 2026 (session 1).
 - [P] 3.6 Per-wheel speed (left/right wheel) — needs the car's wheel-speed sensors; documented in detector.js; deck to mention
 
 ## 14.4 Drive-aware notifications
-- [ ] 4.1 Moment detector on the phone: moving on a clear road / stopped at a red light / traffic jam / moving with hazards / parked
+- [x] 4.1 Moment detector on the phone: moving on a clear road / stopped at a red light / traffic jam / moving with hazards / parked
 - [x] 4.2 Traffic signal locations from OpenStreetMap (Overpass API, cached on the server)
 - [x] 4.3 Fleet-learned stop lines: cars report where they stop at a signal; server learns the stop line
-- [ ] 4.4 Fleet pattern: cars stop then all start together (signal) vs irregular creep (jam)
-- [ ] 4.5 Own car: speed 0, near the front of the queue (close to the stop line)
+- [x] 4.4 Fleet pattern: cars stop then all start together (signal) vs irregular creep (jam)
+- [x] 4.5 Own car: speed 0, near the front of the queue (close to the stop line)
 - [P] 4.5b Brake pedal / auto-hold signal — needs car data
-- [ ] 4.6 Red time left: learned red duration per signal by time of day, plus current phase from other cars stopped at the junction
-- [ ] 4.7 Cold start: OpenStreetMap signal + cautious default cycle
-- [ ] 4.8 Delivery tiers: >40 s → message with reply option or a short call; 15–40 s → one-line summaries; <15 s → nothing; jam → hold and batch
-- [ ] 4.9 Clear road delivery (steady speed, no hazard ahead): one-line summaries only
-- [ ] 4.10 Hold and batch in traffic; deliver the batch at the next good moment
-- [ ] 4.11 Only urgent and VIP messages break through holds, and still only at safe moments
-- [ ] 4.12 Demo: simulate red-light countdown and traffic-jam states (Simulate + Full demo)
+- [x] 4.6 Red time left: learned red duration per signal by time of day, plus current phase from other cars stopped at the junction
+- [x] 4.7 Cold start: OpenStreetMap signal + cautious default cycle
+- [x] 4.8 Delivery tiers: >40 s → message with reply option or a short call (Teams call link for Teams contacts); 15–40 s → one-line summaries; <15 s → nothing; jam → hold and batch
+- [x] 4.9 Clear road delivery (steady speed, no hazard ahead): one-line summaries only
+- [x] 4.10 Hold and batch in traffic; deliver the batch at the next good moment
+- [x] 4.11 Only urgent and VIP messages break through holds, and still only at safe moments (VIP list is filled by 14.5 onboarding)
+- [x] 4.12 Demo: simulate red-light countdown and traffic-jam states (Simulate + Full demo)
 
 ## 14.5 Commute awareness, onboarding, no cold start
 - [ ] 5.1 Optional onboarding (~30 s): work days, office time, home/office (or "learn it"), apps to connect, VIP contacts (boss, family), evening preference (yes / urgent only / no), usual passengers, language, alert style
@@ -128,4 +128,4 @@ Last updated: 26 Nov 2026 (session 1).
 - 26 Nov 2026: 14.1 alert styles built (Voice / Chime + card default / Silent with glow and big Haan-Na; serious events speak in Chime mode; Full demo forces Voice and restores). Next: 14.2.
 - 26 Nov 2026: 14.2 built: own-car memory on the phone (spot felt on 2+ days warns this driver before fleet confirmation; 3 smooth passes forget it), per-spot car tag so one car counts once per spot across days, optional "Help improve the map" asking only when stopped/slow (Gaddha / Speed breaker / Kuch nahi → /api/label). Next: 14.3.
 - 26 Nov 2026: 14.3 built: detector reports first movement up/down + axle pair; fleet decides type from votes, both-directions (+3 breaker) and 60-day permanence; up-first jolts merge across directions; reasons shown in console and by tapping the warning. Next: 14.4.
-- 26 Nov 2026: 14.4 server part built (server/signals.js): OSM signals via Overpass (cached), fleet-learned stop lines and signals, red length per approach/hour from front-of-queue waits (p90, 5+ samples, else cautious 45 s), current phase from Hyundais stopped now, start-together ratio. In progress: phone moment detector + delivery tiers.
+- 26 Nov 2026: 14.4 server part built (server/signals.js): OSM signals via Overpass (cached), fleet-learned stop lines and signals, red length per approach/hour from front-of-queue waits (p90, 5+ samples, else cautious 45 s), current phase from Hyundais stopped now, start-together ratio. Then phone side: web/shared/moment.js (clear/busy/red/jam/parked + tiers, fleet start-together pattern), web/drive/moment-ui.js (stop reporting, delivery, hold & batch, VIP/urgent, Teams short call, light-turning-green pause), Simulate "redlight" (in Full demo) and "jam". 14.4 done. Next: 14.5.

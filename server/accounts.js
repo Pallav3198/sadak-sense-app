@@ -2,7 +2,7 @@
 //   Google: Gmail (read, send) and Calendar (read).   Microsoft: Teams chats (read, send) and Outlook calendar (read).
 // Refresh tokens are never stored on the server: they travel back from the phone in sealed cookies.
 const GOOGLE_SCOPES = ["openid", "email", "https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.send", "https://www.googleapis.com/auth/calendar.readonly"];
-const MS_SCOPES = ["offline_access", "User.Read", "Chat.Read", "ChatMessage.Send", "Calendars.Read"];
+const MS_SCOPES = ["offline_access", "User.Read", "User.ReadBasic.All", "Chat.Read", "ChatMessage.Send", "Calendars.Read"];
 
 const form = (o) => new URLSearchParams(Object.entries(o).filter(([, v]) => v != null)).toString();
 const strip = (html) => String(html || "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/\s+/g, " ").trim();
@@ -94,7 +94,15 @@ function createAccounts({ env = process.env, fetchImpl = globalThis.fetch } = {}
       const items = (data.value || []).map((c) => ({ c, m: c.lastMessagePreview })).filter(({ c, m }) => m && !m.isDeleted && m.from?.user && m.from.user.id !== userId
         && Date.now() - Date.parse(m.createdDateTime) < 864e5
         && (!c.viewpoint?.lastMessageReadDateTime || Date.parse(m.createdDateTime) > Date.parse(c.viewpoint.lastMessageReadDateTime)))
-        .slice(0, max).map(({ c, m }) => ({ source: "teams", id: m.id, chatId: c.id, from: m.from.user.displayName || "Someone", subject: c.topic || (c.chatType === "oneOnOne" ? "Teams chat" : "Group chat"), snippet: strip(m.body?.content).slice(0, 220), ts: Date.parse(m.createdDateTime) }));
+        .slice(0, max).map(({ c, m }) => ({ source: "teams", id: m.id, chatId: c.id, fromId: m.from.user.id, from: m.from.user.displayName || "Someone", subject: c.topic || (c.chatType === "oneOnOne" ? "Teams chat" : "Group chat"), snippet: strip(m.body?.content).slice(0, 220), ts: Date.parse(m.createdDateTime) }));
+      // Sender's address, so the driver can make a short Teams call when parked or at a long red (14.4).
+      for (const it of items) {
+        try {
+          const u = (await microsoft.api(refresh, `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(it.fromId)}?$select=mail,userPrincipalName`)).data;
+          it.fromAddr = u.mail || u.userPrincipalName || null;
+          if (it.fromAddr) it.callUrl = `https://teams.microsoft.com/l/call/0/0?users=${encodeURIComponent(it.fromAddr)}`;
+        } catch {}
+      }
       return { items, rotated };
     },
     async send(refresh, chatId, text) {

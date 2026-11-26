@@ -137,7 +137,7 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
   <div class="top">
     <div class="brand">SADAK <b>SENSE</b></div>
     <span class="clock" id="clock"></span>
-    <div class="chips"><span class="chip" id="cGps">GPS</span><span class="chip" id="cImu">SENSORS</span><span class="chip" id="cNet">0 SENT</span></div>
+    <div class="chips"><span class="chip" id="cGps">GPS</span><span class="chip" id="cImu">SENSORS</span><span class="chip" id="cNet">0 SENT</span><span class="chip" id="cMoment" title="Driving moment: decides when messages are told">Driving</span></div>
   </div>
   <div class="alert clear" id="alert" role="status" aria-live="assertive">
     <div class="ic">✓</div><div><div class="t" id="aT">Road ahead is clear</div><div class="s" id="aS">No confirmed hazards in the next stretch</div></div>
@@ -236,6 +236,8 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
 <script src="/drive/own-car.js"></script>
 <script src="/drive/drive.js"></script>
 <script src="/drive/copilot-ui.js"></script>
+<script src="/shared/moment.js"></script>
+<script src="/drive/moment-ui.js"></script>
 <div class="caption">In-car screen · runs on the head unit in production · today a tablet or laptop stands in, a phone on the dashboard senses the road</div>
 </body>
 </html>

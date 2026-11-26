@@ -47,3 +47,12 @@ test("urgent and VIP detection", () => {
   assert.equal(M.isVip({ from: "Riya Sharma", fromAddr: "riya@x.com" }, ["riya@x.com"]), true);
   assert.equal(M.isVip({ from: "Bob" }, ["riya@x.com"]), false);
 });
+
+test("fleet pattern: at a signal where cars creep off one by one, a car back in the queue is in a jam", () => {
+  const m = M.createMoment(); const now = feed(m, [[20, 35], [5, 0]]);
+  const far = { lat: 28.5450, lon: 77.1890 }; // ~100 m back from the signal
+  const sig = signal({ signal: { id: "osm:1", lat: 28.5450, lon: 77.1900 }, stopLine: { lat: 28.5450, lon: 77.1900 } });
+  m.sample({ ts: now + 1000, kmh: 0, heading: 90, ...far });
+  assert.equal(m.state({ now: now + 1000, signal: { ...sig, releasedTogether: 0.9 } }).kind, "red");
+  assert.equal(m.state({ now: now + 1000, signal: { ...sig, releasedTogether: 0.1 } }).kind, "jam");
+});

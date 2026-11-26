@@ -87,24 +87,10 @@ async function refreshInbox() {
   if (!CO.me?.owner || !S.mode) return;
   const r = await fetch("/api/copilot/inbox").then((x) => x.json()).catch(() => null); if (!r) return;
   CO.inbox = (r.items || []).filter((i) => !CO.seen.has(i.source + i.id));
-  $("coInbox").textContent = CO.inbox.length ? `${CO.inbox.length} new · read at the next stop` : "";
+  $("coInbox").textContent = CO.inbox.length ? `${CO.inbox.length} new · told at the next safe moment` : "";
 }
-function stoppedNow() {
-  const now = Date.now(); CO.speeds.push({ ts: now, kmh: (S.pos?.speed || 0) * 3.6 }); CO.speeds = CO.speeds.filter((x) => now - x.ts < 9000);
-  return CO.speeds.length >= 4 && now - CO.speeds[0].ts > 5500 && CO.speeds.every((x) => x.kmh < 3);
-}
-function coTick() {
-  if (!S.mode || !CO.me?.owner || S.simHold) return;
-  const stopped = stoppedNow();
-  if (!stopped && CO.step && CO.step !== "late" && (S.pos?.speed || 0) * 3.6 > 8) { // started moving: stop talking, keep it for the next stop
-    CO.step = null; $("yn").hidden = true; bubble("a", "Sadak Sense", coT("Moving again. I'll continue at the next stop.", "Gaadi chal padi. Agle stop pe baaki bataunga.", "गाड़ी चल पड़ी। अगले स्टॉप पर बाक़ी बताऊँगा।")); return;
-  }
-  if (!stopped || CO.step || S.pendingAgent || S.pendingJolt || !CO.inbox.length || !$("alert").className.includes("clear")) return;
-  const it = CO.inbox.shift(); CO.seen.add(it.source + it.id); keepSeen(); $("coInbox").textContent = CO.inbox.length ? `${CO.inbox.length} more at the next stop` : "";
-  const where = it.source === "teams" ? "Teams message" : "mail";
-  openConvo(); bubble("a", it.source === "teams" ? "Teams" : "Gmail", `${it.from}: ${it.subject}\n${it.snippet}`);
-  coAsk("reply?", it, coT(`New ${where} from ${it.from}: ${it.subject}. ${it.snippet}. Reply?`, `${it.from} ka naya ${where}: ${it.subject}. ${it.snippet}. Jawab dena hai?`, `${it.from} का नया ${where === "mail" ? "मेल" : "टीम्स मैसेज"}: ${it.subject}। ${it.snippet}। जवाब देना है?`));
-}
+// Delivery timing (when, and how much) lives in moment-ui.js (spec 14.4).
+function coTick() {}
 
 /* ---------- the yes / dictate / read-back / yes flow ---------- */
 // Agent permission questions are "serious" (spoken in Chime + card mode too); the rest follow the alert style.

@@ -431,6 +431,22 @@ const STEPS = {
   flood: [T3("Flooded underpass: reroute, home", "Paani bhara underpass: naya raasta, ghar", "जलभराव: नया रास्ता, घर"), async () => {
     clearPending(); simAlert("water", 350, 35); await spoken();
     floodAgent({ id: "sim" + Date.now(), devices: 35 }); await spoken(); await ask(YES[S.lang]); await spoken(); }],
+  redlight: [T3("Red light: messages by time left", "Red light: bache time ke hisaab se message", "लाल बत्ती: बचे समय के हिसाब से संदेश"), async () => {
+    clearPending(); $("convo").hidden = true;
+    MomentUI.demoItems([
+      { source: "gmail", id: "demo-r1-" + Date.now(), from: "Riya Sharma (sample)", fromAddr: "riya@example.com", subject: "Review time", snippet: "Can we start ten minutes later?", ts: Date.now() },
+      { source: "teams", id: "demo-r2-" + Date.now(), from: "Prof. Rao (sample)", subject: "Lab", snippet: "Are you coming to lab today?", ts: Date.now() }]);
+    const done = MomentUI.simulate("red", 16, 55);
+    await pause(6000); if (CO.step === "reply?") await ask(T3("No", "Na", "ना"));
+    await done; await spoken(); }],
+  jam: [T3("Traffic jam: hold and batch, VIP breaks through", "Jam: message rok ke ek saath, VIP turant", "जाम: संदेश रोककर एक साथ, VIP तुरंत"), async () => {
+    clearPending(); $("convo").hidden = true;
+    MomentUI.demoItems([
+      { source: "gmail", id: "demo-j1-" + Date.now(), from: "Amit (sample)", subject: "Weekend plan", snippet: "Movie on Saturday?", ts: Date.now() },
+      { source: "teams", id: "demo-j2-" + Date.now(), from: "Neha (sample)", subject: "Slides", snippet: "Shared the deck", ts: Date.now() },
+      { source: "gmail", id: "demo-j3-" + Date.now(), from: "Boss (sample)", subject: "URGENT: client call moved to 11", snippet: "Please confirm", ts: Date.now() }]);
+    await MomentUI.simulate("jam", 7); await spoken();
+    await MomentUI.simulate("clear", 6); await spoken(); }],
   nearmiss: [T3("Near-miss zone: sudden braking", "Near-miss zone: achanak brake", "नियर-मिस ज़ोन: अचानक ब्रेक"), async () => {
     const el = $("alert"); el.className = "alert pothole"; el.querySelector(".ic").textContent = "!";
     $("aT").textContent = T3("Sudden braking zone ahead", "Aage achanak brake wala zone", "आगे अचानक ब्रेक वाला ज़ोन");
@@ -464,7 +480,7 @@ const STEPS = {
     [T3("41 hard hits this week", "Is hafte 41 zor ke jhatke", "इस हफ़्ते 41 ज़ोर के झटके"), T3("Saturday 10:30, with pick-up", "Shanivaar 10:30, pick-up ke saath", "शनिवार 10:30, पिक-अप के साथ"), T3("Hit log sent to the technician", "Hit log technician ko bheja", "हिट लॉग तकनीशियन को भेजा")],
     T3("Booked for Saturday at 10:30 with pick-up, and the technician has your hit log.", "Shanivaar 10:30 ka slot pick-up ke saath book ho gaya, aur technician ko hit log bhej diya.", "शनिवार 10:30 का स्लॉट पिक-अप के साथ बुक हो गया, और तकनीशियन को हिट लॉग भेज दिया।"))],
 };
-const TOUR = ["brief", "air", "breaker", "nearmiss", "ask", "car", "jolt", "tyre", "flood", "wear", "planDrive", "planService"];
+const TOUR = ["brief", "air", "breaker", "nearmiss", "ask", "car", "jolt", "redlight", "tyre", "flood", "wear", "planDrive", "planService"];
 async function runStep(key) {
   try { await STEPS[key][1](); } catch (e) { console.warn("simulate step skipped", key, e); }
 }

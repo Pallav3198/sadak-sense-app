@@ -7,7 +7,7 @@
   else root.SadakSpeech = factory();
 })(typeof self !== "undefined" ? self : this, function () {
   const WORDS = {
-    aage: "आगे", chetavni: "चेतावनी", kyon: "क्यों", note: "नोट", liya: "लिया", hua: "हुआ", aapse: "आपसे", poochha: "पूछा", mehsoos: "महसूस", hote: "होते", baaki: "बाक़ी", drivers: "ड्राइवर्स", aagey: "आगे", aap: "आप", aapke: "आपके", aapki: "आपकी", aaj: "आज", aur: "और", abhi: "अभी", andar: "अंदर", atak: "अटक", atkin: "अटकीं", aa: "आ", aaram: "आराम",
+    aage: "आगे", red: "रेड", light: "लाइट", bache: "बचे", jam: "जाम", rok: "रोक", vip: "वीआईपी", turant: "तुरंत", chetavni: "चेतावनी", kyon: "क्यों", note: "नोट", liya: "लिया", hua: "हुआ", aapse: "आपसे", poochha: "पूछा", mehsoos: "महसूस", hote: "होते", baaki: "बाक़ी", drivers: "ड्राइवर्स", aagey: "आगे", aap: "आप", aapke: "आपके", aapki: "आपकी", aaj: "आज", aur: "और", abhi: "अभी", andar: "अंदर", atak: "अटक", atkin: "अटकीं", aa: "आ", aaram: "आराम",
     bada: "बड़ा", bade: "बड़े", baad: "बाद", baithi: "बैठी", bana: "बना", bagal: "बग़ल", bata: "बता", bataunga: "बताऊँगा", bataya: "बताया", behtar: "बेहतर", bhara: "भरा", bhej: "भेज", bhejne: "भेजने", bolo: "बोलो", boliye: "बोलिए", book: "बुक", brief: "ब्रीफ़", breaker: "ब्रेकर", breakers: "ब्रेकर",
     call: "कॉल", car: "कार", chaliye: "चलिए", chalun: "चलूँ", claim: "क्लेम", clearance: "क्लीयरेंस", confirm: "कन्फ़र्म", confirmed: "कन्फ़र्म्ड",
     dekh: "देख", dekhein: "देखें", demo: "डेमो", der: "देर", dheere: "धीरे", dikha: "दिखा", dikhega: "दिखेगा", dikkat: "दिक़्क़त", diya: "दिया", do: "दो", doon: "दूँ", doosra: "दूसरा", doosre: "दूसरे", draft: "ड्राफ़्ट", dunga: "दूँगा", denge: "देंगे",

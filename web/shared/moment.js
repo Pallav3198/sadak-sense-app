@@ -57,7 +57,10 @@
         const ref = signal.stopLine || signal.signal;
         const dist = last.lat != null ? hav(last.lat, last.lon, ref.lat, ref.lon) : signal.signal.distanceM;
         const front = dist <= FRONT_M;
-        if (front || !creeping) {
+        // Fleet pattern: at a working signal cars stop and then all start together. If recent cars at this
+        // approach mostly creep off one by one (< 30% together), treat the queue as a jam unless we're at the front.
+        const fleetSaysJam = signal.releasedTogether != null && signal.releasedTogether < 0.3;
+        if (front || (!creeping && !fleetSaysJam)) {
           const phaseStart = Math.min(stopStart, signal.phaseStart || Infinity);
           const left = Math.max(0, Math.round(signal.redS - (now - phaseStart) / 1000));
           return { kind: "red", secondsLeft: left, redS: signal.redS, learned: !!signal.learned, front, stopStart, signalId: signal.signal.id, why: front ? "front of the queue at a signal" : "in the queue at a signal" };
