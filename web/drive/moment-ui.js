@@ -42,8 +42,8 @@ const MomentUI = (() => {
 
   function line(it, why) {
     openConvo(); const src = it.source === "teams" ? "Teams" : "Gmail";
-    bubble("a", `${src} · ${why}`, `${it.from}: ${it.subject}`);
-    say(coT(`${it.from}: ${it.subject}.`, `${it.from}: ${it.subject}.`, `${it.from}: ${it.subject}।`), "info");
+    bubble("a", `${src} · ${why}`, it.context ? `${it.context}\n${it.from}: ${it.subject}` : `${it.from}: ${it.subject}`);
+    say(it.context || coT(`${it.from}: ${it.subject}.`, `${it.from}: ${it.subject}.`, `${it.from}: ${it.subject}।`), "info");
     st.later.push(it); st.lastLine = Date.now();
   }
   function batch(items) {

@@ -74,6 +74,7 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
 .env b{color:var(--fg);font-weight:600}.env .ea{font-family:var(--mono);font-size:10px;color:var(--accent);text-align:right}
 .onboard{z-index:950}.days{display:flex;flex-wrap:wrap;gap:6px}.day{display:flex;gap:4px;align-items:center;padding:6px 9px;border:1px solid var(--line2);border-radius:10px;font-size:13px}
 .onboard input:not([type=checkbox]){min-width:0;max-width:62%;background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:8px;color:inherit;font:inherit}
+.know ul{margin:4px 0 8px;padding-left:18px;font-size:13px;display:flex;flex-direction:column;gap:6px}.know span{color:var(--muted);font-size:11.5px}
 .me{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
 .me .note{font-size:12.5px;color:var(--muted)}.merow{display:flex;gap:8px;flex-wrap:wrap}.merow .btn{flex:1 1 140px;text-decoration:none;color:inherit;padding:10px 12px}
 .me input{min-width:0;flex:1;max-width:70%;background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:8px;color:inherit;font:inherit}
@@ -187,6 +188,10 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
     <div class="label">Or file it yourself on an official channel</div>
     <div id="repChannels" class="simlist"></div>
   </div>
+  <div class="health" id="knowSheet" hidden>
+    <div style="display:flex;justify-content:space-between;align-items:center"><h3>What I know</h3><button class="btn" id="knowClose" type="button" style="padding:6px 10px">Close</button></div>
+    <div id="knowBody" class="know"></div>
+  </div>
   <div class="health" id="health" hidden>
     <div style="display:flex;justify-content:space-between;align-items:center"><h3 id="hTitle">My car</h3><button class="btn" id="hClose" type="button" style="padding:6px 10px">Close</button></div>
     <div class="note" id="hSpec"></div>
@@ -229,6 +234,7 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
       <div class="field" id="destRow" hidden><label class="label" for="dest">Where to?</label><input id="dest" type="search" placeholder="Search a place" autocomplete="off"></div>
       <div class="simlist" id="destList" hidden></div>
       <div class="note" id="nextBox"></div>
+      <button class="btn" id="knowBtn" type="button"><b>What I know</b><span>People, meetings and conversations linked from your accounts</span></button>
     </div>
     <div class="field"><label class="label" for="lang">Voice language</label><select id="lang"><option>English</option><option selected>Hinglish</option><option>Hindi</option><option>Tamil</option><option>Telugu</option><option>Malayalam</option><option>Kannada</option><option>Bengali</option></select></div>
     <div class="field"><label class="label" for="alertSel">Alert style</label><select id="alertSel"><option value="chime" selected>Chime + card (voice only for serious events)</option><option value="voice">Voice</option><option value="silent">Silent</option></select></div>

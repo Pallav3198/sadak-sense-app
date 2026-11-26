@@ -431,6 +431,21 @@ const STEPS = {
   flood: [T3("Flooded underpass: reroute, home", "Paani bhara underpass: naya raasta, ghar", "जलभराव: नया रास्ता, घर"), async () => {
     clearPending(); simAlert("water", 350, 35); await spoken();
     floodAgent({ id: "sim" + Date.now(), devices: 35 }); await spoken(); await ask(YES[S.lang]); await spoken(); }],
+  context: [T3("Work co-pilot: context, vague reply, meeting rescue", "Work co-pilot: context, aadha jawab, meeting rescue", "वर्क को-पायलट: संदर्भ, अधूरा जवाब, मीटिंग रेस्क्यू"), async () => {
+    clearPending(); $("msgs").innerHTML = "";
+    // Sample data (labelled): the same code paths the real Gmail / Teams / Calendar data uses.
+    if (!CO.route) { CO.dest = CO.dest || { name: "DLF Cyber Hub" }; CO.route = { durationS: 720, trafficDelayS: 300, hazards: [{ type: "pothole" }, { type: "water" }] }; S.demoTrip = true; }
+    const it = { demo: true, source: "gmail", id: "demo-c1-" + Date.now(), from: "Riya Sharma (sample)", fromAddr: "riya@example.com", subject: "Review time", snippet: "Can we start ten minutes later?",
+      refersTo: { kind: "meeting", title: "Design review" }, context: T3("Riya again about Design review, the meeting you're driving to; you're 12 min away.", "Riya phir se Design review ke baare mein, jis meeting ke liye aap ja rahe hain; aap 12 minute door hain.", "रिया फिर से डिज़ाइन रिव्यू के बारे में, जिस मीटिंग के लिए आप जा रहे हैं; आप 12 मिनट दूर हैं।") };
+    openConvo(); bubble("a", T3("Gmail · sample data", "Gmail · sample data", "Gmail · नमूना"), `${it.context}\n${it.from}: ${it.subject}\n${it.snippet}`);
+    coAsk("reply?", it, `${it.context} ${T3("Reply?", "Jawab dena hai?", "जवाब देना है?")}`); await spoken();
+    await ask(YES[S.lang]); await spoken();
+    await ask("haan bol do pahunch raha hoon"); await pause(1500); await spoken();
+    await ask(YES[S.lang]); await spoken();
+    CO.saidRescue = false;
+    rescue({ demo: true, title: "Weekly sync (sample)", start: Date.now() + 8 * 60e3, joinUrl: "https://meet.google.com/", organizer: "rao@example.com", draft: { to: ["rao@example.com"], subject: "Joining by audio: Weekly sync", body: 'I\'m driving and will join "Weekly sync" by audio from the car.' } });
+    await spoken(); await ask(T3("No", "Na", "ना")); await spoken();
+    if (S.demoTrip) { CO.route = null; S.demoTrip = false; } }],
   redlight: [T3("Red light: messages by time left", "Red light: bache time ke hisaab se message", "लाल बत्ती: बचे समय के हिसाब से संदेश"), async () => {
     clearPending(); $("convo").hidden = true;
     MomentUI.demoItems([
@@ -480,7 +495,7 @@ const STEPS = {
     [T3("41 hard hits this week", "Is hafte 41 zor ke jhatke", "इस हफ़्ते 41 ज़ोर के झटके"), T3("Saturday 10:30, with pick-up", "Shanivaar 10:30, pick-up ke saath", "शनिवार 10:30, पिक-अप के साथ"), T3("Hit log sent to the technician", "Hit log technician ko bheja", "हिट लॉग तकनीशियन को भेजा")],
     T3("Booked for Saturday at 10:30 with pick-up, and the technician has your hit log.", "Shanivaar 10:30 ka slot pick-up ke saath book ho gaya, aur technician ko hit log bhej diya.", "शनिवार 10:30 का स्लॉट पिक-अप के साथ बुक हो गया, और तकनीशियन को हिट लॉग भेज दिया।"))],
 };
-const TOUR = ["brief", "air", "breaker", "nearmiss", "ask", "car", "jolt", "redlight", "tyre", "flood", "wear", "planDrive", "planService"];
+const TOUR = ["brief", "air", "breaker", "nearmiss", "ask", "car", "jolt", "redlight", "context", "tyre", "flood", "planDrive", "planService"];
 async function runStep(key) {
   try { await STEPS[key][1](); } catch (e) { console.warn("simulate step skipped", key, e); }
 }

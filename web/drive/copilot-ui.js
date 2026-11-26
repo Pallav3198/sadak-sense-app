@@ -64,6 +64,7 @@ async function refreshNext() {
   const r = await post("/api/copilot/next", { lat: p.lat, lon: p.lon, raining: !!S.rain });
   if (r.status !== 200) return;
   CO.next = r;
+  rescue(r.call);
   const box = $("nextBox");
   if (!r.event) { box.textContent = r.upcoming ? "No in-person meetings with a location in the next 12 hours." : "No meetings in the next 12 hours."; return; }
   if (!r.place) { box.textContent = `${r.event.title} at ${hm(r.event.start)}: ${r.why}`; return; }
@@ -86,7 +87,8 @@ async function refreshNext() {
 /* ---------- Gmail and Teams, read out only at stops ---------- */
 async function refreshInbox() {
   if (!CO.me?.owner || !S.mode) return;
-  const r = await fetch("/api/copilot/inbox").then((x) => x.json()).catch(() => null); if (!r) return;
+  const t = tripNow(), q = t ? `?dest=${encodeURIComponent(t.destination)}&mins=${t.minutes_left}&delay=${t.traffic_delay_min}&hz=${t.hazards_on_route}&flood=${t.flooded ? 1 : 0}` : "";
+  const r = await fetch("/api/copilot/inbox" + q).then((x) => x.json()).catch(() => null); if (!r) return;
   CO.inbox = (r.items || []).filter((i) => !CO.seen.has(i.source + i.id));
   $("coInbox").textContent = CO.inbox.length ? `${CO.inbox.length} new · told at the next safe moment` : "";
 }
@@ -102,9 +104,12 @@ window.coHandle = function (text, shown, itn) {
   if (!CO.step) return false;
   const yes = itn === "yes", no = itn === "no";
   if (CO.step === "dictate") {
-    CO.draft = (shown || text).trim(); CO.step = "confirm";
-    const to = CO.item.source === "teams" ? CO.item.from : CO.item.from;
-    coAsk("confirm", CO.item, coT(`Sending to ${to}: "${CO.draft}". Send it?`, `${to} ko bhej rahe hain: "${CO.draft}". Bhej dun?`, `${to} को भेज रहे हैं: "${CO.draft}"। भेज दूँ?`));
+    const said = (shown || text).trim(), it = CO.item, to = it.from; CO.step = "composing";
+    post("/api/copilot/compose", { item: it, said, trip: tripNow(), car: S.car, demo: !!it.demo }).then((r) => {
+      CO.draft = r.full || said;
+      const shownDraft = r.text ? `${r.text} (+ "${r.etaLine}")` : said;
+      coAsk("confirm", it, coT(`Sending to ${to}: "${shownDraft}". Send it?`, `${to} ko bhej rahe hain: "${shownDraft}". Bhej dun?`, `${to} को भेज रहे हैं: "${shownDraft}"। भेज दूँ?`));
+    });
     return true;
   }
   if (!yes && !no) return false;
@@ -116,9 +121,11 @@ window.coHandle = function (text, shown, itn) {
   return false;
 };
 function replyOf(it) {
-  return it.source === "teams" ? { source: "teams", chatId: it.chatId } : { source: "gmail", to: [it.fromAddr], subject: it.subject, threadId: it.threadId, inReplyTo: it.messageId };
+  const r = it.source === "teams" ? { source: "teams", chatId: it.chatId } : { source: "gmail", to: [it.fromAddr], subject: it.subject, threadId: it.threadId, inReplyTo: it.messageId };
+  return it.demo ? { ...r, demo: true } : r;
 }
 async function coSend(msg) {
+  if (msg.demo) { $("yn").hidden = true; CO.step = null; const l = coT("Sample data: shown, not sent.", "Sample data: dikhaya, bheja nahi.", "नमूना: दिखाया, भेजा नहीं।"); bubble("a", "Sadak Sense", l); say(l, "reply"); return; }
   $("yn").hidden = true;
   CO.step = null;
   const r = await post("/api/copilot/send", { ...msg, confirmed: true });
@@ -142,3 +149,46 @@ if (document.documentElement.classList.contains("carmode")) { const tickClock = 
   const intro = document.querySelector("#start > p"); if (intro) intro.textContent = "The car feels speed breakers, potholes and flooded underpasses through its own sensors, shares anonymous reports with other Hyundais, and warns you before hazards the fleet has confirmed. In this prototype a phone on the dashboard does the sensing."; }
 // Installable app: register the service worker on the server edition only (not the single-file demo).
 if ("serviceWorker" in navigator && location.pathname.startsWith("/drive/")) navigator.serviceWorker.register("/drive/sw.js", { scope: "/" }).catch(() => {});
+
+/* ---------- live trip: ETA, traffic and road events for context lines and replies (14.6) ---------- */
+function tripNow() {
+  if (!CO.route || !CO.dest) return null;
+  return { destination: CO.dest.name, minutes_left: Math.round(CO.route.durationS / 60), traffic_delay_min: Math.round((CO.route.trafficDelayS || 0) / 60),
+    hazards_on_route: (CO.route.hazards || []).filter((h) => h.type !== "water").length, flooded: (CO.route.hazards || []).some((h) => h.type === "water") };
+}
+
+/* ---------- meeting rescue (14.6): late for a call → tell the organiser; parked → join by audio ---------- */
+function rescue(call) {
+  if (!call || !S.mode) return;
+  const moving = (S.pos?.speed || 0) * 3.6 > 5, parked = window.MomentUI?.state?.kind === "parked" || !moving;
+  const mins = Math.round((call.start - Date.now()) / 60e3);
+  if (parked && call.joinUrl && mins <= 2 && !CO.offeredJoin) {
+    CO.offeredJoin = true; openConvo();
+    const l = coT(`${call.title} ${mins > 0 ? `starts in ${mins} min` : "has started"}. Join by audio?`, `${call.title} ${mins > 0 ? `${mins} minute mein shuru` : "shuru ho gayi"}. Audio se join karna hai?`, `${call.title} ${mins > 0 ? `${mins} मिनट में शुरू` : "शुरू हो गई"}। ऑडियो से जुड़ना है?`);
+    bubble("a", "Meeting rescue", l); say(l, "serious");
+    const a = document.createElement("a"); a.href = call.joinUrl; a.target = "_blank"; a.rel = "noopener"; a.className = "btn"; a.style.cssText = "display:block;text-align:center;margin:4px 0";
+    a.textContent = coT("Join by audio", "Audio se join", "ऑडियो से जुड़ें"); $("msgs").append(a);
+    return;
+  }
+  if (moving && call.draft && mins <= 15 && !CO.saidRescue && !CO.step) {
+    CO.saidRescue = true; const who = (call.organizer || "the organiser").split("@")[0];
+    const t = tripNow(), body = call.draft.body + (t ? "\n\n" + `Sent from my Hyundai: reaching ${t.destination} in about ${t.minutes_left} min.` : "");
+    coAsk("late", { to: call.draft.to, subject: call.draft.subject, body, source: "gmail", demo: !!call.demo },
+      coT(`Your call ${call.title} starts in ${Math.max(0, mins)} minutes while you're driving. Tell ${who} you'll join by audio from the car?`,
+        `${call.title} call ${Math.max(0, mins)} minute mein shuru hai aur aap drive kar rahe hain. ${who} ko bata dun ki car se audio pe judenge?`,
+        `${call.title} कॉल ${Math.max(0, mins)} मिनट में शुरू है और आप गाड़ी चला रहे हैं। ${who} को बता दूँ कि कार से ऑडियो पर जुड़ेंगे?`));
+  }
+}
+
+/* ---------- What I know (14.6): the owner's knowledge graph ---------- */
+async function showKnowledge() {
+  const sh = $("knowSheet"); sh.hidden = false; $("knowBody").textContent = "Reading your accounts…";
+  const r = await fetch("/api/copilot/graph").then((x) => x.json()).catch(() => ({ error: "network" }));
+  if (r.error) { $("knowBody").textContent = r.error; return; }
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const meet = r.meetings.map((m) => `<li><b>${esc(m.title)}</b> · ${new Date(m.start).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}${m.place ? ` · ${esc(m.place)}` : m.online ? " · online" : ""}${m.people.length ? `<br><span>with ${esc(m.people.slice(0, 5).join(", "))}</span>` : ""}${m.conversations.length ? `<br><span>related: ${esc(m.conversations.join(", "))}</span>` : ""}</li>`).join("");
+  const conv = r.conversations.map((c) => `<li><b>${esc(c.title)}</b> · ${c.via}${c.people.length ? ` · ${esc(c.people.join(", "))}` : ""}${c.about.length ? `<br><span>about: ${esc(c.about.join(", "))}</span>` : ""}</li>`).join("");
+  const ppl = r.people.slice(0, 12).map((p) => `<li>${esc(p.name)}${p.email ? ` <span>${esc(p.email)}</span>` : ""} · ${p.links} link${p.links === 1 ? "" : "s"}</li>`).join("");
+  $("knowBody").innerHTML = `<div class="note">Built from your own Gmail, Teams and calendars just now (${r.edges} links). Kept only in memory, never stored.</div><div class="label">Meetings</div><ul>${meet || "<li>None in the next 14 hours</li>"}</ul><div class="label">Conversations</div><ul>${conv || "<li>No unread conversations</li>"}</ul><div class="label">People</div><ul>${ppl}</ul>`;
+}
+$("knowBtn").onclick = showKnowledge; $("knowClose").onclick = () => { $("knowSheet").hidden = true; };

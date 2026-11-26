@@ -58,19 +58,19 @@ Last updated: 26 Nov 2026 (session 1).
 - [x] 5.6 Voice override: "Aaj shaam bhi office messages batana" (and the opposite)
 
 ## 14.6 Context co-pilot (Gmail, Outlook, Teams)
-- [~] 6.0 Reads next meetings, unread Gmail (Primary) and Teams; replies with read-back + yes; running-late email (built)
-- [ ] 6.1 Builds knowledge across apps: people, threads, chats, meetings, places, and links between them (knowledge graph)
-- [ ] 6.2 Understands what a message refers to (which thread / meeting / earlier message)
-- [ ] 6.3 Notifies with context ("Riya again about the review you're driving to")
-- [ ] 6.4 Understands vague spoken replies ("haan bol do pahunch raha hoon") and turns them into a proper message
-- [ ] 6.5 Adds context to replies
-- [ ] 6.6 Automatic ETA line on replies: "Sent from my Hyundai <model>: reaching <place> <time>, <road event on the way>"
-- [ ] 6.7 Live ETA, route and road events used in replies and notifications
-- [ ] 6.8 Drive-aware delivery (uses 14.4)
-- [ ] 6.9 Meeting rescue: late for a call → tell the organiser
-- [ ] 6.10 Meeting rescue: join by audio when parked (open the Teams / Meet join link)
-- [ ] 6.11 Demo: simulated, labelled "designed, in development" when no accounts are connected
-- [ ] 6.12 "What I know" view: show the knowledge graph to the owner
+- [x] 6.0 Reads next meetings, unread Gmail (Primary) and Teams; replies with read-back + yes; running-late email (built)
+- [x] 6.1 Builds knowledge across apps: people, threads, chats, meetings, places, and links between them (knowledge graph)
+- [x] 6.2 Understands what a message refers to (which thread / meeting / earlier message)
+- [x] 6.3 Notifies with context ("Riya again about the review you're driving to")
+- [x] 6.4 Understands vague spoken replies ("haan bol do pahunch raha hoon") and turns them into a proper message
+- [x] 6.5 Adds context to replies
+- [x] 6.6 Automatic ETA line on replies: "Sent from my Hyundai <model>: reaching <place> <time>, <road event on the way>"
+- [x] 6.7 Live ETA, route and road events used in replies and notifications
+- [x] 6.8 Drive-aware delivery (uses 14.4)
+- [x] 6.9 Meeting rescue: late for a call → tell the organiser
+- [x] 6.10 Meeting rescue: join by audio when parked (open the Teams / Meet join link)
+- [x] 6.11 Demo: Simulate "context" (also in the Full demo) runs the real code paths on labelled sample data and never sends; real accounts use the same flow
+- [x] 6.12 "What I know" view: show the knowledge graph to the owner
 
 ## 14.7 Languages and free speech
 - [x] 7.1 Tamil, Telugu, Malayalam, Kannada, Bengali added to English, Hindi, Hinglish (Sarvam voice; commit 24ee136)
@@ -131,3 +131,4 @@ Last updated: 26 Nov 2026 (session 1).
 - 26 Nov 2026: 14.4 server part built (server/signals.js): OSM signals via Overpass (cached), fleet-learned stop lines and signals, red length per approach/hour from front-of-queue waits (p90, 5+ samples, else cautious 45 s), current phase from Hyundais stopped now, start-together ratio. Then phone side: web/shared/moment.js (clear/busy/red/jam/parked + tiers, fleet start-together pattern), web/drive/moment-ui.js (stop reporting, delivery, hold & batch, VIP/urgent, Teams short call, light-turning-green pause), Simulate "redlight" (in Full demo) and "jam". 14.4 done. Next: 14.5.
 - 26 Nov 2026: 14.5 built: web/shared/commute.js (profile + defaults, work/personal by source and work domain, time windows, today's voice override, learn commute from 5+ weekday trips on 5+ days, 3-day reminder) and web/drive/commute-ui.js (onboarding sheet on first open with Skip, preferences button, reminder card, trip logging, override by voice). Fixed: modules now exposed on window (CO, Commute, MomentUI, OwnCar) so they see each other. Next: 14.6.
 - 27 Nov 2026: 14.7 completed: rule brain in all 8 languages + tests; server/llm.js (Sarvam chat, tool loop, 9 s timeout) used by /api/ask with live-data tools; hazard guard rejects any hazard not from the tool; any failure falls back to rules; yes/no/report stay deterministic. Next: 14.6.
+- 27 Nov 2026: 14.6 completed: server/knowledge.js (graph over Gmail threads + history, Teams chats + history, meetings, people, places; refersTo + context lines incl. "you're N min away"), LLM linking pass restricted to real meetings, /api/copilot/compose (vague reply → message via LLM or rules, no invented times, + automatic ETA line with road event), meeting rescue (organiser email while driving, Join by audio when parked), What I know sheet, Simulate "context" with sample data. Next: 14.8.
