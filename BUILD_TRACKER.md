@@ -36,8 +36,8 @@ Last updated: 26 Nov 2026 (session 1).
 
 ## 14.4 Drive-aware notifications
 - [ ] 4.1 Moment detector on the phone: moving on a clear road / stopped at a red light / traffic jam / moving with hazards / parked
-- [ ] 4.2 Traffic signal locations from OpenStreetMap (Overpass API, cached on the server)
-- [ ] 4.3 Fleet-learned stop lines: cars report where they stop at a signal; server learns the stop line
+- [x] 4.2 Traffic signal locations from OpenStreetMap (Overpass API, cached on the server)
+- [x] 4.3 Fleet-learned stop lines: cars report where they stop at a signal; server learns the stop line
 - [ ] 4.4 Fleet pattern: cars stop then all start together (signal) vs irregular creep (jam)
 - [ ] 4.5 Own car: speed 0, near the front of the queue (close to the stop line)
 - [P] 4.5b Brake pedal / auto-hold signal — needs car data
@@ -128,3 +128,4 @@ Last updated: 26 Nov 2026 (session 1).
 - 26 Nov 2026: 14.1 alert styles built (Voice / Chime + card default / Silent with glow and big Haan-Na; serious events speak in Chime mode; Full demo forces Voice and restores). Next: 14.2.
 - 26 Nov 2026: 14.2 built: own-car memory on the phone (spot felt on 2+ days warns this driver before fleet confirmation; 3 smooth passes forget it), per-spot car tag so one car counts once per spot across days, optional "Help improve the map" asking only when stopped/slow (Gaddha / Speed breaker / Kuch nahi → /api/label). Next: 14.3.
 - 26 Nov 2026: 14.3 built: detector reports first movement up/down + axle pair; fleet decides type from votes, both-directions (+3 breaker) and 60-day permanence; up-first jolts merge across directions; reasons shown in console and by tapping the warning. Next: 14.4.
+- 26 Nov 2026: 14.4 server part built (server/signals.js): OSM signals via Overpass (cached), fleet-learned stop lines and signals, red length per approach/hour from front-of-queue waits (p90, 5+ samples, else cautious 45 s), current phase from Hyundais stopped now, start-together ratio. In progress: phone moment detector + delivery tiers.

@@ -5,7 +5,7 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node --no-warnings --env-file-if-exists=.env server/index.js",
-    "test": "node --no-warnings --test test/engine.test.js test/detector.test.js test/api.test.js test/hinglish.test.js test/mycar.test.js test/voice.test.js test/mail.test.js test/env.test.js test/real.test.js test/personal.test.js",
+    "test": "node --no-warnings --test test/engine.test.js test/detector.test.js test/api.test.js test/hinglish.test.js test/mycar.test.js test/voice.test.js test/mail.test.js test/env.test.js test/real.test.js test/personal.test.js test/signals.test.js",
     "sim": "node --no-warnings sim/fleet.js"
   },
   "engines": { "node": ">=22.13" },

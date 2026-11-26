@@ -13,9 +13,10 @@ const fs = require("node:fs");
 const { createAccounts } = require("./accounts");
 const { createMaps } = require("./maps");
 const { mountPersonal } = require("./personal");
+const { createSignals } = require("./signals");
 
 function createApp({ dbFile = process.env.DB_FILE || path.join(__dirname, "..", "data", "sadak.db"), enableSim = process.env.ENABLE_SIM !== "false",
-  seedFile = process.env.SEED_FILE || path.join(__dirname, "..", "seed", "real-drives.json"), sarvam = createSarvam(), mailer = createMailer(), accounts = createAccounts(), maps = createMaps(), env = process.env } = {}) {
+  seedFile = process.env.SEED_FILE || path.join(__dirname, "..", "seed", "real-drives.json"), sarvam = createSarvam(), mailer = createMailer(), accounts = createAccounts(), maps = createMaps(), env = process.env, signalsImpl = null } = {}) {
   const db = openDb(dbFile);
   const clients = new Set();
   const send = (type, data) => { const msg = `event: ${type}\ndata: ${JSON.stringify(data)}\n\n`; for (const c of clients) c.write(msg); };
@@ -109,6 +110,25 @@ function createApp({ dbFile = process.env.DB_FILE || path.join(__dirname, "..", 
   });
 
   mountPersonal(app, { engine, accounts, maps, env, limit });
+
+  /* ---------- traffic signals: red light vs jam, red time left (spec 14.4) ---------- */
+  const signals = signalsImpl || createSignals({ db });
+  app.get("/api/signals/state", limit, async (req, res) => {
+    const lat = +req.query.lat, lon = +req.query.lon, heading = req.query.heading != null && req.query.heading !== "" ? +req.query.heading : null;
+    if (![lat, lon].every(Number.isFinite)) return res.status(400).json({ error: "lat, lon required" });
+    res.json(await signals.state({ lat, lon, heading }));
+  });
+  app.get("/api/signals/near", limit, async (req, res) => {
+    const lat = +req.query.lat, lon = +req.query.lon; if (![lat, lon].every(Number.isFinite)) return res.status(400).json({ error: "lat, lon required" });
+    res.json({ signals: (await signals.near(lat, lon, 1500)).slice(0, 80) });
+  });
+  app.post("/api/stops", limit, (req, res) => {
+    const b = req.body || {};
+    if (typeof b.key !== "string" || typeof b.device !== "string" || ![b.lat, b.lon, b.start].every(Number.isFinite)) return res.status(400).json({ error: "key, device, lat, lon, start required" });
+    if (b.action === "start") { signals.stopStart(b); return res.json({ ok: true }); }
+    if (b.action === "end" && Number.isFinite(b.end)) return res.json(signals.stopEnd(b));
+    res.status(400).json({ error: "action start|end" });
+  });
 
   /* ---------- Sarvam voice: 8 Indian languages, key stays on this server ---------- */
   app.get("/api/voice/status", (_, res) => res.json({ sarvam: sarvam.on, languages: Object.keys(sarvam.LANGS) }));
