@@ -4,3 +4,7 @@ data/
 *.db-*
 .claude/
 .env
+android/build/
+*.keystore
+*.apk
+*.aab
