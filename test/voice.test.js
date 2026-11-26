@@ -6,6 +6,7 @@ const S = require("../web/shared/voice.js");
 const V = require("../web/shared/hinglish.js");
 const C = require("../web/shared/mycar.js");
 const { template } = require("../server/brief.js");
+const E = require("../web/shared/env.js");
 
 const v = (name, lang) => ({ name, lang });
 const EDGE = [v("Microsoft David - English (United States)", "en-US"), v("Microsoft स्वरा Online (Natural) - Hindi (India)", "hi-IN"), v("Microsoft मधुर Online (Natural) - Hindi (India)", "hi-IN"), v("Microsoft Neerja Online (Natural) - English (India)", "en-IN"), v("Microsoft Kalpana - Hindi (India)", "hi-IN")];
@@ -49,6 +50,8 @@ test("every Hinglish word the app says is in the word list", () => {
   lines.push(V.reply("Aage koi gaddha hai?", { prefer: "Hinglish" }).reply, V.reply("Underpass mein paani hai kya?", { prefer: "Hinglish" }).reply, V.askAfterJolt("pothole", "Hinglish"));
   for (const h of [{ type: "breaker", severity: 1.4 }, { type: "breaker", severity: 0.9 }, { type: "pothole", severity: 1.5 }, { type: "pothole", severity: 1 }, { type: "water" }])
     for (const [car, n] of [["aura", 5], ["venue", 1]]) lines.push(C.line(C.check(car, n, h), "Hinglish"));
+  for (const t of E.advise({ visibilityM: 380, rainMm: 1, rainProbNext2h: 70, pm25: 185, pm10: 270, tempC: 41 }, "Hinglish")) lines.push(t.text);
+  lines.push(E.advise({ rainProbNext2h: 70 }, "Hinglish")[0].text);
   lines.push(template([{ type: "breaker" }, { type: "pothole" }, { type: "water" }], "Hinglish", ""));
   // Hinglish literals in the driver app: the middle argument of T3(...) and the Hinglish: keys.
   const src = fs.readFileSync(path.join(__dirname, "../web/drive/drive.js"), "utf8");

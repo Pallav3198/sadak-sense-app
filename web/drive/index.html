@@ -65,6 +65,9 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
 .brief.show{display:block}
 .brief .label{margin-bottom:4px}
 .msgs div{white-space:pre-line}
+.env{margin:6px 14px 0;display:flex;gap:8px;align-items:center;justify-content:space-between;padding:7px 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-size:12px;color:var(--muted)}
+.env b{color:var(--fg);font-weight:600}.env .ea{font-family:var(--mono);font-size:10px;color:var(--accent);text-align:right}
+.env.warn{border-color:var(--breaker)}.env.bad{border-color:var(--pothole)}
 .simlist{display:grid;grid-template-columns:1fr 1fr;gap:6px}.simlist .btn{padding:9px;border-radius:12px;font-size:12px;text-align:left;line-height:1.25}
 .tourbar{position:absolute;top:calc(env(safe-area-inset-top,0px) + 52px);left:14px;right:14px;z-index:870;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--accent);color:#04201f;border-radius:12px;padding:6px 10px;font-size:12.5px;font-weight:600}
 .tourbar button{background:#04201f;color:#fff;border:0;border-radius:8px;padding:5px 10px;font:inherit}
@@ -95,6 +98,7 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
     <div class="dist" id="aD"></div>
   </div>
   <button class="car" id="carBar" type="button" aria-label="My car and road wear"><span class="cn" id="carName">My car</span><span class="cl" id="carLine">Checks every hazard against this car's clearance and load</span><span class="cw" id="carWear">wear 0%</span></button>
+  <div class="env" id="envBar" hidden><span id="envTxt"></span><span class="ea" id="envAct"></span></div>
   <div class="mid">
     <div class="speed"><span id="spd">0</span> <small>km/h</small></div>
     <div class="meta"><div><b id="mRoad">—</b></div><div>Hazards known nearby: <b id="mKnown">0</b></div><div>Jolts detected: <b id="mJolts">0</b></div></div>
@@ -158,6 +162,7 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
 <script src="/shared/hinglish.js"></script>
 <script src="/shared/voice.js"></script>
 <script src="/shared/mail.js"></script>
+<script src="/shared/env.js"></script>
 <script src="/shared/mycar.js"></script>
 <script src="/drive/drive.js"></script>
 </body>

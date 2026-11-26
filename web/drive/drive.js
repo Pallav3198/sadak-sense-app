@@ -2,7 +2,7 @@
 // reporting, clean-pass reporting, and voice alerts for hazards confirmed by other cars.
 const $ = (id) => document.getElementById(id);
 const G = 9.80665;
-const S = { mode: null, lang: "Hinglish", voice: true, rain: false, pos: null, known: [], alerted: new Map(), queue: [], sent: 0, jolts: 0, recent: [], track: new Map(), device: null, lastFetch: 0, car: "creta", people: 4, hits: [], carCheck: null, agentDone: new Set(), pendingAgent: null, reroute: null };
+const S = { mode: null, lang: "Hinglish", voice: true, rain: false, pos: null, known: [], alerted: new Map(), queue: [], sent: 0, jolts: 0, recent: [], track: new Map(), device: null, lastFetch: 0, car: "creta", people: 4, hits: [], carCheck: null, envQueue: [], agentDone: new Set(), pendingAgent: null, reroute: null };
 
 /* ---------- identity: anonymous ID that rotates daily ---------- */
 async function dailyId() {
@@ -378,6 +378,18 @@ const STEPS = {
   flood: [T3("Flooded underpass: reroute, home", "Paani bhara underpass: naya raasta, ghar", "जलभराव: नया रास्ता, घर"), async () => {
     clearPending(); simAlert("water", 350, 35); await spoken();
     floodAgent({ id: "sim" + Date.now(), devices: 35 }); await spoken(); await ask(YES[S.lang]); await spoken(); }],
+  nearmiss: [T3("Near-miss zone: sudden braking", "Near-miss zone: achanak brake", "नियर-मिस ज़ोन: अचानक ब्रेक"), async () => {
+    const el = $("alert"); el.className = "alert pothole"; el.querySelector(".ic").textContent = "!";
+    $("aT").textContent = T3("Sudden braking zone ahead", "Aage achanak brake wala zone", "आगे अचानक ब्रेक वाला ज़ोन");
+    $("aS").textContent = T3("27 cars braked hard here this week, mostly 6–8 pm", "Is hafte 27 gaadiyon ne yahan zor se brake lagaya, zyada tar shaam 6 se 8", "इस हफ़्ते 27 गाड़ियों ने यहाँ ज़ोर से ब्रेक लगाया, ज़्यादातर शाम 6 से 8");
+    $("aD").innerHTML = `200<small>metres</small>`; chime();
+    say(T3("Sudden braking is common here at this hour. Take it slow.", "Is waqt yahan gaadiyan achanak brake lagati hain. Dheere chaliye.", "इस समय यहाँ गाड़ियाँ अचानक ब्रेक लगाती हैं। धीरे चलें।")); await spoken(); }],
+  air: [T3("Air and weather: fog, AQI", "Hawa aur mausam: dhundh, AQI", "हवा और मौसम: धुंध, AQI"), async () => {
+    const tips = renderEnv({ tempC: 14, code: 45, visibilityM: 380, rainMm: 0, rainProbNext2h: 0, pm25: 185, pm10: 270 }, true);
+    openConvo();
+    const warn = tips.filter((t) => t.level === "warn");
+    warn.forEach((t) => bubble("a", T3("Air and weather", "Hawa aur mausam", "हवा और मौसम"), t.text));
+    say(warn.map((t) => t.text).slice(0, 2).join(" ").replace(/, lagbhag [^,]*,/, ",").replace(/ Fog lights on kar di hain, doori rakhiye\./, "")); await spoken(); }],
   wear: [T3("Road wear and damage log", "Road wear aur damage log", "रोड वियर और डैमेज लॉग"), async () => {
     $("convo").hidden = true; $("health").hidden = false; renderHealth(); say(T3("Here is this car's road wear and damage log.", "Ye hai is gaadi ka road wear aur damage log.", "यह है इस गाड़ी का रोड वियर और डैमेज लॉग।")); await spoken(); await pause(800); $("health").hidden = true; }],
   repair: [T3("Road repaired: hazard removed", "Sadak theek hui: hazard hata", "सड़क ठीक हुई: ख़तरा हटा"), async () => {
@@ -399,11 +411,11 @@ const STEPS = {
     [T3("41 hard hits this week", "Is hafte 41 zor ke jhatke", "इस हफ़्ते 41 ज़ोर के झटके"), T3("Saturday 10:30, with pick-up", "Shanivaar 10:30, pick-up ke saath", "शनिवार 10:30, पिक-अप के साथ"), T3("Hit log sent to the technician", "Hit log technician ko bheja", "हिट लॉग तकनीशियन को भेजा")],
     T3("Booked for Saturday at 10:30 with pick-up, and the technician has your hit log.", "Shanivaar 10:30 ka slot pick-up ke saath book ho gaya, aur technician ko hit log bhej diya.", "शनिवार 10:30 का स्लॉट पिक-अप के साथ बुक हो गया, और तकनीशियन को हिट लॉग भेज दिया।"))],
 };
-const TOUR = ["brief", "breaker", "ask", "car", "jolt", "report", "tyre", "flood", "wear", "repair", "planDrive", "planCity", "planService"];
+const TOUR = ["brief", "air", "breaker", "nearmiss", "ask", "car", "jolt", "tyre", "flood", "wear", "planDrive", "planService"];
 async function runStep(key) {
   try { await STEPS[key][1](); } catch (e) { console.warn("simulate step skipped", key, e); }
 }
-function simEnd() { S.simHold = false; S.tour = false; clearPending(); $("tourBar").hidden = true; $("brief").classList.remove("show"); $("health").hidden = true; }
+function simEnd() { S.simHold = false; S.tour = false; clearPending(); if (S.env) renderEnv(S.env); $("tourBar").hidden = true; $("brief").classList.remove("show"); $("health").hidden = true; }
 async function simOne(key) {
   if (S.tour) return;
   $("simSheet").hidden = true; S.simHold = true; S.simRun = (S.simRun || 0) + 1; const run = S.simRun;
@@ -433,6 +445,36 @@ $("simAll").onclick = () => tour();
 $("tourStop").onclick = () => { S.tourStop = true; try { speechSynthesis.cancel(); } catch {} };
 $("fullBtn").onclick = async () => { $("route").value = "cp-minto"; $("rain").checked = true; await go("demo"); await pause(1200); tour(); };
 
+/* ---------- air and weather: free Open-Meteo data, advice the car can act on ---------- */
+const AQI_TONE = { Good: "", Satisfactory: "", Moderate: "warn", Poor: "bad", "Very Poor": "bad", Severe: "bad" };
+function renderEnv(env, sample) {
+  if (!env) return;
+  const a = SadakEnv.indiaAqi(env.pm25, env.pm10), bar = $("envBar"), tips = SadakEnv.advise(env, S.lang);
+  const parts = [];
+  if (Number.isFinite(env.tempC)) parts.push(`<b>${Math.round(env.tempC)}°C</b> ${SadakEnv.SKY(env.code)}`);
+  if (a) parts.push(`AQI <b>${a.aqi}</b> ${a.band}`);
+  if (Number.isFinite(env.visibilityM) && env.visibilityM < 2000) parts.push(`visibility <b>${Math.round(env.visibilityM)} m</b>`);
+  $("envTxt").innerHTML = parts.join(" · ") + (sample ? " · sample" : "");
+  $("envAct").textContent = tips[0]?.act || "";
+  bar.className = "env " + (tips.some((t) => t.key === "fog" || t.key === "rain") ? "warn" : a ? AQI_TONE[a.band] || "" : "");
+  bar.hidden = false;
+  return tips;
+}
+async function refreshEnv() {
+  const p = S.pos || { lat: 28.6315, lon: 77.2167 };
+  const env = await SadakEnv.fetchEnv(p.lat, p.lon);
+  if (!env) return;
+  S.env = env;
+  if (S.simHold) return; // shown when the simulation ends
+  for (const t of renderEnv(env) || []) if (t.level === "warn" && !S.envSaid?.has(t.key)) S.envQueue.push(t);
+}
+// Spoken only at a calm moment: no hazard on the card, no question waiting, not during a simulation.
+function deliverEnv() {
+  if (!S.envQueue?.length || S.simHold || S.pendingAgent || S.pendingJolt || !$("alert").className.includes("clear")) return;
+  const t = S.envQueue.shift(); (S.envSaid ||= new Set()).add(t.key);
+  openConvo(); bubble("a", T3("Air and weather", "Hawa aur mausam", "हवा और मौसम"), t.text); say(t.text);
+}
+
 async function go(mode) {
   S.mode = mode; S.lang = $("lang").value; S.rain = $("rain").checked; S.device = await dailyId();
   S.car = $("carSel").value; S.people = +$("people").value; S.homeOn = $("homeOn").checked; S.homeMail = SadakMail.validEmail($("homeMail").value) ? $("homeMail").value.trim() : "";
@@ -443,6 +485,7 @@ async function go(mode) {
   if (mode === "demo") { $("briefBtn").hidden = true; $("simBtn").hidden = false; }
   if (mode === "real") await startReal(); else await startDemo($("route").value);
   setInterval(tick, 400); setInterval(flush, 3000); drawTrace();
+  refreshEnv(); setInterval(refreshEnv, 10 * 60e3); setInterval(deliverEnv, 3000);
 }
 $("realBtn").onclick = () => go("real");
 $("demoBtn").onclick = () => go("demo");
