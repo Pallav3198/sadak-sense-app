@@ -75,11 +75,11 @@ Last updated: 26 Nov 2026 (session 1).
 ## 14.7 Languages and free speech
 - [x] 7.1 Tamil, Telugu, Malayalam, Kannada, Bengali added to English, Hindi, Hinglish (Sarvam voice; commit 24ee136)
 - [x] 7.2 Hear: Sarvam speech-to-text (auto-detect); browser recognition as fallback with the right language code
-- [ ] 7.3 Understand: Sarvam LLM on the server (key never in the page) with tools for live facts: hazards ahead, ETA, car state, messages
-- [ ] 7.4 It must never invent a hazard (answers about hazards come only from the hazard tool)
+- [x] 7.3 Understand: Sarvam LLM (sarvam-105b) on the server with tools: hazards_ahead, route_brief, my_car_check, trip_eta, my_messages (owner only), report_hazard. Runs on our own server, not a Cloudflare Worker (same effect: key never in the page)
+- [x] 7.4 It must never invent a hazard (answers about hazards come only from the hazard tool)
 - [x] 7.5 Reply in the same language (Sarvam voice)
-- [ ] 7.6 Offline fallback: rule-based brain when the LLM or network fails
-- [ ] 7.7 Written-sentence tests in all 7 languages
+- [x] 7.6 Offline fallback: rule-based brain when the LLM or network fails
+- [x] 7.7 Written-sentence tests in all 8 languages (test/languages.test.js); the offline rule brain now understands Tamil, Telugu, Malayalam, Kannada, Bengali scripts too
 - [U] 7.8 One real spoken test per language by a native speaker
 
 ## 14.8 Moat features
@@ -130,3 +130,4 @@ Last updated: 26 Nov 2026 (session 1).
 - 26 Nov 2026: 14.3 built: detector reports first movement up/down + axle pair; fleet decides type from votes, both-directions (+3 breaker) and 60-day permanence; up-first jolts merge across directions; reasons shown in console and by tapping the warning. Next: 14.4.
 - 26 Nov 2026: 14.4 server part built (server/signals.js): OSM signals via Overpass (cached), fleet-learned stop lines and signals, red length per approach/hour from front-of-queue waits (p90, 5+ samples, else cautious 45 s), current phase from Hyundais stopped now, start-together ratio. Then phone side: web/shared/moment.js (clear/busy/red/jam/parked + tiers, fleet start-together pattern), web/drive/moment-ui.js (stop reporting, delivery, hold & batch, VIP/urgent, Teams short call, light-turning-green pause), Simulate "redlight" (in Full demo) and "jam". 14.4 done. Next: 14.5.
 - 26 Nov 2026: 14.5 built: web/shared/commute.js (profile + defaults, work/personal by source and work domain, time windows, today's voice override, learn commute from 5+ weekday trips on 5+ days, 3-day reminder) and web/drive/commute-ui.js (onboarding sheet on first open with Skip, preferences button, reminder card, trip logging, override by voice). Fixed: modules now exposed on window (CO, Commute, MomentUI, OwnCar) so they see each other. Next: 14.6.
+- 27 Nov 2026: 14.7 completed: rule brain in all 8 languages + tests; server/llm.js (Sarvam chat, tool loop, 9 s timeout) used by /api/ask with live-data tools; hazard guard rejects any hazard not from the tool; any failure falls back to rules; yes/no/report stay deterministic. Next: 14.6.

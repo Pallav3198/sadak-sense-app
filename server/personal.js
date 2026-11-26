@@ -94,13 +94,14 @@ function mountPersonal(app, { engine, accounts, maps, env = process.env, limit }
   });
 
   /* ---------- co-pilot: new mail and Teams chats, read out only at stops (the phone decides when) ---------- */
-  app.get("/api/copilot/inbox", needOwner, limit, async (req, res) => {
+  async function inboxFor(req, res) {
     const items = [], errors = [];
     const g = ck(req, "ss_g"), m = ck(req, "ss_m");
     if (g) { try { items.push(...(await accounts.google.unread(g.r))); } catch (e) { errors.push({ source: "gmail", error: e.message }); } }
     if (m) { try { const r = await accounts.microsoft.unread(m.r, m.uid); keepMs(res, m, r.rotated); items.push(...r.items); } catch (e) { errors.push({ source: "teams", error: e.message }); } }
-    res.json({ items: items.sort((a, b) => b.ts - a.ts), errors });
-  });
+    return { items: items.sort((a, b) => b.ts - a.ts), errors };
+  }
+  app.get("/api/copilot/inbox", needOwner, limit, async (req, res) => res.json(await inboxFor(req, res)));
 
   // Sends only with confirmed:true, which the phone sets after the driver hears the text read back and says yes.
   app.post("/api/copilot/send", needOwner, limit, express.json(), async (req, res) => {
@@ -121,7 +122,7 @@ function mountPersonal(app, { engine, accounts, maps, env = process.env, limit }
     } catch (e) { fail(res, e); }
   });
 
-  return { isOwner, ready };
+  return { isOwner, ready, inboxFor };
 }
 
 module.exports = { mountPersonal };

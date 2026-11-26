@@ -594,7 +594,8 @@ async function ask(text, shown) {
   }
   const p = S.pos || {};
   try {
-    const r = await SS.api("/api/ask", { text, lat: p.lat, lon: p.lon, heading: p.heading, device: S.device, routeId: S.routeId, pending: S.pendingJolt ? { type: S.pendingJolt.type } : null, prefer: S.lang });
+    const r = await SS.api("/api/ask", { text, lat: p.lat, lon: p.lon, heading: p.heading, device: S.device, routeId: S.routeId, pending: S.pendingJolt ? { type: S.pendingJolt.type } : null, prefer: S.lang, car: S.car, people: S.people,
+      trip: window.CO?.route && CO.dest ? { destination: CO.dest.name, minutes_left: Math.round(CO.route.durationS / 60), traffic_delay_min: Math.round(CO.route.trafficDelayS / 60), hazards_on_route: CO.route.hazards.length } : null });
     bubble("a", "Sadak Sense", r.reply);
     const keep = S.lang, kv = S.replyVoice; S.lang = r.lang; if (r.voice) S.replyVoice = r.voice; say(r.reply, "reply"); S.lang = keep; S.replyVoice = kv;
     if (r.action && "confirm" in r.action && S.pendingJolt) resolveJolt(r.action.confirm);

@@ -14,9 +14,11 @@ const { createAccounts } = require("./accounts");
 const { createMaps } = require("./maps");
 const { mountPersonal } = require("./personal");
 const { createSignals } = require("./signals");
+const { createLLM, hazardSafe } = require("./llm");
+const SadakCar = require("../web/shared/mycar.js");
 
 function createApp({ dbFile = process.env.DB_FILE || path.join(__dirname, "..", "data", "sadak.db"), enableSim = process.env.ENABLE_SIM !== "false",
-  seedFile = process.env.SEED_FILE || path.join(__dirname, "..", "seed", "real-drives.json"), sarvam = createSarvam(), mailer = createMailer(), accounts = createAccounts(), maps = createMaps(), env = process.env, signalsImpl = null } = {}) {
+  seedFile = process.env.SEED_FILE || path.join(__dirname, "..", "seed", "real-drives.json"), sarvam = createSarvam(), mailer = createMailer(), accounts = createAccounts(), maps = createMaps(), env = process.env, signalsImpl = null, llm = createLLM() } = {}) {
   const db = openDb(dbFile);
   const clients = new Set();
   const send = (type, data) => { const msg = `event: ${type}\ndata: ${JSON.stringify(data)}\n\n`; for (const c of clients) c.write(msg); };
@@ -88,8 +90,9 @@ function createApp({ dbFile = process.env.DB_FILE || path.join(__dirname, "..", 
   });
 
   // Two-way voice: the driver speaks (English, Hindi or Hinglish); we answer from live data in the same language.
-  app.post("/api/ask", limit, (req, res) => {
-    const { text, lat, lon, heading, device, routeId, pending, prefer } = req.body || {};
+  let personal = null; // set below; the ask route needs the owner check and inbox at request time
+  app.post("/api/ask", limit, async (req, res) => {
+    const { text, lat, lon, heading, device, routeId, pending, prefer, car, people, trip } = req.body || {};
     if (typeof text !== "string" || !text.trim()) return res.status(400).json({ error: "text required" });
     const ctx = { pending: pending || null, prefer };
     if (Number.isFinite(lat) && Number.isFinite(lon)) {
@@ -102,14 +105,48 @@ function createApp({ dbFile = process.env.DB_FILE || path.join(__dirname, "..", 
     const line = ROUTES[routeId]?.coords;
     const along = line ? engine.alongRoute(line) : (ctx.ahead || []);
     ctx.brief = { breakers: along.filter((h) => h.type === "breaker").length, potholes: along.filter((h) => h.type === "pothole").length, water: along.some((h) => h.type === "water") || !!ctx.water };
-    const out = Voice.reply(text, ctx);
-    if (out.action?.report && Number.isFinite(lat) && typeof device === "string") {
-      out.result = engine.ingest({ device, lat, lon, heading, speed: null, peak_g: null, type: out.action.report, rain: out.action.report === "crawl", ts: Date.now() }, "voice");
+    const report = (type) => Number.isFinite(lat) && typeof device === "string"
+      ? engine.ingest({ device, lat, lon, heading, speed: null, peak_g: null, type, rain: type === "crawl", ts: Date.now() }, "voice") : { ok: false, error: "no position" };
+    const rule = Voice.reply(text, ctx);
+    // Deterministic intents (yes/no to a pending question, explicit reports) stay with the rule brain.
+    const keepRule = ["yes", "no", "report"].includes(rule.intent);
+    if (!keepRule && llm.on) {
+      try {
+        const out = await askLLM({ text, ctx, car, people, trip, req, res, report });
+        if (out) return res.json(out);
+      } catch { /* network or model failure: the rule brain answers (offline fallback, 14.7) */ }
     }
-    res.json(out);
+    if (rule.action?.report) rule.result = report(rule.action.report);
+    res.json({ ...rule, brain: "rules" });
   });
 
-  mountPersonal(app, { engine, accounts, maps, env, limit });
+  // Free speech in any of the 8 languages: the LLM answers from tools that read live data (14.7).
+  const TOOLS = [
+    { type: "function", function: { name: "hazards_ahead", description: "Confirmed road hazards (potholes, speed breakers) within 1 km ahead in the driving direction, and waterlogging nearby. The ONLY source of hazard facts.", parameters: { type: "object", properties: {}, required: [] } } },
+    { type: "function", function: { name: "route_brief", description: "Counts of confirmed speed breakers, potholes and waterlogging on today's route.", parameters: { type: "object", properties: {}, required: [] } } },
+    { type: "function", function: { name: "my_car_check", description: "Whether the driver's own car (model, people on board, ground clearance) can safely cross the next hazard, and at what speed.", parameters: { type: "object", properties: {}, required: [] } } },
+    { type: "function", function: { name: "trip_eta", description: "Current destination, minutes left with live traffic, and arrival time.", parameters: { type: "object", properties: {}, required: [] } } },
+    { type: "function", function: { name: "my_messages", description: "The driver's unread Gmail and Teams messages (sender, subject, short text). Only for the car's owner.", parameters: { type: "object", properties: {}, required: [] } } },
+    { type: "function", function: { name: "report_hazard", description: "Report a hazard the driver says is here right now.", parameters: { type: "object", properties: { type: { type: "string", enum: ["pothole", "breaker", "crawl"] } }, required: ["type"] } } },
+  ];
+  const SYSTEM = "You are Sadak Sense, the voice assistant inside a Hyundai in India. Reply in the same language and script the driver used (Roman Hinglish if they wrote Roman Hinglish). Keep it to one or two short spoken sentences. For anything about potholes, speed breakers, waterlogging or the road ahead you MUST call hazards_ahead and state only what it returns; never mention a hazard it did not return, and say the road is clear if it returns none. Use metres for distance. Never invent messages, times or places: use the tools. If you don't know, say so briefly.";
+  async function askLLM({ text, ctx, car, people, trip, req, res, report }) {
+    const handlers = {
+      hazards_ahead: () => ({ hazards: (ctx.ahead || []).slice(0, 5).map((h) => ({ type: h.type, distance_m: Math.round(h.dist), cars_confirmed: h.devices })), water: ctx.water ? { distance_m: Math.round(ctx.water.dist), cars: ctx.water.devices } : null }),
+      route_brief: () => ctx.brief,
+      my_car_check: () => { const next = (ctx.ahead || [])[0]; if (!next) return { next_hazard: null }; const v = SadakCar.check(car || "creta", +people || 1, next); return { next_hazard: next.type, distance_m: Math.round(next.dist), advice: SadakCar.line(v, "English") }; },
+      trip_eta: () => trip && trip.destination ? trip : { destination: null },
+      my_messages: async () => personal?.isOwner(req) ? { messages: (await personal.inboxFor(req, res)).items.slice(0, 5).map((m) => ({ from: m.from, subject: m.subject, text: m.snippet, via: m.source })) } : { error: "not signed in as the owner" },
+      report_hazard: ({ type }) => (["pothole", "breaker", "crawl"].includes(type) ? report(type) : { ok: false }),
+    };
+    const r = await llm.run({ system: SYSTEM, messages: [{ role: "user", content: text.slice(0, 600) }], tools: TOOLS, handlers });
+    if (!r.content || !hazardSafe(r.content, r.used)) return null; // invented a hazard → rule brain answers
+    const lang = Voice.detectLang(r.content);
+    const reported = r.used.find((u) => u.name === "report_hazard");
+    return { reply: r.content, lang, voice: ["Tamil", "Telugu", "Malayalam", "Kannada", "Bengali"].includes(lang) ? lang : null, intent: "llm", brain: "llm", tools: r.used.map((u) => u.name), result: reported?.result };
+  }
+
+  personal = mountPersonal(app, { engine, accounts, maps, env, limit });
 
   /* ---------- traffic signals: red light vs jam, red time left (spec 14.4) ---------- */
   const signals = signalsImpl || createSignals({ db });
