@@ -50,6 +50,11 @@ function createAccounts({ env = process.env, fetchImpl = globalThis.fetch } = {}
       }
       return out;
     },
+    // Earlier messages in the same thread, so the co-pilot knows what a new message continues (14.6).
+    async thread(refresh, threadId) {
+      const t = await google.api(refresh, `https://gmail.googleapis.com/gmail/v1/users/me/threads/${encodeURIComponent(threadId)}?format=metadata&metadataHeaders=From&metadataHeaders=Subject`);
+      return (t.messages || []).map((d) => { const h = Object.fromEntries((d.payload?.headers || []).map((x) => [x.name.toLowerCase(), x.value])); return { id: d.id, from: nameOf(h.from), fromAddr: addrOf(h.from), subject: h.subject || "", snippet: strip(d.snippet).slice(0, 200), ts: +d.internalDate || 0 }; });
+    },
     async send(refresh, { to, subject, body, threadId, inReplyTo }) {
       const head = [`To: ${to}`, `Subject: =?UTF-8?B?${Buffer.from(subject).toString("base64")}?=`, "MIME-Version: 1.0", "Content-Type: text/plain; charset=UTF-8", "Content-Transfer-Encoding: 8bit"];
       if (inReplyTo) head.push(`In-Reply-To: ${inReplyTo}`, `References: ${inReplyTo}`);
@@ -61,6 +66,8 @@ function createAccounts({ env = process.env, fetchImpl = globalThis.fetch } = {}
       const r = await google.api(refresh, "https://www.googleapis.com/calendar/v3/calendars/primary/events?" + form({ timeMin: new Date(now).toISOString(), timeMax: new Date(now + hours * 3600e3).toISOString(), singleEvents: "true", orderBy: "startTime", maxResults: 10 }));
       return (r.items || []).filter((e) => e.start?.dateTime && e.status !== "cancelled").map((e) => ({
         source: "google", id: e.id, title: e.summary || "Meeting", location: e.location || "", start: Date.parse(e.start.dateTime), online: !!e.hangoutLink && !e.location,
+        joinUrl: e.hangoutLink || e.conferenceData?.entryPoints?.find((x) => x.entryPointType === "video")?.uri || null,
+        organizer: e.organizer && !e.organizer.self ? e.organizer.email : null,
         attendees: (e.attendees || []).filter((a) => !a.self && a.email && !a.resource).map((a) => ({ email: a.email, name: a.displayName || a.email })),
       }));
     },
@@ -105,6 +112,10 @@ function createAccounts({ env = process.env, fetchImpl = globalThis.fetch } = {}
       }
       return { items, rotated };
     },
+    async chatHistory(refresh, chatId) {
+      const { data, rotated } = await microsoft.api(refresh, `https://graph.microsoft.com/v1.0/chats/${encodeURIComponent(chatId)}/messages?$top=6`);
+      return { items: (data.value || []).filter((m) => m.from?.user).map((m) => ({ id: m.id, from: m.from.user.displayName || "Someone", subject: "", snippet: strip(m.body?.content).slice(0, 200), ts: Date.parse(m.createdDateTime) })), rotated };
+    },
     async send(refresh, chatId, text) {
       const { data, rotated } = await microsoft.api(refresh, `https://graph.microsoft.com/v1.0/chats/${encodeURIComponent(chatId)}/messages`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ body: { contentType: "text", content: text } }) });
       return { id: data.id, rotated };
@@ -113,6 +124,7 @@ function createAccounts({ env = process.env, fetchImpl = globalThis.fetch } = {}
       const { data, rotated } = await microsoft.api(refresh, "https://graph.microsoft.com/v1.0/me/calendarView?" + form({ startDateTime: new Date(now).toISOString(), endDateTime: new Date(now + hours * 3600e3).toISOString(), $orderby: "start/dateTime", $top: 10 }), { headers: { Prefer: 'outlook.timezone="UTC"' } });
       const items = (data.value || []).filter((e) => !e.isCancelled).map((e) => ({
         source: "outlook", id: e.id, title: e.subject || "Meeting", location: e.location?.displayName || "", start: Date.parse(e.start.dateTime + "Z"), online: !!e.isOnlineMeeting && !e.location?.displayName,
+        joinUrl: e.onlineMeeting?.joinUrl || null, organizer: e.organizer?.emailAddress?.address || null,
         attendees: (e.attendees || []).filter((a) => a.emailAddress?.address).map((a) => ({ email: a.emailAddress.address, name: a.emailAddress.name || a.emailAddress.address })),
       }));
       return { items, rotated };

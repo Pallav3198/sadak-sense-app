@@ -146,7 +146,7 @@ function createApp({ dbFile = process.env.DB_FILE || path.join(__dirname, "..", 
     return { reply: r.content, lang, voice: ["Tamil", "Telugu", "Malayalam", "Kannada", "Bengali"].includes(lang) ? lang : null, intent: "llm", brain: "llm", tools: r.used.map((u) => u.name), result: reported?.result };
   }
 
-  personal = mountPersonal(app, { engine, accounts, maps, env, limit });
+  personal = mountPersonal(app, { engine, accounts, maps, env, limit, llm });
 
   /* ---------- traffic signals: red light vs jam, red time left (spec 14.4) ---------- */
   const signals = signalsImpl || createSignals({ db });

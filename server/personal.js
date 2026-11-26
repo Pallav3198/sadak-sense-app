@@ -2,9 +2,11 @@
 // Only the owner (OWNER_EMAIL) can use these routes. Nothing is sent without an explicit confirmation from the driver.
 const express = require("express");
 const { seal, open, cookies, setCookie, randomState } = require("./secure");
-const { leaveBy, lateMessage, nextTrip } = require("./copilot");
+const { leaveBy, lateMessage, nextTrip, etaLine, composeRules, hhmm } = require("./copilot");
+const { buildGraph, contextFor, nextCall } = require("./knowledge");
 
-function mountPersonal(app, { engine, accounts, maps, env = process.env, limit }) {
+function mountPersonal(app, { engine, accounts, maps, env = process.env, limit, llm = null }) {
+  const graphs = new Map(); // owner -> latest knowledge graph (memory only; rebuilt from the accounts)
   const secret = env.SESSION_SECRET || "";
   const owner = (env.OWNER_EMAIL || "").trim().toLowerCase();
   const ready = secret.length >= 32 && !!owner;
@@ -80,8 +82,11 @@ function mountPersonal(app, { engine, accounts, maps, env = process.env, limit }
     const { lat, lon, raining } = req.body || {};
     if (![lat, lon].every(Number.isFinite)) return res.status(400).json({ error: "position required" });
     const { events, errors } = await allEvents(req, res);
-    const ev = nextTrip(events);
-    if (!ev) return res.json({ event: null, errors, upcoming: events.length });
+    const ev = nextTrip(events), call = nextCall(events);
+    // Meeting rescue (14.6): an online call starting soon while driving → tell the organiser / join by audio when parked.
+    const rescue = call ? { title: call.title, start: call.start, joinUrl: call.joinUrl, organizer: call.organizer, source: call.source,
+      draft: call.organizer ? { to: [call.organizer], subject: `Joining by audio: ${call.title}`, body: `I'm driving and will join "${call.title}" (${hhmm(call.start)}) by audio from the car.` } : null } : null;
+    if (!ev) return res.json({ event: null, call: rescue, errors, upcoming: events.length });
     try {
       const place = (await maps.search(ev.location, { lat, lon }))[0];
       if (!place) return res.json({ event: ev, place: null, errors, why: "couldn't find the meeting's location on the map" });
@@ -89,19 +94,79 @@ function mountPersonal(app, { engine, accounts, maps, env = process.env, limit }
       const hazards = along(route.coords);
       const plan = leaveBy({ event: ev, route, hazards, raining: !!raining });
       const draft = plan.late > 0 ? lateMessage({ event: ev, arrival: plan.arriveIfNow + 5 * 60e3 }) : null;
-      res.json({ event: ev, place, route: { lengthM: route.lengthM, durationS: route.durationS, trafficDelayS: route.trafficDelayS, coords: route.coords }, hazards, plan, draft, errors });
+      res.json({ event: ev, place, route: { lengthM: route.lengthM, durationS: route.durationS, trafficDelayS: route.trafficDelayS, coords: route.coords }, hazards, plan, draft, call: rescue, errors });
     } catch (e) { fail(res, e); }
   });
 
   /* ---------- co-pilot: new mail and Teams chats, read out only at stops (the phone decides when) ---------- */
-  async function inboxFor(req, res) {
+  async function inboxFor(req, res, trip = null) {
     const items = [], errors = [];
     const g = ck(req, "ss_g"), m = ck(req, "ss_m");
     if (g) { try { items.push(...(await accounts.google.unread(g.r))); } catch (e) { errors.push({ source: "gmail", error: e.message }); } }
     if (m) { try { const r = await accounts.microsoft.unread(m.r, m.uid); keepMs(res, m, r.rotated); items.push(...r.items); } catch (e) { errors.push({ source: "teams", error: e.message }); } }
-    return { items: items.sort((a, b) => b.ts - a.ts), errors };
+    items.sort((a, b) => b.ts - a.ts);
+    // Knowledge across apps (14.6): earlier messages in each thread/chat + meetings → graph → context per message.
+    const history = {};
+    for (const it of items.slice(0, 6)) {
+      try {
+        if (it.source === "gmail" && g) history[`thread:${it.threadId || it.id}`] = (await accounts.google.thread(g.r, it.threadId)).filter((h) => h.id !== it.id);
+        if (it.source === "teams" && m) { const r = await accounts.microsoft.chatHistory(m.r, it.chatId); keepMs(res, m, r.rotated); history[`chat:${it.chatId}`] = r.items.filter((h) => h.id !== it.id); }
+      } catch {}
+    }
+    const { events } = await allEvents(req, res);
+    const graph = buildGraph({ events, items, history });
+    graphs.set(owner, graph);
+    for (const it of items) Object.assign(it, contextFor(it, graph, { trip, history }));
+    if (llm?.on) await refineContext(items, events, trip).catch(() => {});
+    return { items, errors };
   }
-  app.get("/api/copilot/inbox", needOwner, limit, async (req, res) => res.json(await inboxFor(req, res)));
+  // Optional LLM pass: for messages the rules couldn't link, ask which meeting (if any) they refer to.
+  // The answer must be one of the real meetings; anything else is ignored.
+  async function refineContext(items, events, trip) {
+    const open = items.filter((it) => !it.refersTo).slice(0, 4); if (!open.length || !events.length) return;
+    const meetings = events.slice(0, 8).map((e) => ({ id: e.id, title: e.title, start: hhmm(e.start), with: (e.attendees || []).map((a) => a.name).slice(0, 5) }));
+    const r = await llm.run({ system: "You link messages to the owner's meetings. Reply only with JSON {\"links\":[{\"message\":<index>,\"meeting_id\":<id or null>}]}. Link only when the message clearly refers to that meeting.", json: true,
+      messages: [{ role: "user", content: JSON.stringify({ meetings, messages: open.map((it, i) => ({ index: i, from: it.from, subject: it.subject, text: it.snippet })) }) }], maxTokens: 300 });
+    let links = []; try { links = JSON.parse(r.content).links || []; } catch {}
+    for (const l of links) {
+      const it = open[l.message], ev = events.find((e) => e.id === l.meeting_id);
+      if (!it || !ev) continue;
+      it.refersTo = { kind: "meeting", id: `meeting:${ev.id}`, title: ev.title, start: ev.start, location: ev.location || null };
+      it.context = `${(it.from || "Someone").split(" ")[0]} about ${ev.title} at ${hhmm(ev.start)}.`;
+    }
+  }
+  const tripOf = (q) => q.dest ? { destination: String(q.dest).slice(0, 80), minutes_left: Number.isFinite(+q.mins) ? +q.mins : null, traffic_delay_min: +q.delay || 0, hazards_on_route: +q.hz || 0, flooded: q.flood === "1" } : null;
+  app.get("/api/copilot/inbox", needOwner, limit, async (req, res) => res.json(await inboxFor(req, res, tripOf(req.query))));
+
+  // "What I know" (14.6): the owner's own knowledge graph, shown in the app.
+  app.get("/api/copilot/graph", needOwner, limit, async (req, res) => {
+    if (!graphs.has(owner)) await inboxFor(req, res, null);
+    const gr = graphs.get(owner) || { nodes: [], edges: [] };
+    const by = (k) => gr.nodes.filter((n) => n.kind === k);
+    const label = (id) => gr.nodes.find((n) => n.id === id)?.label || id;
+    res.json({ builtAt: gr.builtAt, people: by("person").map((p) => ({ name: p.label, email: p.email || null, links: gr.edges.filter((e) => e.from === p.id).length })).sort((a, b) => b.links - a.links),
+      meetings: by("meeting").map((mt) => ({ title: mt.label, start: mt.start, place: mt.location || null, online: !!mt.joinUrl, people: gr.edges.filter((e) => e.to === mt.id && e.rel !== "about").map((e) => label(e.from)), conversations: gr.edges.filter((e) => e.to === mt.id && e.rel === "about").map((e) => label(e.from)) })),
+      conversations: [...by("thread"), ...by("chat")].map((c) => ({ title: c.label, via: c.kind === "chat" ? "Teams" : "Gmail", people: gr.edges.filter((e) => e.to === c.id && e.rel === "wrote").map((e) => label(e.from)), about: gr.edges.filter((e) => e.from === c.id && e.rel === "about").map((e) => label(e.to)) })),
+      edges: gr.edges.length });
+  });
+
+  // Vague spoken reply → proper message + context + automatic ETA line (14.6). Demo items need no account.
+  app.post("/api/copilot/compose", limit, async (req, res) => {
+    const { item = {}, said, trip = null, car = "creta", demo = false } = req.body || {};
+    if (!demo && !isOwner(req)) return res.status(401).json({ error: "sign in as the owner first" });
+    if (typeof said !== "string" || !said.trim()) return res.status(400).json({ error: "said required" });
+    let text = composeRules(said, item), brain = "rules";
+    if (llm?.on && !demo) {
+      try {
+        const r = await llm.run({ system: "Turn the driver's spoken words into a short, polite reply message. Keep their meaning exactly; do not add facts, times, places or promises they didn't say. One or two sentences. Write in English unless the original message is in Hindi or Hinglish, then match it. Output only the message text.", maxTokens: 200,
+          messages: [{ role: "user", content: JSON.stringify({ replying_to: { from: item.from, subject: item.subject, text: item.snippet }, context: item.context || null, driver_said: said.slice(0, 400) }) }] });
+        // No invented times: the only time in a reply comes from the live ETA line.
+        if (r.content && !/\b\d{1,2}[:.]\d{2}\b/.test(r.content)) { text = r.content.replace(/^"|"$/g, ""); brain = "llm"; }
+      } catch {}
+    }
+    const line = etaLine({ car, trip });
+    res.json({ text, etaLine: line, full: `${text}\n\n${line}`, brain });
+  });
 
   // Sends only with confirmed:true, which the phone sets after the driver hears the text read back and says yes.
   app.post("/api/copilot/send", needOwner, limit, express.json(), async (req, res) => {

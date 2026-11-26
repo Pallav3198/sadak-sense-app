@@ -40,4 +40,27 @@ function isStopped(samples, now = Date.now(), forMs = 6000) {
   return recent.length >= 3 && now - recent[0].ts >= forMs - 500 && recent.every((s) => s.kmh < 3);
 }
 
-module.exports = { leaveBy, lateMessage, nextTrip, isStopped, hhmm, HAZARD_COST_S };
+// The automatic line at the end of every reply sent from the car (14.6): live ETA and a road event.
+const CAR_NAMES = { aura: "Aura", exter: "Exter", venue: "Venue", creta: "Creta", bayon: "Bayon" };
+function etaLine({ car, trip, now = Date.now() }) {
+  const model = CAR_NAMES[car] ? ` ${CAR_NAMES[car]}` : "";
+  if (!trip || !trip.destination || !Number.isFinite(trip.minutes_left)) return `Sent from my Hyundai${model} while driving.`;
+  const ev = trip.flooded ? "flooded underpass on the way" : trip.hazards_on_route ? `${trip.hazards_on_route} road hazard${trip.hazards_on_route === 1 ? "" : "s"} on the way` : trip.traffic_delay_min >= 5 ? `${trip.traffic_delay_min} min of traffic on the way` : "";
+  return `Sent from my Hyundai${model}: reaching ${trip.destination} by ${hhmm(now + trip.minutes_left * MIN)}${ev ? ", " + ev : ""}.`;
+}
+
+// Vague spoken reply → a proper short message (rules; the LLM version is used when available).
+function composeRules(said, ctx = {}) {
+  const t = String(said || "").toLowerCase().trim();
+  const meet = ctx.refersTo?.kind === "meeting" ? ` to ${ctx.refersTo.title}` : "";
+  const parts = [];
+  if (/^(haan|han|ha|ji|yes|yeah|ok|okay|theek|thik|sure|bilkul|हाँ|हां|ठीक)\b/.test(t)) parts.push("Yes, that works.");
+  else if (/^(nahi|nahin|na|no|nope|नहीं|ना)\b/.test(t)) parts.push("Sorry, that won't work for me.");
+  if (/(pahunch|pohoch|reach|on my way|coming|aa raha|aa rahi|nikal gaya|nikal gayi|raaste mein|rastey mein|पहुँच|पहुंच|आ रहा|आ रही|रास्ते में)/.test(t)) parts.push(`I'm on my way${meet}.`);
+  if (/(late|der ho|der se|thoda time|देर)/.test(t)) parts.push("I'm running a little late.");
+  if (/(call|baad mein|later|phone)/.test(t) && !parts.length) parts.push("I'll call you back once I've parked.");
+  if (!parts.length) { const s = String(said || "").trim(); parts.push(s.charAt(0).toUpperCase() + s.slice(1) + (/[.!?।]$/.test(s) ? "" : ".")); }
+  return parts.join(" ");
+}
+
+module.exports = { leaveBy, lateMessage, nextTrip, isStopped, hhmm, HAZARD_COST_S, etaLine, composeRules };
