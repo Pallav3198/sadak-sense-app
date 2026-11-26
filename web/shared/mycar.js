@@ -19,6 +19,9 @@
   const HARD_SEVERITY = 1.2;       // fleet median jolt (normalised to 30 km/h) that counts as a hard breaker
 
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  // Personal profile (spec 14.9): elders or kids on board → gentler; learned comfort → this driver's adjustment.
+  let profile = { gentle: false, adjust: 0 };
+  function setProfile(p) { profile = { ...profile, ...p }; }
   function effectiveClearanceMm(car, people = 1) { return car.clearanceMm - SAG_PER_PASSENGER_MM * clamp(people - 1, 0, 6); }
 
   // Advice for one hazard and one car. Breakers: base 20 km/h, slower if the fleet felt it hard,
@@ -29,24 +32,25 @@
     if (h.type === "water" || h.family === "water") return { kind: "water", level: "info", car, people, devices: h.devices };
     if (h.type === "breaker") {
       const hard = (h.severity ?? 1) >= HARD_SEVERITY, low = eff < LOW_SITTING_MM;
-      const speed = 20 - (hard ? 5 : 0) - (low ? 5 : 0);
-      return { kind: "breaker", level: speed <= 10 ? "high" : speed <= 15 ? "medium" : "low", hard, low, effMm: eff, speed, car, people };
+      const speed = clamp(20 - (hard ? 5 : 0) - (low ? 5 : 0) - (profile.gentle ? 5 : 0) + (profile.adjust || 0), 10, 25);
+      return { kind: "breaker", level: speed <= 10 ? "high" : speed <= 15 ? "medium" : "low", hard, low, effMm: eff, speed, car, people, gentle: profile.gentle, adjusted: profile.adjust || 0 };
     }
-    return { kind: "pothole", level: (h.severity ?? 1) > 1.3 ? "high" : "medium", effMm: eff, speed: 20, car, people };
+    return { kind: "pothole", level: (h.severity ?? 1) > 1.3 || profile.gentle ? "high" : "medium", effMm: eff, speed: profile.gentle ? 15 : 20, car, people, gentle: profile.gentle };
   }
 
   // One short line for the car strip / voice, in the driver's language.
   function line(v, lang = "English") {
     const n = v.car.name, p = v.people;
     if (v.kind === "water") return { English: `Cars are crawling and stalling here. Better to take another road.`, Hinglish: `Yahan gaadiyan atak rahi hain. Doosra raasta behtar hai.`, Hindi: `यहाँ गाड़ियाँ अटक रही हैं। दूसरा रास्ता बेहतर है।` }[lang];
+    const g = v.gentle ? { English: " Elders or kids on board: extra gentle.", Hinglish: " Bade-bujurg ya bachche saath hain: aur aaram se.", Hindi: " बड़े-बुज़ुर्ग या बच्चे साथ हैं: और आराम से।" }[lang] : "";
     if (v.kind === "breaker") {
       const hard = v.hard ? { English: "Cars feel this breaker hard. ", Hinglish: "Is breaker pe gaadiyon ko zor ka jhatka lagta hai. ", Hindi: "इस ब्रेकर पर गाड़ियों को ज़ोर का झटका लगता है। " }[lang] : "";
-      if (v.low) return { English: `${hard}With ${p} on board your ${n} sits lower: slow to ${v.speed}.`, Hinglish: `${hard}${p} logon ke saath aapki ${n} neeche baithi hai: ${v.speed} tak dheere kijiye.`, Hindi: `${hard}${p} लोगों के साथ आपकी ${n} नीचे बैठी है: ${v.speed} तक धीमे करें।` }[lang];
-      return { English: `${hard}Your ${n}: cross at ${v.speed}.`, Hinglish: `${hard}Aapki ${n}: ${v.speed} pe nikaliye.`, Hindi: `${hard}आपकी ${n}: ${v.speed} पर निकालें।` }[lang];
+      if (v.low) return { English: `${hard}With ${p} on board your ${n} sits lower: slow to ${v.speed}.`, Hinglish: `${hard}${p} logon ke saath aapki ${n} neeche baithi hai: ${v.speed} tak dheere kijiye.`, Hindi: `${hard}${p} लोगों के साथ आपकी ${n} नीचे बैठी है: ${v.speed} तक धीमे करें।` }[lang] + g;
+      return { English: `${hard}Your ${n}: cross at ${v.speed}.`, Hinglish: `${hard}Aapki ${n}: ${v.speed} pe nikaliye.`, Hindi: `${hard}आपकी ${n}: ${v.speed} पर निकालें।` }[lang] + g;
     }
-    return v.level === "high"
+    return (v.level === "high"
       ? { English: `Deep pothole. Risky for your ${n}'s tyres and rims.`, Hinglish: `Gehra gaddha. Aapki ${n} ke tyre aur rim ke liye risky.`, Hindi: `गहरा गड्ढा। आपकी ${n} के टायर और रिम के लिए जोखिम।` }[lang]
-      : { English: `Pothole. Slow down to protect your ${n}'s suspension.`, Hinglish: `Gaddha hai. ${n} ke suspension ke liye dheere chaliye.`, Hindi: `गड्ढा है। ${n} के सस्पेंशन के लिए धीरे चलें।` }[lang];
+      : { English: `Pothole. Slow down to protect your ${n}'s suspension.`, Hinglish: `Gaddha hai. ${n} ke suspension ke liye dheere chaliye.`, Hindi: `गड्ढा है। ${n} के सस्पेंशन के लिए धीरे चलें।` }[lang]) + (v.kind === "pothole" ? g : "");
   }
 
   // Road-wear dose: how hard this car has been hit. Feeds the service and claim features.
@@ -56,5 +60,5 @@
     return { hits: hits.length, dose: Math.round(dose), pct, due: pct >= 80 };
   }
 
-  return { CARS, effectiveClearanceMm, check, line, wear };
+  return { CARS, effectiveClearanceMm, check, line, wear, setProfile };
 });
