@@ -8,7 +8,11 @@
   const HINGLISH_WORDS = /\b(hai|hain|kya|koi|aage|aagey|gaddha|gadda|gaddhe|khadda|paani|pani|bhara|bhar|haan|han|ha|nahi|nahin|na|yahan|idhar|wahan|bada|badi|batao|bataiye|bolo|do|dijiye|kitne|kitna|raasta|rasta|sadak|mein|me|pe|par|ka|ki|ke|tha|thi|theek|thik|ji|bhai|aaj|abhi|mat|chalo|dekho|jhatka|madad|shukriya|boliye|poochho|batana|meri|gaadi|gadi|nikal|jayegi)\b/i;
   const DEV = /[ऀ-ॿ]/;
 
+  // Other Indian scripts (spec 14.7): the reply is written in English and spoken in this language.
+  const SCRIPTS = [["Tamil", /[\u0B80-\u0BFF]/], ["Telugu", /[\u0C00-\u0C7F]/], ["Kannada", /[\u0C80-\u0CFF]/], ["Malayalam", /[\u0D00-\u0D7F]/], ["Bengali", /[\u0980-\u09FF]/]];
+  function script(text) { const s = SCRIPTS.find(([, re]) => re.test(text)); return s ? s[0] : null; }
   function detectLang(text) {
+    const sc = script(text); if (sc) return sc;
     if (DEV.test(text)) return "Hindi";
     const words = text.toLowerCase().match(/[a-z]+/g) || [];
     const hits = words.filter((w) => HINGLISH_WORDS.test(w)).length;
@@ -18,21 +22,24 @@
   const has = (t, re) => re.test(t);
   function intent(raw) {
     const t = raw.toLowerCase().normalize("NFC");
-    const yes = /^\s*(haan|han|ha|ji|ji haan|yes|yeah|yep|sahi|bilkul|हाँ|हां|जी)(?=$|[\s?.!,।])/;
-    const no = /^\s*(nahi|nahin|na|no|nope|galat|नहीं|ना)(?=$|[\s?.!,।])/;
+    const yes = /^\s*(haan|han|ha|ji|ji haan|yes|yeah|yep|sahi|bilkul|हाँ|हां|जी|ஆமா|ஆம்|சரி|అవును|సరే|അതെ|ശരി|ಹೌದು|ಸರಿ|হ্যাঁ|ঠিক আছে)(?=$|[\s?.!,।])/;
+    const no = /^\s*(nahi|nahin|na|no|nope|galat|नहीं|ना|இல்லை|வேண்டாம்|కాదు|లేదు|వద్దు|ഇല്ല|വേണ്ട|ಇಲ್ಲ|ಬೇಡ|না|নেই)(?=$|[\s?.!,।])/;
     if (has(t, yes) && t.split(/\s+/).length <= 3) return { name: "yes" };
     if (has(t, no) && t.split(/\s+/).length <= 3) return { name: "no" };
     // "Will my car make it?": answered from the car's own clearance, load and wading limit.
-    if (has(t, /(meri (gaadi|gadi|car)|my car|nikal (jayegi|jaayegi|jaegi|payegi|paayegi)|neeche lag|scrape|clearance|मेरी गाड़ी|मेरी कार|निकल (जाएगी|पाएगी))/)) return { name: "ask_car" };
-    const pothole = /(gaddh|gadd?a|khadd|pothole|crater|गड्ढ|गढ्ढ)/, breaker = /(speed ?breaker|breaker|bump|hump|ब्रेकर)/, water = /(paani|pani|water|flood|bhar(a|aa)|jal ?bhar|underpass|पानी|जलभराव|अंडरपास|बाढ़)/;
-    const here = /(yahan|yaha|idhar|here|abhi|यहाँ|यहां|इधर)/;
-    const question = /(\?|kya|koi|kahan|kitne|kitna|is there|any|what|where|how many|क्या|कोई|कितने)/;
-    const report = /(hai|hain|mila|laga|there is|there's|found|report|है)/;
-    if (has(t, /(brief|route|aaj ka|today|raasta|rasta|सारांश|आज|ब्रीफ|रूट)/) && !has(t, here)) return { name: "brief" };
+    if (has(t, /(meri (gaadi|gadi|car)|my car|nikal (jayegi|jaayegi|jaegi|payegi|paayegi)|neeche lag|scrape|clearance|मेरी गाड़ी|मेरी कार|निकल (जाएगी|पाएगी)|என் (கார்|வண்டி)|నా (కారు|బండి)|എന്റെ (കാർ|വണ്ടി)|ನನ್ನ (ಕಾರು|ಗಾಡಿ)|আমার গাড়ি)/)) return { name: "ask_car" };
+    const pothole = /(gaddh|gadd?a|khadd|pothole|crater|गड्ढ|गढ्ढ|பள்ளம்|குழி|గుంత|గుంట|గొయ్య|കുഴി|ಗುಂಡಿ|ಹೊಂಡ|গর্ত|খানাখন্দ)/;
+    const breaker = /(speed ?breaker|breaker|bump|hump|ब्रेकर|வேகத்தடை|பிரேக்கர்|బ్రేకర్|వేగ నిరోధక|ഹമ്പ്|ബ്രേക്കർ|ಹಂಪ್|ಬ್ರೇಕರ್|ব্রেকার)/;
+    const water = /(paani|pani|water|flood|bhar(a|aa)|jal ?bhar|underpass|पानी|जलभराव|अंडरपास|बाढ़|தண்ணீர்|வெள்ளம்|నీళ్ళు|నీళ్లు|నీరు|వరద|വെള്ളം|വെള്ളക്കെട്ട്|ನೀರು|ಪ್ರವಾಹ|জলমগ্ন|জল|পানি)/;
+    const here = /(yahan|yaha|idhar|here|abhi|यहाँ|यहां|इधर|இங்கே|இங்க|ఇక్కడ|ഇവിടെ|ಇಲ್ಲಿ|এখানে)/;
+    const question = /(\?|kya|koi|kahan|kitne|kitna|is there|any|what|where|how many|क्या|कोई|कितने|இருக்கா|உள்ளதா|ஏதாவது|ఉందా|ఏమైనా|ഉണ്ടോ|എന്തെങ്കിലും|ಇದೆಯಾ|ಏನಾದರೂ|আছে কি|কোনো)/;
+    const report = /(hai|hain|mila|laga|there is|there's|found|report|है|இருக்கு|இருக்கிறது|ఉంది|ഉണ്ട്|ಇದೆ|আছে)/;
+    if (has(t, /(help|madad|kya kar sakte|what can you|मदद|உதவி|సహాయం|സഹായം|ಸಹಾಯ|সাহায্য)/)) return { name: "help" };
+    if (has(t, /(brief|route|aaj ka|today|raasta|rasta|सारांश|आज|ब्रीफ|रूट|இன்றைய|ரூட்|ఈరోజు|రూట్|ഇന്നത്തെ|റൂട്ട്|ಇಂದಿನ|ರೂಟ್|আজকের|রুট)/) && !has(t, here)) return { name: "brief" };
     if (has(t, water) && has(t, here) && !has(t, question)) return { name: "report", type: "crawl" };
     if (has(t, water)) return { name: "ask_water" };
-    if ((has(t, pothole) || has(t, breaker)) && has(t, here) && has(t, report) && !has(t, /(\?|kya|koi|क्या|कोई)/)) return { name: "report", type: has(t, breaker) ? "breaker" : "pothole" };
-    if (has(t, /(aage|aagey|ahead|next|आगे|clear|saaf|साफ)/) || has(t, pothole) || has(t, breaker)) return { name: "ask_ahead", type: has(t, breaker) ? "breaker" : has(t, pothole) ? "pothole" : null };
+    if ((has(t, pothole) || has(t, breaker)) && has(t, here) && has(t, report) && !has(t, question)) return { name: "report", type: has(t, breaker) ? "breaker" : "pothole" };
+    if (has(t, /(aage|aagey|ahead|next|आगे|clear|saaf|साफ|முன்னால்|முன்னே|ముందు|മുന്നിൽ|മുന്നോട്ട്|ಮುಂದೆ|সামনে)/) || has(t, pothole) || has(t, breaker)) return { name: "ask_ahead", type: has(t, breaker) ? "breaker" : has(t, pothole) ? "pothole" : null };
     if (has(t, /(help|madad|kya kar sakte|what can you|मदद)/)) return { name: "help" };
     return { name: "unknown" };
   }
@@ -51,7 +58,8 @@
     // Speech engines often write spoken Hinglish in Devanagari; keep the driver's chosen register.
     if (ctx.prefer === "Hinglish" && lang === "Hindi") lang = "Hinglish";
     if (ctx.prefer === "English" && lang !== "English" && !/[\u0900-\u097F]/.test(text)) lang = lang;
-    const it = intent(text), L = lang;
+    const it = intent(text), voice = script(text), L = voice ? "English" : lang;
+    if (voice) lang = "English";
     const say = (en, hl, hi) => ({ English: en, Hinglish: hl, Hindi: hi }[L]);
     let out, action = null;
     switch (it.name) {
@@ -102,7 +110,7 @@
       default:
         out = say("Sorry, I didn't get that. You can ask what's ahead or report a pothole.", "Maaf kijiye, samajh nahi aaya. Aap pooch sakte hain aage kya hai, ya gaddha report kar sakte hain.", "माफ़ कीजिए, समझ नहीं आया। आप पूछ सकते हैं आगे क्या है, या गड्ढा रिपोर्ट कर सकते हैं।");
     }
-    return { lang, intent: it.name, reply: out, action };
+    return { lang, voice: voice || null, intent: it.name, reply: out, action };
   }
 
   function askAfterJolt(type, lang) {

@@ -596,7 +596,7 @@ async function ask(text, shown) {
   try {
     const r = await SS.api("/api/ask", { text, lat: p.lat, lon: p.lon, heading: p.heading, device: S.device, routeId: S.routeId, pending: S.pendingJolt ? { type: S.pendingJolt.type } : null, prefer: S.lang });
     bubble("a", "Sadak Sense", r.reply);
-    const keep = S.lang; S.lang = r.lang; say(r.reply, "reply"); S.lang = keep;
+    const keep = S.lang, kv = S.replyVoice; S.lang = r.lang; if (r.voice) S.replyVoice = r.voice; say(r.reply, "reply"); S.lang = keep; S.replyVoice = kv;
     if (r.action && "confirm" in r.action && S.pendingJolt) resolveJolt(r.action.confirm);
     if (r.action?.report) { S.sent++; $("cNet").textContent = `${S.sent} SENT`; fetchKnown(); }
   } catch { bubble("a", "Sadak Sense", "Network nahi mil raha. Report phone mein save hai, baad mein bhej dunga."); }
