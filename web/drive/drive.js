@@ -29,10 +29,17 @@ function onJolt(e) {
   // In the car this is triggered by the tyre-pressure sensor; the demo uses the first hard pothole hit.
   if (e.type === "pothole" && e.peakG >= (S.mode === "demo" ? 0.5 : 0.9) && !S.agentDone.has("tyre")) setTimeout(() => tyreAgent(e), 3500);
   const ev = { device: S.device, lat: +S.pos.lat.toFixed(6), lon: +S.pos.lon.toFixed(6), heading: Math.round(S.pos.heading ?? 0), speed: +(S.pos.speed * 3.6).toFixed(1), peak_g: e.peakG, type: e.type, ts: Date.now() };
-  // A jolt where no hazard is known yet: ask the driver once (human-in-the-loop false-alarm filter).
+  // Fully automatic: the driver is never asked. False alarms are filtered by machines, not people:
+  // on the phone (below 8 km/h, phone being handled, weak GPS, the same spot twice in one pass) and in the
+  // cloud (3 different cars must feel it; 8 cars passing smoothly removes it).
+  const label = e.type === "breaker" ? "speed breaker" : "pothole";
+  if (S.pos.acc != null && S.pos.acc > 35) { $("tNote").textContent = `${label} felt · GPS too weak (±${Math.round(S.pos.acc)} m), not reported`; return; }
+  const now = Date.now(); S.spots = (S.spots || []).filter((x) => now - x.ts < 120e3);
+  if (S.spots.some((x) => SS.hav(x.lat, x.lon, ev.lat, ev.lon) < 20)) { $("tNote").textContent = `${label} · same spot, already reported`; return; }
+  S.spots.push({ lat: ev.lat, lon: ev.lon, ts: now });
+  S.queue.push(ev);
   const known = S.known.some((h) => SS.hav(h.lat, h.lon, ev.lat, ev.lon) < 25);
-  if (known || S.pendingJolt) S.queue.push(ev); else askConfirm(ev);
-  $("tNote").textContent = `${e.type === "breaker" ? "speed breaker" : "pothole"} detected · ${e.peakG} g`;
+  $("tNote").textContent = `${label} detected · ${e.peakG} g · reported automatically${known ? " · matches a known hazard" : " · new, waiting for 2 more cars"}`;
   try { localStorage.setItem("ss-queue", JSON.stringify(S.queue.slice(-200))); } catch {}
 }
 
@@ -392,11 +399,13 @@ const STEPS = {
     const q = CHIPS[S.lang][0], r = SadakVoice.reply(q, { ahead: [{ type: "pothole", dist: 190, devices: 46 }], prefer: S.lang });
     openConvo(); bubble("u", S.lang === "English" ? "You" : "Aap", q); bubble("a", "Sadak Sense", r.reply); say(r.reply); await spoken(); }],
   car: [T3("Will my car make it?", "Meri gaadi nikal jayegi?", "मेरी गाड़ी निकल जाएगी?"), async () => { S.carCheck = SadakCar.check(S.car, S.people, { type: "breaker", severity: 1.4 }); await ask(CHIPS[S.lang][1]); await spoken(); }],
-  jolt: [T3("Unknown jolt, the car checks", "Anjaan jhatka, gaadi poochhti hai", "अनजान झटका, गाड़ी पूछती है"), async () => {
+  jolt: [T3("New pothole, reported automatically", "Naya gaddha, apne aap report", "नया गड्ढा, अपने आप रिपोर्ट"), async () => {
     clearPending(); const p = here();
     S.jolts++; $("mJolts").textContent = S.jolts;
-    askConfirm({ device: S.device, lat: p.lat, lon: p.lon, heading: Math.round(p.heading || 0), speed: 24, peak_g: 0.9, type: "pothole", ts: Date.now() });
-    await spoken(); await ask(YES[S.lang]); await spoken(); }],
+    S.queue.push({ device: S.device, lat: p.lat, lon: p.lon, heading: Math.round(p.heading || 0), speed: 24, peak_g: 0.9, type: "pothole", ts: Date.now() });
+    $("tNote").textContent = "pothole detected · 0.9 g · reported automatically · new, waiting for 2 more cars";
+    openConvo(); bubble("a", "Sadak Sense", T3("New pothole felt here. Reported automatically, no question asked; it shows up for other drivers once 2 more cars feel it.", "Yahan naya gaddha mila. Apne aap report ho gaya, aapse kuch poochha nahi; 2 aur gaadiyon ko mehsoos hote hi baaki drivers ko dikhega.", "यहाँ नया गड्ढा मिला। अपने आप रिपोर्ट हो गया, आपसे कुछ पूछा नहीं; 2 और गाड़ियों को महसूस होते ही बाक़ी ड्राइवरों को दिखेगा।"));
+    await pause(2500); }],
   report: [T3("Report a hazard by voice", "Bolkar report kijiye", "बोलकर रिपोर्ट कीजिए"), async () => { await ask(CHIPS[S.lang][3]); await spoken(); }],
   tyre: [T3("Hard hit: service, claim, home", "Zor ka jhatka: service, claim, ghar", "ज़ोर का झटका: सर्विस, क्लेम, घर"), async () => {
     clearPending(); S.agentDone.delete("tyre"); S.hits.push({ ts: Date.now(), type: "pothole", peakG: 1.21, road: $("mRoad").textContent, speed: 26 }); renderCar();
