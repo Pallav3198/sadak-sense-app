@@ -2,170 +2,266 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><script>if (/^\/car\b/.test(location.pathname) || /[?&]car\b/.test(location.search)) document.documentElement.classList.add("carmode");</script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#080b10"><link rel="manifest" href="/drive/manifest.webmanifest"><link rel="apple-touch-icon" href="/drive/icon-192.png"><link rel="icon" href="/drive/icon-192.png">
-<title>Sadak Sense · Drive</title>
+<meta name="theme-color" content="#071426"><link rel="manifest" href="/drive/manifest.webmanifest"><link rel="apple-touch-icon" href="/drive/icon-192.png"><link rel="icon" href="/drive/icon-192.png">
+<title>Sadak Sense · myHyundai</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="/shared/ui.css">
 <style>
-/* Layout: one phone-sized HUD. On a laptop it sits centred like a mounted phone. */
-body{display:grid;place-items:center;min-height:100%;background:radial-gradient(1200px 600px at 50% -10%,#14223a 0%,var(--bg) 60%)}
-.device{width:min(100vw,430px);height:min(100dvh,900px);background:var(--bg);display:flex;flex-direction:column;overflow:hidden;position:relative;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (min-width:600px){.device{border:1px solid var(--line2);border-radius:34px;box-shadow:0 40px 120px rgba(0,0,0,.6);margin:20px}}
-.top{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 6px}
-.top .brand{font-size:17px}
-.chips{display:flex;gap:6px}
-.chip{font-family:var(--mono);font-size:10px;padding:3px 7px;border-radius:999px;border:1px solid var(--line2);color:var(--muted)}
-.chip.ok{color:var(--ok);border-color:var(--ok)}.chip.bad{color:var(--pothole);border-color:var(--pothole)}
-.alert{margin:6px 14px 0;border-radius:20px;padding:16px 18px;min-height:120px;display:flex;gap:14px;align-items:center;border:1px solid var(--line);background:var(--panel);transition:background .3s,border-color .3s}
-.alert .ic{width:58px;height:58px;border-radius:16px;display:grid;place-items:center;font-family:var(--display);font-size:30px;font-weight:700;color:#0b0f14;background:var(--line2);flex:none}
-.alert .t{font-family:var(--display);font-size:22px;font-weight:600;line-height:1.15}
-.alert .s{color:var(--muted);font-size:13px;margin-top:3px}
-.alert.breaker{border-color:var(--breaker);background:color-mix(in srgb,var(--breaker) 14%,var(--bg))}.alert.breaker .ic{background:var(--breaker)}
-.alert.pothole{border-color:var(--pothole);background:color-mix(in srgb,var(--pothole) 14%,var(--bg))}.alert.pothole .ic{background:var(--pothole)}
-.alert.water{border-color:var(--water);background:color-mix(in srgb,var(--water) 16%,var(--bg))}.alert.water .ic{background:var(--water)}
-.alert.clear .ic{background:color-mix(in srgb,var(--ok) 25%,var(--panel2));color:var(--ok)}
-.dist{font-family:var(--display);font-size:40px;font-weight:700;font-variant-numeric:tabular-nums;margin-left:auto;text-align:right;line-height:1}
-.dist small{display:block;font-size:12px;color:var(--muted);font-family:var(--body);font-weight:400}
-.mid{display:grid;grid-template-columns:auto 1fr;gap:12px;padding:12px 14px 0;align-items:end}
-.speed{font-family:var(--display);font-size:64px;font-weight:700;line-height:.9;font-variant-numeric:tabular-nums}
-.speed small{font-size:14px;color:var(--muted);font-weight:500}
-.meta{font-size:12px;color:var(--muted);text-align:right}
-.meta b{color:var(--fg);font-weight:600}
-#map{position:relative;z-index:0;flex:1;margin:12px 14px 0;border-radius:18px;overflow:hidden;border:1px solid var(--line);min-height:160px}
-.trace{margin:10px 14px 0;border-radius:14px;background:#05080b;border:1px solid var(--line);padding:8px 10px}
+/* ---------- Tokens: myHyundai night theme (Hyundai blue + active sky blue) ---------- */
+:root{--bg:#071426;--bg2:#0b1b33;--panel:#0f223d;--panel2:#15305a;--line:#1d3a63;--line2:#28497a;--fg:#f3f6fb;--muted:#9fb1ca;--dim:#6c819f;
+  --accent:#00aad2;--brand:#002c5f;--sand:#e4dcd3;--ok:#3ccf8e;--breaker:#ffb020;--pothole:#ff5a5f;--water:#3d9bff;
+  --display:"Inter",system-ui,sans-serif;--body:"Inter",system-ui,sans-serif;--r:18px;--glass:rgba(10,26,48,.86)}
+body{font-family:var(--body);font-size:14px;display:grid;place-items:center;min-height:100%;background:#030a14}
+h1,h2,h3{font-family:var(--display);letter-spacing:-.01em;font-weight:700}
+.label{font-family:var(--body);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.btn{border-radius:14px;background:var(--panel2);border:1px solid var(--line2);font-weight:500}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#012233;font-weight:700}
+select,.sheet input:not([type=checkbox]){background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:9px 10px;color:inherit;font:inherit}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
+.hlogo{display:inline-block;width:34px;height:17px;color:currentColor;flex:none}
+.wordmark{font-weight:800;letter-spacing:.22em;font-size:11px}
+
+/* ---------- Phone frame ---------- */
+.device{width:min(100vw,430px);height:min(100dvh,920px);background:var(--bg);display:flex;flex-direction:column;overflow:hidden;position:relative;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (min-width:600px){.device{border:1px solid var(--line2);border-radius:38px;box-shadow:0 40px 120px rgba(0,0,0,.6);margin:20px}}
+.infot,.cluster{display:contents}
+.cdeco,.climate,.caption,.clock,.dockdeco{display:none}
+
+/* app bar */
+.top{order:1;display:flex;align-items:center;gap:10px;padding:10px 14px 6px}
+.iconbtn{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--panel);border:1px solid var(--line);cursor:pointer;flex:none;padding:0}
+.iconbtn svg{width:20px;height:20px}
+.brandmark{display:flex;align-items:center;gap:8px;min-width:0}
+.brandmark .nm{display:flex;flex-direction:column;line-height:1.1}
+.brandmark .nm b{font-size:15px;font-weight:700;white-space:nowrap}.brandmark .nm small{font-size:10.5px;color:var(--muted);letter-spacing:.04em}
+.chips{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end;max-width:52%}
+.chip{font-size:9.5px;font-weight:600;letter-spacing:.04em;padding:3px 7px;border-radius:999px;background:var(--panel);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}.chip.bad{color:var(--pothole);border-color:color-mix(in srgb,var(--pothole) 50%,var(--line))}
+
+/* hazard card */
+.alert{order:2;margin:4px 12px 0;border-radius:22px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);transition:background .3s,border-color .3s}
+.alert .ic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-size:26px;font-weight:800;color:#06121f;background:var(--line2);flex:none}
+.alert > div:nth-child(2){flex:1;min-width:0}
+.alert .t{font-size:19px;font-weight:700;line-height:1.2}
+.alert .s{color:var(--muted);font-size:12.5px;margin-top:2px}
+.alert.clear .ic{background:color-mix(in srgb,var(--ok) 22%,var(--panel2));color:var(--ok)}
+.alert.breaker{border-color:var(--breaker);background:color-mix(in srgb,var(--breaker) 16%,var(--bg))}.alert.breaker .ic{background:var(--breaker)}
+.alert.pothole{border-color:var(--pothole);background:color-mix(in srgb,var(--pothole) 16%,var(--bg))}.alert.pothole .ic{background:var(--pothole)}
+.alert.water{border-color:var(--water);background:color-mix(in srgb,var(--water) 18%,var(--bg))}.alert.water .ic{background:var(--water)}
+.alert.nearmiss{border-color:#f0b429;background:color-mix(in srgb,#f0b429 14%,var(--bg))}.alert.nearmiss .ic{background:#f0b429}
+.dist{font-size:34px;font-weight:800;font-variant-numeric:tabular-nums;text-align:right;line-height:1}
+.dist small{display:block;font-size:11px;color:var(--muted);font-weight:500}
+.alert .rep{flex-basis:100%;padding:8px 12px;font-size:12.5px}
+
+/* compact info rows */
+.co{order:3;margin:8px 12px 0;display:flex;flex-wrap:wrap;gap:2px 10px;text-align:left;padding:10px 14px;border-radius:16px;border:1px solid color-mix(in srgb,var(--accent) 55%,var(--line));background:color-mix(in srgb,var(--accent) 10%,var(--panel));color:inherit;font:inherit;cursor:pointer}
+.co .ct{font-weight:600;font-size:13px;flex-basis:100%}.co .cs{font-size:11.5px;color:var(--muted)}.co .ci{font-size:11.5px;color:var(--accent);margin-left:auto;font-weight:600}
+.env{order:4;margin:8px 12px 0;display:flex;gap:8px;align-items:center;justify-content:space-between;padding:8px 14px;border-radius:14px;border:1px solid var(--line);background:var(--panel);font-size:12px;color:var(--muted)}
+.env b{color:var(--fg)}.env .ea{font-size:10.5px;color:var(--accent);text-align:right;font-weight:600}
+.env.warn{border-color:var(--breaker)}.env.bad{border-color:var(--pothole)}
+.car{order:5;margin:8px 12px 0;display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:14px;border:1px solid var(--line);background:var(--panel);font-size:12.5px;cursor:pointer;color:inherit;text-align:left;width:calc(100% - 24px)}
+.car .cn{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);white-space:nowrap}
+.car .cl{flex:1;min-width:0;line-height:1.3}.car .cw{font-size:10.5px;color:var(--muted);white-space:nowrap}
+.car.medium{border-color:var(--breaker)}.car.high{border-color:var(--pothole);background:color-mix(in srgb,var(--pothole) 10%,var(--panel))}
+.car.stop{border-color:var(--pothole);background:color-mix(in srgb,var(--pothole) 22%,var(--panel));font-weight:600}
+
+/* map + floating speed */
+#map{order:6;position:relative;z-index:0;flex:1;margin:10px 12px 0;border-radius:22px;overflow:hidden;border:1px solid var(--line);min-height:150px}
+.mid{position:absolute;left:22px;bottom:104px;z-index:450;display:flex;align-items:center;gap:10px;pointer-events:none}
+.speed{width:86px;height:86px;border-radius:50%;display:grid;place-items:center;align-content:center;background:radial-gradient(closest-side,var(--glass) 79%,transparent 80% 100%),conic-gradient(var(--accent) calc(var(--sp,0) * 1%),rgba(255,255,255,.12) 0);font-size:30px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;box-shadow:0 8px 28px rgba(0,0,0,.45)}
+.speed small{display:block;font-size:10px;color:var(--muted);font-weight:600;text-align:center;margin-top:2px}
+.meta{background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:7px 10px;font-size:11px;color:var(--muted);line-height:1.45}
+.meta b{color:var(--fg)}
+.trace{order:8;display:none}
 .trace canvas{width:100%;height:58px;display:block}
-.bottom{display:flex;gap:8px;padding:10px 14px 16px}
-.bottom .btn{flex:1;padding:12px;border-radius:14px}
-.sheet{position:absolute;inset:0;background:var(--bg);z-index:900;display:flex;flex-direction:column;padding:28px 22px;gap:14px;overflow:auto}
-.sheet h1{font-size:30px}
-.sheet p{color:var(--muted);margin:0}
-.sheet .btn{padding:14px;border-radius:14px;font-size:15px;text-align:left}
-.sheet .btn b{display:block;font-family:var(--display);font-size:17px}
-.sheet .btn span{font-size:12.5px;color:var(--muted)}
-.sheet .btn.primary span{color:#0b3533}
-.field{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.field select{min-width:0;max-width:68%}
-.mic{flex:1.4!important;background:var(--accent)!important;color:#04201f!important;border-color:var(--accent)!important;font-weight:700;font-family:var(--display);font-size:16px}
-.mic .mi{display:inline-block;margin-right:4px;color:#04201f}
-.mic.listening{background:var(--pothole)!important;border-color:var(--pothole)!important;animation:micp 1.2s infinite}
-@keyframes micp{0%,100%{box-shadow:0 0 0 0 rgba(255,93,93,.5)}50%{box-shadow:0 0 0 10px rgba(255,93,93,0)}}
-.convo{position:absolute;left:14px;right:14px;bottom:84px;z-index:850;background:rgba(17,24,35,.97);border:1px solid var(--line2);border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:8px;max-height:58%;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+
+/* dock */
+.bottom{order:9;display:flex;align-items:flex-end;justify-content:space-around;gap:4px;padding:10px 10px 14px}
+.bottom .btn{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 2px;background:none;border:0;font-size:10.5px;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bottom .btn::before{content:"";width:24px;height:24px;background:currentColor;-webkit-mask:var(--i) center/contain no-repeat;mask:var(--i) center/contain no-repeat}
+.bottom .btn:hover{color:var(--fg)}
+#briefBtn{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 19l4-14 4 9 3-5 5 10'/%3E%3C/svg%3E")}
+#simBtn{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M7 4v16l13-8z'/%3E%3C/svg%3E")}
+#voiceBtn{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 10v4h4l5 4V6L8 10zM16 9a4 4 0 010 6M19 6a8 8 0 010 12'/%3E%3C/svg%3E")}
+#stopBtn{--i:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Crect x='6' y='6' width='12' height='12' rx='2'/%3E%3C/svg%3E")}
+.bottom .mic{flex:0 0 auto;width:68px;height:68px;border-radius:50%;margin-top:-26px;background:var(--accent);color:#012233;justify-content:center;font-size:11px;font-weight:800;box-shadow:0 10px 30px color-mix(in srgb,var(--accent) 45%,transparent);border:4px solid var(--bg)}
+.bottom .mic::before{display:none}
+.mic .mi{display:block;width:22px;height:22px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Crect x='9' y='3' width='6' height='11' rx='3'/%3E%3Cpath d='M5 11a7 7 0 0014 0M12 18v3'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Crect x='9' y='3' width='6' height='11' rx='3'/%3E%3Cpath d='M5 11a7 7 0 0014 0M12 18v3'/%3E%3C/svg%3E") center/contain no-repeat;font-size:0}
+.mic.listening{background:var(--pothole)!important;animation:micp 1.2s infinite}
+@keyframes micp{0%,100%{box-shadow:0 0 0 0 rgba(255,90,95,.55)}50%{box-shadow:0 0 0 14px rgba(255,90,95,0)}}
+
+/* overlays */
+.convo,.brief,.health{position:absolute;left:12px;right:12px;bottom:96px;z-index:860;background:rgba(11,27,51,.97);border:1px solid var(--line2);border-radius:22px;box-shadow:0 24px 60px rgba(0,0,0,.55);backdrop-filter:blur(10px)}
+.convo{padding:12px;display:flex;flex-direction:column;gap:8px;max-height:58%}
 .msgs{display:flex;flex-direction:column;gap:6px;overflow:auto;min-height:40px}
-.msgs div{max-width:88%;padding:8px 11px;border-radius:14px;font-size:14px;line-height:1.35}
-.msgs .u{align-self:flex-end;background:var(--panel2);border:1px solid var(--line2)}
-.msgs .a{align-self:flex-start;background:color-mix(in srgb,var(--accent) 16%,var(--bg));border:1px solid color-mix(in srgb,var(--accent) 45%,var(--line))}
-.msgs .who{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
-.chips2{display:flex;flex-wrap:wrap;gap:6px}
-.chips2 button{font-size:12px;padding:6px 10px;border-radius:999px}
-.say{display:flex;gap:6px}.say input{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:9px}
+.msgs div{max-width:88%;padding:9px 12px;border-radius:16px;font-size:14px;line-height:1.4;white-space:pre-line}
+.msgs .u{align-self:flex-end;background:var(--panel2)}
+.msgs .a{align-self:flex-start;background:color-mix(in srgb,var(--accent) 16%,var(--bg));border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line))}
+.msgs .who{display:block;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;font-weight:700}
+.chips2{display:flex;flex-wrap:wrap;gap:6px}.chips2 button{font-size:12px;padding:6px 11px;border-radius:999px}
+.say{display:flex;gap:6px}.say input{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line2);border-radius:14px;padding:10px}
 .yn{display:flex;gap:8px}.yn .btn{flex:1;padding:12px;font-weight:600}
-/* Silent alert style (14.1): coloured edge glow instead of sound; big Haan / Na for agent questions */
+[data-alert="silent"] .yn .btn{padding:22px 12px;font-size:22px}
+.brief{padding:14px 16px;font-size:14px;display:none}.brief.show{display:block}.brief .label{margin-bottom:4px}
+.health{padding:16px;display:flex;flex-direction:column;gap:10px;max-height:74%;overflow:auto}
+.health h3{font-size:18px;margin:0}
+.health .btn{padding:11px;text-align:left}.health .note{font-size:11.5px;color:var(--muted)}
+.bar{height:10px;border-radius:999px;background:var(--panel2);overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--ok),var(--breaker),var(--pothole))}
+.hlog{font-family:var(--mono);font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+.tourbar{position:absolute;top:calc(env(safe-area-inset-top,0px) + 58px);left:12px;right:12px;z-index:870;display:flex;align-items:center;gap:8px;background:var(--accent);color:#012233;border-radius:14px;padding:7px 12px;font-size:12.5px;font-weight:700}
+.tourbar button{background:#012233;color:#fff;border:0;border-radius:9px;padding:5px 11px;font:inherit}
 .device.glow-breaker{box-shadow:inset 0 0 0 5px var(--breaker),inset 0 0 70px color-mix(in srgb,var(--breaker) 45%,transparent)}
 .device.glow-pothole{box-shadow:inset 0 0 0 5px var(--pothole),inset 0 0 70px color-mix(in srgb,var(--pothole) 45%,transparent)}
 .device.glow-water{box-shadow:inset 0 0 0 5px var(--water),inset 0 0 70px color-mix(in srgb,var(--water) 45%,transparent)}
-[data-alert="silent"] .yn .btn{padding:22px 12px;font-size:22px;font-family:var(--display)}
-.brief{position:absolute;left:14px;right:14px;bottom:84px;z-index:800;background:var(--panel2);border:1px solid var(--line2);border-radius:16px;padding:12px 14px;font-size:14px;display:none}
-.brief.show{display:block}
-.brief .label{margin-bottom:4px}
-.msgs div{white-space:pre-line}
-.env{margin:6px 14px 0;display:flex;gap:8px;align-items:center;justify-content:space-between;padding:7px 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-size:12px;color:var(--muted)}
-.env b{color:var(--fg);font-weight:600}.env .ea{font-family:var(--mono);font-size:10px;color:var(--accent);text-align:right}
-.onboard{z-index:950}.days{display:flex;flex-wrap:wrap;gap:6px}.day{display:flex;gap:4px;align-items:center;padding:6px 9px;border:1px solid var(--line2);border-radius:10px;font-size:13px}
-.onboard input:not([type=checkbox]){min-width:0;max-width:62%;background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:8px;color:inherit;font:inherit}
-.pairsheet{z-index:960;align-items:center;justify-content:center;text-align:center}.pairbig{font-family:var(--display);font-size:64px;letter-spacing:.12em;font-weight:700;color:var(--accent)}
-#pairShow{display:none}.carmode #pairShow{display:block}.carmode #pairPhone{display:none}
+.simlist{display:grid;grid-template-columns:1fr 1fr;gap:6px}.simlist .btn{padding:10px;font-size:12px;text-align:left;line-height:1.25}
+#repChannels .btn,#destList .btn{text-align:left;text-decoration:none;color:inherit}#repChannels .btn b,#destList .btn b{display:block;font-size:13px}#repChannels .btn span,#destList .btn span{font-size:11.5px;color:var(--muted)}
 .know ul{margin:4px 0 8px;padding-left:18px;font-size:13px;display:flex;flex-direction:column;gap:6px}.know span{color:var(--muted);font-size:11.5px}
-.me{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
-.me .note{font-size:12.5px;color:var(--muted)}.merow{display:flex;gap:8px;flex-wrap:wrap}.merow .btn{flex:1 1 140px;text-decoration:none;color:inherit;padding:10px 12px}
-.me input{min-width:0;flex:1;max-width:70%;background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:8px;color:inherit;font:inherit}
-#destList .btn{text-align:left}#destList .btn b{display:block;font-size:14px}#destList .btn span{font-size:11.5px;color:var(--muted)}
-.co{margin:6px 14px 0;display:flex;flex-wrap:wrap;gap:2px 10px;text-align:left;padding:8px 12px;border-radius:12px;border:1px solid var(--accent);background:var(--panel);color:inherit;font:inherit;cursor:pointer}
-.co .ct{font-weight:600;font-size:13px;flex-basis:100%}.co .cs{font-size:11.5px;color:var(--muted)}.co .ci{font-size:11.5px;color:var(--accent);margin-left:auto}
-#repChannels .btn{text-align:left;text-decoration:none;color:inherit}#repChannels .btn b{display:block;font-size:13px}#repChannels .btn span{font-size:11.5px;color:var(--muted)}
-.alert{flex-wrap:wrap}.alert .rep{flex-basis:100%;padding:7px 12px;font-size:12.5px;margin-top:2px}
-/* ---------- Car-screen mode (/car/): a wide in-dash touchscreen. Same app, same live data. ---------- */
-.clock{display:none}
-.carmode body{background:radial-gradient(1400px 700px at 50% 120%,#1b2433 0%,#06080c 60%);padding:18px 0}
-.carmode .device{width:min(98vw,1560px);height:min(calc(98vw / 2.35),92dvh,680px);border-radius:26px;border:10px solid #0c0f14;outline:1px solid #2a3342;
-  box-shadow:0 50px 140px rgba(0,0,0,.75),inset 0 0 0 1px #1d2633;margin:0;display:grid;gap:0 14px;padding:0 14px 0 0;
-  grid-template-columns:minmax(0,1.55fr) minmax(330px,1fr);grid-template-rows:auto auto auto auto auto minmax(0,1fr) auto auto;
-  grid-template-areas:"top top" "map alert" "map co" "map car" "map env" "map mid" "map trace" "dock dock"}
-.carmode .top{grid-area:top;padding:10px 4px 8px 18px}
-.carmode .clock{display:block;font-family:var(--display);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;margin-left:auto;margin-right:14px}
-.carmode .alert{grid-area:alert;margin:0 0 8px;min-height:96px;padding:12px 14px}
-.carmode .alert .t{font-size:24px}.carmode .dist{font-size:44px}
-.carmode #coBar{grid-area:co;margin:0 0 8px}
-.carmode #carBar{grid-area:car;margin:0 0 8px;width:100%}
-.carmode #envBar{grid-area:env;margin:0 0 8px}
-.carmode .mid{grid-area:mid;padding:0;align-items:end}
-.carmode .speed{font-size:72px}
-.carmode #map{grid-area:map;margin:0;border-radius:0 18px 18px 0;border-left:0;min-height:0;height:100%}
-.carmode .trace{grid-area:trace;margin:8px 0 0}
-.carmode .trace canvas{height:44px}
-.carmode .bottom{grid-area:dock;padding:10px 0 12px 14px}
-.carmode .bottom .btn{padding:12px 16px;font-size:15px}
-.carmode .health{left:auto;right:14px;width:min(36%,520px);bottom:76px;max-height:74%}
-.carmode .convo,.carmode .brief{left:24px;right:auto;width:min(40%,560px);bottom:84px;max-height:66%}
-.carmode .tourbar{left:auto;right:14px;width:min(36%,520px);top:56px}
-.carmode .sheet{display:grid;grid-template-columns:1fr 1fr;align-content:start;gap:12px 28px;padding:28px 36px}
-.carmode .sheet > .brand,.carmode .sheet > h1,.carmode .sheet > p{grid-column:1/-1}
-.carmode .sheet > .me{grid-column:1;grid-row:span 8;align-self:start}
-.carmode .sheet h1{font-size:34px}
-.carmode .caption{display:block}
-.caption{display:none;position:fixed;left:0;right:0;bottom:6px;text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#5b6b7c}
-@media (max-width:820px){.carmode .device{grid-template-columns:1fr;grid-template-rows:auto auto auto 260px auto auto auto;grid-template-areas:"top" "alert" "co" "map" "car" "env" "mid" "trace" "dock";height:auto;min-height:100dvh;overflow:auto}
-  .carmode #map{border-radius:14px;border-left:1px solid var(--line)}}
-.alert.nearmiss{border-color:#f0b429;background:color-mix(in srgb,#f0b429 14%,var(--bg))}.alert.nearmiss .ic{background:#f0b429}
-.env.warn{border-color:var(--breaker)}.env.bad{border-color:var(--pothole)}
-.simlist{display:grid;grid-template-columns:1fr 1fr;gap:6px}.simlist .btn{padding:9px;border-radius:12px;font-size:12px;text-align:left;line-height:1.25}
-.tourbar{position:absolute;top:calc(env(safe-area-inset-top,0px) + 52px);left:14px;right:14px;z-index:870;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--accent);color:#04201f;border-radius:12px;padding:6px 10px;font-size:12.5px;font-weight:600}
-.tourbar button{background:#04201f;color:#fff;border:0;border-radius:8px;padding:5px 10px;font:inherit}
-/* Fits my car: the carmaker-only layer under the alert */
-.car{margin:8px 14px 0;display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:14px;border:1px solid var(--line);background:var(--panel);font-size:12.5px;cursor:pointer;color:inherit;text-align:left;width:calc(100% - 28px)}
-.car .cn{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
-.car .cl{flex:1;min-width:0;line-height:1.3}
-.car .cw{font-family:var(--mono);font-size:10.5px;color:var(--muted);white-space:nowrap}
-.car.low{border-color:color-mix(in srgb,var(--ok) 55%,var(--line))}
-.car.medium{border-color:var(--breaker)}.car.high{border-color:var(--pothole);background:color-mix(in srgb,var(--pothole) 10%,var(--panel))}
-.car.stop{border-color:var(--pothole);background:color-mix(in srgb,var(--pothole) 22%,var(--panel));font-weight:600}
-.health{position:absolute;left:14px;right:14px;bottom:84px;z-index:860;background:rgba(17,24,35,.98);border:1px solid var(--line2);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px;max-height:72%;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.5)}
-.health h3{font-family:var(--display);font-size:18px;margin:0}
-.bar{height:10px;border-radius:999px;background:var(--panel2);overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--ok),var(--breaker),var(--pothole))}
-.hlog{font-family:var(--mono);font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
-.health .btn{padding:10px;border-radius:12px;text-align:left}
-.health .note{font-size:11px;color:var(--muted)}
+
+/* ---------- Full-screen sheets (home, setup, pairing) ---------- */
+.sheet{position:absolute;inset:0;background:var(--bg);z-index:900;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 24px;gap:12px;overflow:auto}
+.sheet h1{font-size:26px;line-height:1.15}
+.sheet p{color:var(--muted);margin:0}
+.sheet .btn{padding:14px 16px;font-size:15px;text-align:left}
+.sheet .btn b{display:block;font-size:15px;font-weight:700}
+.sheet .btn span{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:2px}
+.sheet .btn.primary span{color:#05384a}
+.field{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.field select{min-width:0;max-width:62%}
+.field .label{text-transform:none;letter-spacing:0;font-size:13.5px;color:var(--fg);font-weight:500}
+.me{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
+.me .note{font-size:12.5px;color:var(--muted)}
+.merow{display:flex;gap:8px;flex-wrap:wrap}.merow .btn{flex:1 1 140px;text-decoration:none;color:inherit;padding:11px 12px}
+.me input{min-width:0;flex:1;max-width:70%;background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:9px;color:inherit;font:inherit}
+.home .apphead{order:-1}
+.home .hero{position:relative;border-radius:26px;padding:20px 18px 18px;overflow:hidden;background:linear-gradient(150deg,#0a3a75 0%,#002c5f 55%,#031a39 100%);border:1px solid #1c4f8c}
+.home .hero::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;border:28px solid rgba(0,170,210,.12)}
+.home .hero h1{font-size:25px;max-width:16ch;position:relative;z-index:1}
+.home .hero p{color:#bcd0ea;font-size:13px;margin-top:8px;position:relative;z-index:1;max-width:32ch}
+.home .hero .carpill{display:inline-flex;align-items:center;gap:6px;margin-bottom:12px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#bfe9f5;background:rgba(0,170,210,.16);border:1px solid rgba(0,170,210,.35);padding:4px 10px;border-radius:999px;position:relative;z-index:1}
+.home #realBtn{padding:18px;border-radius:20px;text-align:center}
+.home #realBtn b{font-size:18px}
+.home .foot{font-size:11px;color:var(--dim);text-align:center;margin-top:auto;padding-top:8px}
+.days{display:flex;flex-wrap:wrap;gap:6px}.day{display:flex;gap:4px;align-items:center;padding:6px 9px;border:1px solid var(--line2);border-radius:10px;font-size:13px}
+.onboard{z-index:950}
+.pairsheet{z-index:960;align-items:center;justify-content:center;text-align:center}.pairbig{font-size:64px;letter-spacing:.12em;font-weight:800;color:var(--accent)}
+#pairShow{display:none}.carmode #pairShow{display:block}.carmode #pairPhone{display:none}
+
+/* ---------- Menu drawer ---------- */
+.scrim{position:absolute;inset:0;background:rgba(2,8,18,.6);z-index:990}
+.drawer{position:absolute;top:0;bottom:0;left:0;width:min(88%,380px);z-index:1000;background:var(--bg2);border-right:1px solid var(--line2);display:flex;flex-direction:column;overflow:auto;padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 24px;gap:6px;box-shadow:20px 0 60px rgba(0,0,0,.5)}
+.drawer .dh{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.drawer .dh .iconbtn{margin-left:auto}
+.drawer h4{margin:16px 0 4px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.drawer .btn{padding:12px 14px;text-align:left;font-size:14px}
+.drawer .btn b{display:block;font-size:14px;font-weight:600}
+.drawer .btn span{display:block;font-size:11.5px;color:var(--muted);font-weight:400;margin-top:2px}
+.drawer .btn.primary span{color:#05384a}
+.drawer .grp{display:flex;flex-direction:column;gap:8px}
+.drawer .fine{font-size:11px;color:var(--dim);margin-top:14px}
+
+/* ======================================================================================
+   Car-screen mode (/car/): Hyundai panoramic display, driver cluster + infotainment
+   ====================================================================================== */
+.carmode body{background:linear-gradient(180deg,#0d1622 0%,#05080d 46%,#121418 47%,#0b0c0f 100%);padding:28px 0 0;display:flex;flex-direction:column;align-items:center;gap:0;min-height:100dvh}
+.carmode .device{width:min(97vw,1560px);height:min(calc(97vw / 2.55),640px);margin:0;border-radius:30px;border:12px solid #0e1014;outline:1px solid #2a2f38;background:#02060c;
+  box-shadow:0 40px 120px rgba(0,0,0,.8),inset 0 0 0 1px #1a222e;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);padding:0;position:relative}
+.carmode .device::after{content:"";position:absolute;inset:0;border-radius:18px;pointer-events:none;background:linear-gradient(115deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,0) 28%,rgba(255,255,255,0) 70%,rgba(255,255,255,.04) 100%);z-index:1200}
+/* driver cluster (left) */
+.carmode .cluster{display:flex;flex-direction:column;position:relative;padding:16px 22px 14px;background:radial-gradient(120% 90% at 50% 60%,#0b1e38 0%,#030912 70%);border-left:1px solid #16243a;min-width:0}
+.carmode .cdeco{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--muted);font-weight:600;letter-spacing:.06em}
+.carmode .cdeco .gear{display:flex;gap:10px;font-size:15px;font-weight:700;color:#4b5f7c}.carmode .cdeco .gear b{color:var(--fg)}
+.carmode .cdeco .mode{color:var(--ok);border:1px solid color-mix(in srgb,var(--ok) 50%,transparent);border-radius:999px;padding:2px 10px;font-size:11px}
+.carmode .cluster .alert{order:0;margin:12px 0 0;padding:12px 14px;border-radius:18px}
+.carmode .cluster .alert .t{font-size:20px}.carmode .cluster .alert .ic{width:50px;height:50px}.carmode .dist{font-size:38px}
+.carmode .mid{position:static;flex:1;display:flex;align-items:center;justify-content:center;gap:26px;min-height:0;pointer-events:auto}
+.carmode .speed{width:min(22vw,230px);height:min(22vw,230px);font-size:min(6.4vw,72px);
+  background:radial-gradient(closest-side,#061427 84%,transparent 85% 100%),conic-gradient(from 225deg,var(--accent) calc(var(--sp,0) * .75%),rgba(255,255,255,.1) 0 75%,transparent 0);box-shadow:0 0 60px rgba(0,170,210,.12)}
+.carmode .speed small{font-size:13px}
+.carmode .meta{background:none;border:0;font-size:13px;line-height:1.9;padding:0}
+.carmode .cluster .car{order:0;margin:0 0 8px;width:100%}
+.carmode .trace{display:block;order:0;margin:0;border-radius:12px;background:#020811;border:1px solid #13223a;padding:6px 10px}
+.carmode .trace canvas{height:38px}
+/* infotainment (right) */
+.carmode .infot{display:grid;grid-template-rows:auto minmax(0,1fr) auto;position:relative;min-width:0;background:#06101e}
+.carmode .top{padding:10px 16px;background:#050d19;border-bottom:1px solid #13223a}
+.carmode .top .iconbtn{width:36px;height:36px}
+.carmode .clock{display:block;white-space:nowrap;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;margin-left:auto}
+.carmode .chips{margin-left:14px;max-width:none;flex-wrap:nowrap}.carmode #cImu,.carmode #cNet{display:none}
+.carmode .temp{display:block}
+.carmode #map{margin:0;border-radius:0;border:0;min-height:0;height:100%}
+.carmode .infot .co{position:absolute;top:66px;left:14px;width:min(46%,440px);margin:0;z-index:500;background:rgba(6,18,36,.92)}
+.carmode .infot .env{position:absolute;bottom:84px;left:14px;width:min(46%,440px);margin:0;z-index:500;background:rgba(6,18,36,.92)}
+.carmode .bottom{padding:8px 16px 10px;background:#050d19;border-top:1px solid #13223a;justify-content:flex-start;gap:6px;align-items:center}
+.carmode .bottom .btn{flex:0 0 auto;width:86px;font-size:11px}
+.carmode .bottom .mic{width:58px;height:58px;margin:0 10px 0 auto;border:0}
+.carmode .dockdeco{display:flex;gap:6px;margin-right:auto}
+.carmode .dockdeco span{width:86px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:#5d7393;font-weight:600}
+.carmode .dockdeco span::before{content:"";width:24px;height:24px;background:currentColor;-webkit-mask:var(--i) center/contain no-repeat;mask:var(--i) center/contain no-repeat}
+.carmode .convo,.carmode .brief,.carmode .health{left:auto;right:16px;width:min(38%,540px);bottom:84px;max-height:72%}
+.carmode .tourbar{left:auto;right:16px;width:min(38%,540px);top:62px}
+.carmode .sheet{border-radius:18px}
+.carmode .home{align-items:center;justify-content:center;text-align:center;background:radial-gradient(80% 90% at 50% 40%,#0b2a52 0%,#02060c 70%)}
+.carmode .home > *{max-width:560px;width:100%}
+.carmode .home .apphead{position:absolute;top:16px;left:16px;width:auto;background:none;border:0}.carmode .home .apphead .brandmark{display:none}
+.carmode .home #meBox,.carmode .home #remindBox,.carmode .home #realBtn{display:none}
+.carmode .home .hero{background:none;border:0;text-align:center}.carmode .home .hero::after{display:none}
+.carmode .home .hero h1{max-width:none;font-size:34px}.carmode .home .hero p{max-width:none;margin:10px auto 0}
+.carmode .home .bigmark{display:flex}
+.carmode .home .foot{margin-top:12px}
+.bigmark{display:none;flex-direction:column;align-items:center;gap:10px;color:#dfe8f5}
+.bigmark .hlogo{width:120px;height:60px}
+.carmode .climate{display:flex;width:min(70vw,980px);margin-top:16px;justify-content:space-between;align-items:center;padding:12px 34px;border-radius:18px;background:linear-gradient(180deg,#1b1e24,#101215);border:1px solid #2a2e36;color:#c9d2df;font-size:15px;font-weight:600;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.carmode .climate .tz{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}.carmode .climate small{color:#7d8899;font-size:11px;letter-spacing:.1em;display:block}
+.carmode .climate .ac{display:flex;gap:26px;color:#7d8899;font-size:12px;letter-spacing:.08em}.carmode .climate .ac b{color:var(--accent)}
+.carmode .caption{display:block;margin:14px 0 18px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#5b6b7c;text-align:center}
+.temp{display:none;font-size:13px;color:var(--muted);font-weight:600;margin-left:12px}
+@media (max-width:820px){.carmode .device{grid-template-columns:1fr;height:auto;min-height:100dvh;border-width:0;border-radius:0}.carmode .infot{grid-template-rows:auto 320px auto}.carmode .speed{width:150px;height:150px;font-size:44px}.carmode .climate{display:none}}
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="hy" viewBox="0 0 100 50"><ellipse cx="50" cy="25" rx="46" ry="21.5" fill="none" stroke="currentColor" stroke-width="5"/><path fill="currentColor" d="M35.5 10.5c3.2-.9 6.4-1.5 9.6-1.9L36.8 30.3c6.9-2.1 15.6-3.6 24.9-4L67 11.6c-2.7-.8-5.5-1.4-8.4-1.8l2.6-1.4c4.6.4 9 1.3 12.9 2.6L64.9 39.5c-3.1.9-6.4 1.5-9.7 1.9l7.2-18.6c-8.7.4-16.7 1.8-23.1 3.8l-5.4 14c-2.4-.8-4.5-1.7-6.2-2.8z"/></symbol>
+  <symbol id="menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/></symbol>
+  <symbol id="close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/></symbol>
+</svg>
 <div class="device">
-  <div class="top">
-    <div class="brand">SADAK <b>SENSE</b></div>
-    <span class="clock" id="clock"></span>
-    <div class="chips"><span class="chip" id="cGps">GPS</span><span class="chip" id="cImu">SENSORS</span><span class="chip" id="cNet">0 SENT</span><span class="chip" id="cMoment" title="Driving moment: decides when messages are told">Driving</span></div>
+  <div class="infot">
+    <div class="top">
+      <button class="iconbtn" id="menuBtn" type="button" aria-label="Menu"><svg><use href="#menu"/></svg></button>
+      <div class="brandmark"><svg class="hlogo"><use href="#hy"/></svg><div class="nm"><b>Sadak Sense</b><small>myHyundai</small></div></div>
+      <span class="temp">24°C · Haze</span>
+      <span class="clock" id="clock"></span>
+      <div class="chips"><span class="chip" id="cGps">GPS</span><span class="chip" id="cImu">SENSORS</span><span class="chip" id="cNet">0 SENT</span><span class="chip" id="cMoment" title="Driving moment: decides when messages are told">Driving</span></div>
+    </div>
+    <div id="map"></div>
+    <button class="co" id="coBar" type="button" hidden><span class="ct" id="coT"></span><span class="cs" id="coS"></span><span class="ci" id="coInbox"></span></button>
+    <div class="env" id="envBar" hidden><span id="envTxt"></span><span class="ea" id="envAct"></span></div>
+    <div class="bottom">
+      <div class="dockdeco" aria-hidden="true"><span style="--i:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M12 3l9 18-9-5-9 5z'/%3E%3C/svg%3E&quot;)">Navigation</span><span style="--i:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='7' cy='17' r='3'/%3E%3Ccircle cx='17' cy='15' r='3'/%3E%3Cpath d='M10 17V5l10-2v12'/%3E%3C/svg%3E&quot;)">Media</span><span style="--i:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M5 4h4l2 5-3 2a11 11 0 005 5l2-3 5 2v4a2 2 0 01-2 2A17 17 0 013 6a2 2 0 012-2'/%3E%3C/svg%3E&quot;)">Phone</span></div>
+      <button class="btn" id="briefBtn" type="button">Road brief</button>
+      <button class="btn" id="simBtn" type="button" hidden>Simulate</button>
+      <button class="btn mic" id="micBtn" type="button" aria-label="Talk to Sadak Sense"><span class="mi">●</span> Bolo</button>
+      <button class="btn" id="voiceBtn" type="button" aria-label="Alert style">Chime + card</button>
+      <button class="btn" id="stopBtn" type="button">End</button>
+    </div>
   </div>
-  <div class="alert clear" id="alert" role="status" aria-live="assertive">
-    <div class="ic">✓</div><div><div class="t" id="aT">Road ahead is clear</div><div class="s" id="aS">No confirmed hazards in the next stretch</div></div>
-    <div class="dist" id="aD"></div>
-    <button class="btn rep" id="repBtn" type="button" hidden>Report to city</button>
+  <div class="cluster">
+    <div class="cdeco" aria-hidden="true"><span class="gear">P R N <b>D</b></span><span class="mode">ECO</span><span>ODO 12,480 km</span></div>
+    <div class="alert clear" id="alert" role="status" aria-live="assertive">
+      <div class="ic">✓</div><div><div class="t" id="aT">Road ahead is clear</div><div class="s" id="aS">No confirmed hazards in the next stretch</div></div>
+      <div class="dist" id="aD"></div>
+      <button class="btn rep" id="repBtn" type="button" hidden>Report to city</button>
+    </div>
+    <button class="car" id="carBar" type="button" aria-label="My car and road wear"><span class="cn" id="carName">My car</span><span class="cl" id="carLine">Checks every hazard against this car's clearance and load</span><span class="cw" id="carWear">wear 0%</span></button>
+    <div class="mid">
+      <div class="speed"><span id="spd">0</span><small>km/h</small></div>
+      <div class="meta"><div><b id="mRoad">—</b></div><div>Hazards nearby: <b id="mKnown">0</b></div><div>Jolts felt: <b id="mJolts">0</b></div></div>
+    </div>
+    <div class="trace"><div class="label" style="display:flex;justify-content:space-between"><span>Road feel · vertical acceleration</span><span id="tNote">waiting</span></div><canvas id="tr" width="800" height="116"></canvas></div>
   </div>
-  <button class="car" id="carBar" type="button" aria-label="My car and road wear"><span class="cn" id="carName">My car</span><span class="cl" id="carLine">Checks every hazard against this car's clearance and load</span><span class="cw" id="carWear">wear 0%</span></button>
-  <button class="co" id="coBar" type="button" hidden><span class="ct" id="coT"></span><span class="cs" id="coS"></span><span class="ci" id="coInbox"></span></button>
-  <div class="env" id="envBar" hidden><span id="envTxt"></span><span class="ea" id="envAct"></span></div>
-  <div class="mid">
-    <div class="speed"><span id="spd">0</span> <small>km/h</small></div>
-    <div class="meta"><div><b id="mRoad">—</b></div><div>Hazards known nearby: <b id="mKnown">0</b></div><div>Jolts detected: <b id="mJolts">0</b></div></div>
-  </div>
-  <div id="map"></div>
-  <div class="trace"><div class="label" style="display:flex;justify-content:space-between"><span>Vertical acceleration</span><span id="tNote">waiting</span></div><canvas id="tr" width="800" height="116"></canvas></div>
-  <div class="bottom">
-    <button class="btn" id="briefBtn" type="button">Road brief</button>
-    <button class="btn" id="simBtn" type="button" hidden>Simulate</button>
-    <button class="btn mic" id="micBtn" type="button" aria-label="Talk to Sadak Sense"><span class="mi">●</span> Bolo</button>
-    <button class="btn" id="voiceBtn" type="button" aria-label="Alert style">Chime + card</button>
-    <button class="btn" id="stopBtn" type="button">End</button>
-  </div>
+
   <div class="convo" id="convo" hidden>
     <div class="label" style="display:flex;justify-content:space-between"><span id="convoLbl">Baat kijiye · English, Hindi, Hinglish</span><span id="micState"></span></div>
     <div class="msgs" id="msgs"></div>
@@ -174,36 +270,37 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
     <div class="chips2" id="chips"></div>
     <form class="say" id="sayForm"><label for="sayIn" style="position:absolute;left:-9999px">Say something</label><input id="sayIn" placeholder="Bolo ya type karo…" autocomplete="off"><button class="btn" type="submit">Send</button></form>
   </div>
-  <div class="brief" id="brief"><div class="label">Morning road brief</div><div id="briefT"></div></div>
+  <div class="brief" id="brief"><div class="label">Road brief</div><div id="briefT"></div></div>
   <div class="tourbar" id="tourBar" hidden><span id="tourT">Full demo</span><span id="tourC" style="margin-left:auto;font-variant-numeric:tabular-nums">3:00</span><button id="tourStop" type="button">Stop</button></div>
   <div class="health" id="simSheet" hidden>
-    <div style="display:flex;justify-content:space-between;align-items:center"><h3>Simulate</h3><button class="btn" id="simClose" type="button" style="padding:6px 10px">Close</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:center"><h3>Simulate</h3><button class="btn" id="simClose" type="button" style="padding:6px 12px">Close</button></div>
     <button class="btn primary" id="simAll" type="button"><b>Run everything</b></button>
     <div class="simlist" id="simList"></div>
   </div>
   <div class="health" id="repSheet" hidden>
-    <div style="display:flex;justify-content:space-between;align-items:center"><h3>Report to the city</h3><button class="btn" id="repClose" type="button" style="padding:6px 10px">Close</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:center"><h3>Report to the city</h3><button class="btn" id="repClose" type="button" style="padding:6px 12px">Close</button></div>
     <div class="note" id="repWho"></div>
     <pre class="hlog" id="repDraft" style="white-space:pre-wrap;font-size:12px;max-height:34vh;overflow:auto"></pre>
-    <label class="field" style="gap:10px"><input type="checkbox" id="repOk"><span style="font-size:13px">I agree to send this report. It is anonymous: no name, number plate or phone is included.</span></label>
+    <label class="field" style="gap:10px;border:0"><input type="checkbox" id="repOk"><span style="font-size:13px">I agree to send this report. It is anonymous: no name, number plate or phone is included.</span></label>
     <button class="btn primary" id="repSend" type="button"><b>Send the report</b></button>
     <div id="repMsg" style="font-size:13.5px"></div>
     <div class="label">Or file it yourself on an official channel</div>
     <div id="repChannels" class="simlist"></div>
   </div>
   <div class="sheet pairsheet" id="pairSheet" hidden>
-    <div class="brand" style="font-size:15px">SADAK <b>SENSE</b> · pair with the dashboard phone</div>
-    <p>On the phone, open Sadak Sense and under <b>Car screen</b> type this code, then press <b>Connect to car screen</b> and start driving.</p>
+    <div class="bigmark" style="display:flex"><svg class="hlogo"><use href="#hy"/></svg></div>
+    <h1>Pair with your phone</h1>
+    <p>On the phone, open Sadak Sense → menu → <b>Car screen</b>, type this code, press <b>Connect to car screen</b> and start driving.</p>
     <div class="pairbig" id="pairBig">— — —</div>
     <p class="note">Waiting for the phone… The code works for 12 hours.</p>
-    <button class="btn" id="pairCancel" type="button"><b>Cancel</b></button>
+    <button class="btn" id="pairCancel" type="button" style="text-align:center"><b>Cancel</b></button>
   </div>
   <div class="health" id="knowSheet" hidden>
-    <div style="display:flex;justify-content:space-between;align-items:center"><h3>What I know</h3><button class="btn" id="knowClose" type="button" style="padding:6px 10px">Close</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:center"><h3>What I know</h3><button class="btn" id="knowClose" type="button" style="padding:6px 12px">Close</button></div>
     <div id="knowBody" class="know"></div>
   </div>
   <div class="health" id="health" hidden>
-    <div style="display:flex;justify-content:space-between;align-items:center"><h3 id="hTitle">My car</h3><button class="btn" id="hClose" type="button" style="padding:6px 10px">Close</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:center"><h3 id="hTitle">My car</h3><button class="btn" id="hClose" type="button" style="padding:6px 12px">Close</button></div>
     <div class="note" id="hSpec"></div>
     <div><div class="label" style="display:flex;justify-content:space-between"><span>Road wear this week</span><span id="hPct">0%</span></div><div class="bar"><i id="hBar" style="width:0%"></i></div></div>
     <div id="hMsg" style="font-size:13.5px"></div>
@@ -216,14 +313,14 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
   </div>
 
   <div class="sheet onboard" id="onboard" hidden>
-    <div class="brand" style="font-size:15px">SADAK <b>SENSE</b> · set up in 30 seconds</div>
+    <div class="brandmark"><svg class="hlogo"><use href="#hy"/></svg><div class="nm"><b>Set up in 30 seconds</b><small>Sadak Sense · myHyundai</small></div></div>
     <p>Optional. Skip it and sensible defaults apply: weekday mornings work messages on, evenings and weekends personal only. It also learns your commute by itself in about a week.</p>
     <div class="label">Work days</div><div class="days" id="obDays"></div>
     <div class="field"><label class="label" for="obOffice">Office time</label><input type="time" id="obOffice"></div>
     <div class="merow"><button class="btn" id="obHome" type="button">Use where I am now as home</button><button class="btn" id="obWork" type="button">Use where I am now as office</button></div>
     <div class="field"><label class="label" for="obLearn">Or learn home and office from my trips</label><input type="checkbox" id="obLearn" checked></div>
     <div class="merow" id="obApps" hidden><a class="btn" href="/auth/google"><b>Connect Gmail + Calendar</b></a><a class="btn" href="/auth/microsoft"><b>Connect Teams</b></a></div>
-    <div class="field"><label class="label" for="obVip">VIP contacts (boss, family): names or emails, comma separated</label><input id="obVip" placeholder="boss@company.com, Amma"></div>
+    <div class="field"><label class="label" for="obVip">VIP contacts (boss, family)</label><input id="obVip" placeholder="boss@company.com, Amma"></div>
     <div class="field"><label class="label" for="obDomains">Work email domains</label><input id="obDomains" placeholder="company.com"></div>
     <div class="field"><label class="label" for="obEvening">Office messages in the evening</label><select id="obEvening"><option value="yes">Yes</option><option value="urgent" selected>Urgent only</option><option value="no">No</option></select></div>
     <div class="field"><label class="label" for="obPass">Usual passengers (with you)</label><select id="obPass"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
@@ -237,47 +334,73 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
     <div class="field"><label class="label" for="obAlert">Alert style</label><select id="obAlert"><option value="chime">Chime + card</option><option value="voice">Voice</option><option value="silent">Silent</option></select></div>
     <div class="merow"><button class="btn primary" id="obSave" type="button"><b>Save</b></button><button class="btn" id="obSkip" type="button"><b>Skip</b></button></div>
   </div>
-  <div class="sheet" id="start">
-    <div class="brand" style="font-size:15px">SADAK <b>SENSE</b></div>
-    <h1>Your car feels the road. Now it warns the next driver.</h1>
-    <p>Mount the phone in a holder. It reads the accelerometer and GPS, detects speed breakers and potholes, shares anonymous jolt reports, and warns you before hazards other cars have confirmed.</p>
+
+  <!-- Home -->
+  <div class="sheet home" id="start">
+    <div class="top apphead" style="padding:0">
+      <button class="iconbtn" id="menuBtn2" type="button" aria-label="Menu"><svg><use href="#menu"/></svg></button>
+      <div class="brandmark"><svg class="hlogo"><use href="#hy"/></svg><div class="nm"><b>Sadak Sense</b><small>myHyundai</small></div></div>
+    </div>
+    <div class="bigmark"><svg class="hlogo"><use href="#hy"/></svg><span class="wordmark">HYUNDAI</span></div>
+    <div class="hero">
+      <span class="carpill" id="heroCar">Hyundai Creta · ready</span>
+      <h1>Your car feels the road. Now it warns the next driver.</h1>
+      <p>Warnings for speed breakers, potholes and flooding that other Hyundai cars have confirmed, plus a co-pilot that handles your messages when it is safe.</p>
+    </div>
     <div class="me" id="remindBox" hidden><div class="note">Set your office time? It makes leave-by and work hours right.</div><div class="merow"><button class="btn" id="remindNow" type="button"><b>Set now</b></button><button class="btn" id="remindLater" type="button"><b>Later</b></button></div></div>
-    <button class="btn" id="obOpen" type="button"><b>My commute and preferences</b><span>Work days, office time, VIPs, evenings, passengers</span></button>
     <div class="me" id="meBox" hidden>
-      <div class="label">Personal · your calendar, Gmail, Teams and maps</div>
-      <div class="note" id="meState"></div>
-      <div class="merow"><a class="btn" id="gIn" href="/auth/google"><b>Sign in with Google</b><span>Calendar and Gmail</span></a><a class="btn" id="mIn" href="/auth/microsoft"><b>Connect Teams</b><span>Work or college account</span></a><button class="btn" id="outBtn" type="button" hidden><b>Sign out</b><span>Removes the sign-ins from this phone</span></button></div>
-      <div class="field" id="destRow" hidden><label class="label" for="dest">Where to?</label><input id="dest" type="search" placeholder="Search a place" autocomplete="off"></div>
+      <div class="field" id="destRow" hidden style="border:0;padding:0"><label class="label" for="dest" style="position:absolute;left:-9999px">Where to?</label><input id="dest" type="search" placeholder="Where to?" autocomplete="off" style="max-width:none;padding:13px 14px;font-size:15px"></div>
       <div class="simlist" id="destList" hidden></div>
       <div class="note" id="nextBox"></div>
-      <button class="btn" id="knowBtn" type="button"><b>What I know</b><span>People, meetings and conversations linked from your accounts</span></button>
+      <div class="note" id="meState"></div>
+      <div class="merow"><a class="btn" id="gIn" href="/auth/google"><b>Sign in with Google</b><span>Calendar and Gmail</span></a><a class="btn" id="mIn" href="/auth/microsoft"><b>Connect Teams</b><span>Work or college account</span></a><button class="btn" id="outBtn" type="button" hidden><b>Sign out</b><span>Removes the sign-ins from this phone</span></button></div>
+      <button class="btn" id="knowBtn" type="button"><b>What I know</b><span>People, meetings and conversations from your accounts</span></button>
     </div>
-    <div class="field"><label class="label" for="lang">Voice language</label><select id="lang"><option>English</option><option selected>Hinglish</option><option>Hindi</option><option>Tamil</option><option>Telugu</option><option>Malayalam</option><option>Kannada</option><option>Bengali</option></select></div>
-    <div class="field"><label class="label" for="alertSel">Alert style</label><select id="alertSel"><option value="chime" selected>Chime + card (voice only for serious events)</option><option value="voice">Voice</option><option value="silent">Silent</option></select></div>
-    <div class="field"><label class="label" for="voiceSel">Voice</label><select id="voiceSel"></select></div>
-    <button class="btn" id="voiceTest" type="button" style="padding:9px 14px"><b style="font-size:14px">Hear this voice</b><span id="voiceHint"></span></button>
-    <div class="field"><label class="label" for="carSel">My car</label><select id="carSel"><option value="aura">Hyundai Aura</option><option value="exter">Hyundai Exter</option><option value="venue">Hyundai Venue</option><option value="creta" selected>Hyundai Creta</option><option value="bayon">Hyundai Bayon</option></select></div>
-    <div class="field"><label class="label" for="people">People in the car</label><select id="people"><option>1</option><option>2</option><option>3</option><option selected>4</option><option>5</option></select></div>
-    <div class="field"><label class="label" for="homeOn">Keep home updated</label><input type="checkbox" id="homeOn" checked></div>
-    <div class="field" id="homeMailRow" hidden><label class="label" for="homeMail">Home email</label><input id="homeMail" type="email" placeholder="family@example.com" autocomplete="email" style="min-width:0;max-width:68%;background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:8px;color:inherit;font:inherit"></div>
-    <div class="field"><label class="label" for="helpMap">Help improve the map (asks about a jolt only when stopped)</label><input type="checkbox" id="helpMap"></div>
-    <div class="field"><label class="label" for="gentleToday">Elders or kids on board today (gentler advice, smoother route)</label><input type="checkbox" id="gentleToday"></div>
-    <div class="field"><label class="label" for="rain">It is raining</label><input type="checkbox" id="rain"></div>
+    <button class="btn primary" id="realBtn" type="button"><b>Start driving</b><span>Uses this phone's motion sensors and GPS</span></button>
+    <button class="btn" id="pairShow" type="button"><b>Pair with the dashboard phone</b><span>Shows a code; the phone senses the road, this screen shows and speaks it</span></button>
+    <div class="note" id="pairShowState"></div>
+    <div class="foot">Concept for the Hyundai CoE Mobility Innovation Ideathon 2026 · menu ☰ has demos and settings</div>
+  </div>
+
+  <!-- Menu -->
+  <div class="scrim" id="scrim" hidden></div>
+  <nav class="drawer" id="drawer" hidden aria-label="Menu">
+    <div class="dh"><svg class="hlogo"><use href="#hy"/></svg><div class="brandmark"><div class="nm"><b>Sadak Sense</b><small>myHyundai</small></div></div><button class="iconbtn" id="menuClose" type="button" aria-label="Close menu"><svg><use href="#close"/></svg></button></div>
+    <div id="demoGroup">
+      <h4>Demos</h4>
+      <div class="grp">
+        <button class="btn primary" id="fullBtn" type="button"><b>Full demo</b><span>Plays every feature by itself in 3 minutes, with voice</span></button>
+        <button class="btn" id="demoBtn" type="button"><b>Demo drive</b><span>Simulated drive on a real Delhi road; Simulate triggers any feature</span></button>
+        <div class="field"><label class="label" for="route">Demo route</label><select id="route"></select></div>
+      </div>
+    </div>
+    <h4>Car screen</h4>
     <div class="me pairbox" id="pairPhone">
-      <div class="label">Car screen (optional)</div>
-      <div class="field"><label class="label" for="pairCode">Code shown on the car screen</label><input id="pairCode" maxlength="7" placeholder="ABC 123" autocomplete="off" style="text-transform:uppercase"></div>
+      <div class="field" style="border:0;padding:0"><label class="label" for="pairCode">Code on the car screen</label><input id="pairCode" maxlength="7" placeholder="ABC 123" autocomplete="off" style="text-transform:uppercase;max-width:46%;background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:9px;color:inherit;font:inherit"></div>
       <button class="btn" id="pairBtn" type="button"><b>Connect to car screen</b><span>The car screen then shows and speaks everything this phone senses</span></button>
       <div class="note" id="pairState"></div>
     </div>
-    <button class="btn" id="pairShow" type="button"><b>Pair with the dashboard phone</b><span>Shows a code; the phone on the dashboard senses the road, this screen shows and speaks it</span></button>
-    <div class="note" id="pairShowState"></div>
-    <button class="btn primary" id="realBtn" type="button"><b>Start driving</b><span>Uses this phone's real motion sensors and GPS</span></button>
-    <div class="field"><label class="label" for="route">Demo route</label><select id="route"></select></div>
-    <button class="btn primary" id="fullBtn" type="button"><b>Full demo</b><span>Plays every feature by itself in 3 minutes, with voice</span></button>
-    <button class="btn" id="demoBtn" type="button"><b>Demo drive</b><span>Simulated GPS and sensor signal on a real Delhi road; press Simulate to trigger any feature</span></button>
-    <p style="font-size:11.5px">Privacy: reports contain only location, heading, speed and jolt size, with an ID that changes every day. No trip history is stored. A home email stays in this browser and is used only to send your trip updates.</p>
-  </div>
+    <h4>Trip settings</h4>
+    <div class="grp">
+      <div class="field"><label class="label" for="lang">Voice language</label><select id="lang"><option>English</option><option selected>Hinglish</option><option>Hindi</option><option>Tamil</option><option>Telugu</option><option>Malayalam</option><option>Kannada</option><option>Bengali</option></select></div>
+      <div class="field"><label class="label" for="alertSel">Alert style</label><select id="alertSel"><option value="chime" selected>Chime + card</option><option value="voice">Voice</option><option value="silent">Silent</option></select></div>
+      <div class="field"><label class="label" for="voiceSel">Voice</label><select id="voiceSel"></select></div>
+      <button class="btn" id="voiceTest" type="button"><b>Hear this voice</b><span id="voiceHint"></span></button>
+      <div class="field"><label class="label" for="carSel">My car</label><select id="carSel"><option value="aura">Hyundai Aura</option><option value="exter">Hyundai Exter</option><option value="venue">Hyundai Venue</option><option value="creta" selected>Hyundai Creta</option><option value="bayon">Hyundai Bayon</option></select></div>
+      <div class="field"><label class="label" for="people">People in the car</label><select id="people"><option>1</option><option>2</option><option>3</option><option selected>4</option><option>5</option></select></div>
+      <div class="field"><label class="label" for="gentleToday">Elders or kids on board today</label><input type="checkbox" id="gentleToday"></div>
+      <div class="field"><label class="label" for="rain">It is raining</label><input type="checkbox" id="rain"></div>
+      <div class="field"><label class="label" for="homeOn">Keep home updated</label><input type="checkbox" id="homeOn" checked></div>
+      <div class="field" id="homeMailRow" hidden><label class="label" for="homeMail">Home email</label><input id="homeMail" type="email" placeholder="family@example.com" autocomplete="email" style="min-width:0;max-width:58%"></div>
+      <div class="field"><label class="label" for="helpMap">Help improve the map</label><input type="checkbox" id="helpMap"></div>
+    </div>
+    <h4>Commute</h4>
+    <button class="btn" id="obOpen" type="button"><b>My commute and preferences</b><span>Work days, office time, VIPs, evenings, passengers</span></button>
+    <p class="fine">Privacy: reports contain only location, heading, speed and jolt size, with an ID that changes every day. No trip history is stored. A home email stays on this phone and is used only for your trip updates.</p>
+  </nav>
 </div>
+<div class="climate" aria-hidden="true"><div><small>DRIVER</small><span class="tz">22.0°</span></div><div class="ac"><span><b>AUTO</b></span><span>A/C</span><span>FAN 3</span><span>RECIRC</span><span>AQI 168</span></div><div><small>PASSENGER</small><span class="tz">22.0°</span></div></div>
+<div class="caption">Concept in-car screen · runs on the head unit in production · today a laptop or tablet stands in, paired with the phone on the dashboard</div>
 <script src="/vendor/leaflet/leaflet.js"></script>
 <script src="/shared/common.js"></script>
 <script src="/shared/detector.js"></script>
@@ -297,6 +420,6 @@ body{display:grid;place-items:center;min-height:100%;background:radial-gradient(
 <script src="/shared/personal.js"></script>
 <script src="/drive/personal-ui.js"></script>
 <script src="/drive/pair-ui.js"></script>
-<div class="caption">In-car screen · runs on the head unit in production · today a tablet or laptop stands in, a phone on the dashboard senses the road</div>
+<script src="/drive/shell-ui.js"></script>
 </body>
 </html>
